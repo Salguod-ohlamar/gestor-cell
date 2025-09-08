@@ -1,3 +1,70 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@media print {
+  body:not(.print-mode-compra-imediata) * {
+    visibility: hidden;
+  }
+  body:not(.print-mode-compra-imediata) #printable-area,
+  body:not(.print-mode-compra-imediata) #printable-area * {
+    visibility: visible;
+  }
+  body:not(.print-mode-compra-imediata) #printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  body.print-mode-compra-imediata * {
+    visibility: hidden;
+  }
+  body.print-mode-compra-imediata #compra-imediata-printable,
+  body.print-mode-compra-imediata #compra-imediata-printable * {
+    visibility: visible;
+  }
+  body.print-mode-compra-imediata #compra-imediata-printable {
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  .no-print, .no-print * {
+    display: none !important;
+  }
+  .printable-hidden {
+    display: none !important;
+  }
+
+  body.print-mode-recibo #vendas-non-printable-area {
+    display: none !important;
+  }
+
+  body.print-mode-recibo #estoque-non-printable-area {
+    display: none !important;
+  }
+
+  body.print-mode-recibo #recibo-printable-area {
+    visibility: visible;
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  body.print-mode-recibo #recibo-printable-area * {
+    visibility: visible;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
