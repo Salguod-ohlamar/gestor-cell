@@ -12,7 +12,7 @@ import ServiceCard from './components/ServiceCard.jsx';
 import ContactForm from './components/ContactForm.jsx';
 
 // Lazy load pages for better initial performance
-const EstoquePage = lazy(() => import('./components/Stockcontrol.jsx'));
+const EstoquePage = lazy(() => import('./components/StockControl.jsx'));
 const VendasPage = lazy(() => import('./components/VendasPage.jsx'));
 const ClientesPage = lazy(() => import('./components/ClientesPage.jsx'));
 
