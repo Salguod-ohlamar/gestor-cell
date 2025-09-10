@@ -19,6 +19,7 @@ const RelatorioVendasMensal = ({ reportData }) => {
                         <th className="p-2 font-bold">Cód. Venda</th>
                         <th className="p-2 font-bold">Cliente</th>
                         <th className="p-2 font-bold">Vendedor</th>
+                        <th className="p-2 font-bold">Pagamento</th>
                         <th className="p-2 font-bold text-right">Total</th>
                     </tr>
                 </thead>
@@ -30,10 +31,11 @@ const RelatorioVendasMensal = ({ reportData }) => {
                                 <td className="p-2 font-mono">{sale.receiptCode}</td>
                                 <td className="p-2">{sale.customer}</td>
                                 <td className="p-2">{sale.vendedor}</td>
+                                <td className="p-2">{sale.paymentMethod}</td>
                                 <td className="p-2 text-right font-semibold">{sale.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                             </tr>
                             <tr className="border-b-2 border-black">
-                                <td colSpan="5" className="p-2 pl-8 text-xs">
+                                <td colSpan="6" className="p-2 pl-8 text-xs">
                                     <strong className="text-xs">Itens:</strong>
                                     <ul className="list-disc list-inside ml-2">
                                         {sale.items.map(item => (
