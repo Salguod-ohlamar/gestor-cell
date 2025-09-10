@@ -3,7 +3,7 @@
 const express = require('express');
 const cors = require('cors');
 const db = require('./db.js');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcryptjs'); 
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const { protect, adminOnly } = require('./authMiddleware.js');
