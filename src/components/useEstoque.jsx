@@ -73,7 +73,11 @@ export const getDefaultPermissions = (role) => {
     const permissions = {};
     Object.values(PERMISSION_GROUPS).forEach(group => {
         for (const key in group.permissions) {
-            permissions[key] = group.permissions[key].roles.includes(role);
+            if (role === 'root') {
+                permissions[key] = true;
+            } else {
+                permissions[key] = group.permissions[key].roles.includes(role);
+            }
         }
     });
     return permissions;

@@ -27,11 +27,11 @@ const protect = (req, res, next) => {
 };
 
 const adminOnly = (roles) => (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    // O usuário 'root' tem acesso a tudo. Para outros, verifica se a role está na lista.
+    if (req.user.role !== 'root' && !roles.includes(req.user.role)) {
         return res.status(403).json({ message: 'Acesso negado. Permissão insuficiente.' });
     }
     next();
 };
 
 module.exports = { protect, adminOnly };
-
