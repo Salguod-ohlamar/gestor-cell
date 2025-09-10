@@ -85,6 +85,22 @@
   body.print-mode-monthly-report #monthly-report-printable-area * {
     visibility: visible;
   }
+
+  body.print-mode-dre-report #admin-non-printable-area {
+    display: none !important;
+  }
+
+  body.print-mode-dre-report #dre-report-printable-area {
+    visibility: visible;
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  body.print-mode-dre-report #dre-report-printable-area * {
+    visibility: visible;
+  }
 }
 
 @keyframes fadeIn {

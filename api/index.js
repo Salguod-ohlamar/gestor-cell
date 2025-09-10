@@ -1002,5 +1002,58 @@ app.post('/api/sales', protect, async (req, res) => {
     }
 });
 
+// ==================
+// REPORTS ROUTES
+// ==================
+
+app.get('/api/reports/dre', protect, hasPermission('viewDreReport'), async (req, res) => {
+    const { startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+        return res.status(400).json({ message: 'As datas de início e fim são obrigatórias.' });
+    }
+
+    try {
+        // 1. Calcular Receita Bruta de Vendas (total vendido + descontos)
+        const salesResult = await db.query(
+            'SELECT SUM(total) as total_revenue, SUM(discount_value) as total_discount FROM sales WHERE sale_date >= $1 AND sale_date <= $2',
+            [startDate, endDate]
+        );
+        const totalRevenue = parseFloat(salesResult.rows[0].total_revenue) || 0;
+        const totalDiscount = parseFloat(salesResult.rows[0].total_discount) || 0;
+
+        // 2. Calcular Custo dos Produtos Vendidos (CMV) e Serviços Prestados
+        const costsResult = await db.query(`
+            SELECT 
+                SUM(
+                    CASE 
+                        WHEN si.item_type = 'produto' THEN si.quantity * p.preco
+                        WHEN si.item_type = 'servico' THEN si.quantity * s.preco
+                        ELSE 0 
+                    END
+                ) as total_cost
+            FROM sale_items si
+            JOIN sales ON si.sale_id = sales.id
+            LEFT JOIN products p ON si.product_id = p.id AND si.item_type = 'produto'
+            LEFT JOIN services s ON si.service_id = s.id AND si.item_type = 'servico'
+            WHERE sales.sale_date >= $1 AND sales.sale_date <= $2;
+        `, [startDate, endDate]);
+        const totalCost = parseFloat(costsResult.rows[0].total_cost) || 0;
+
+        res.json({
+            period: { start: startDate, end: endDate },
+            receitaBruta: totalRevenue + totalDiscount,
+            deducoes: totalDiscount,
+            receitaLiquida: totalRevenue,
+            custoVendas: totalCost,
+            lucroBruto: totalRevenue - totalCost,
+        });
+
+    } catch (err) {
+        console.error('DRE report error:', err);
+        res.status(500).send('Erro no servidor ao gerar o DRE.');
+    }
+});
+
 // Exporta o app para ser usado pela Vercel como uma Serverless Function
 module.exports = app;

@@ -27,6 +27,7 @@ const PERMISSION_GROUPS = {
         permissions: {
             viewDashboardCharts: { roles: ['root'] },
             viewSalesHistory: { roles: ['root', 'admin'] },
+            viewDreReport: { roles: ['root', 'admin'] },
             viewActivityLog: { roles: ['root'] },
             manageClients: { roles: ['root', 'admin'] },
         }
