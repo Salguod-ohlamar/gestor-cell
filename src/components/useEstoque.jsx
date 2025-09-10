@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import Papa from 'papaparse';
 import toast from 'react-hot-toast';
+import imageCompression from 'browser-image-compression';
 
 import { parsePrice } from './formatters.js';
 
@@ -46,9 +47,9 @@ export const PERMISSION_GROUPS = {
     admin: {
         title: 'Administração',
         permissions: {
-            viewDashboardCharts: { label: 'Ver Análise Gráfica', roles: ['root', 'admin'] },
+            viewDashboardCharts: { label: 'Ver Análise Gráfica', roles: ['root'] },
             viewSalesHistory: { label: 'Ver Histórico de Vendas', roles: ['root', 'admin'] },
-            viewActivityLog: { label: 'Ver Log de Atividades', roles: ['root', 'admin'] },
+            viewActivityLog: { label: 'Ver Log de Atividades', roles: ['root'] },
             manageClients: { label: 'Gerenciar Clientes', roles: ['root', 'admin'] },
         }
     },
@@ -56,13 +57,13 @@ export const PERMISSION_GROUPS = {
         title: 'Super Admin (Root)',
         permissions: {
             manageUsers: { label: 'Gerenciar Usuários', roles: ['root'] },
-            resetUserPassword: { label: 'Resetar Senha', roles: ['root', 'admin'] }, // Kept for admin on vendedor
+            resetUserPassword: { label: 'Resetar Senha', roles: ['root'] },
             manageBackup: { label: 'Gerenciar Backup/Restore', roles: ['root'] },
         }
     }
 };
 
-const getDefaultPermissions = (role) => {
+export const getDefaultPermissions = (role) => {
     const permissions = {};
     Object.values(PERMISSION_GROUPS).forEach(group => {
         for (const key in group.permissions) {
@@ -80,38 +81,44 @@ const initialUsers = [
 
 const itemsPerPage = 5; // Itens por página
 
-export const useEstoque = () => {
+export const useEstoque = (currentUser) => {
     // ===================================================================
     // PRODUCTS STATE
     // ===================================================================
-    // Core state
-    const [estoque, setEstoque] = useState(() => {
-        try {
-            const savedEstoque = localStorage.getItem('boycell-estoque');
-            if (savedEstoque) {
-                const parsed = JSON.parse(savedEstoque);
-                if (Array.isArray(parsed)) {
-                    // Migration step: ensure prices are numbers for backward compatibility
-                    return parsed.map(p => ({
-                        ...p,
-                        preco: typeof p.preco === 'string' ? parsePrice(p.preco) : p.preco,
-                        precoFinal: typeof p.precoFinal === 'string' ? parsePrice(p.precoFinal) : p.precoFinal,
-                    }));
+    const [estoque, setEstoque] = useState([]); // Inicia como um array vazio
+    const [loadingEstoque, setLoadingEstoque] = useState(true); // Estado de carregamento
+
+    const API_URL = import.meta.env.VITE_API_URL || '';
+
+    // Efeito para buscar os produtos da API quando o componente montar
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                setLoadingEstoque(true);
+                const response = await fetch(`${API_URL}/api/products`);
+                if (!response.ok) {
+                    throw new Error('Falha ao buscar produtos do servidor');
                 }
+                const data = await response.json();
+                // Garante que os campos numéricos sejam do tipo correto
+                const parsedData = data.map(p => ({
+                    ...p,
+                    preco: parseFloat(p.preco) || 0,
+                    precoFinal: parseFloat(p.precoFinal) || 0,
+                    emEstoque: parseInt(p.emEstoque, 10) || 0,
+                    qtdaMinima: parseInt(p.qtdaMinima, 10) || 0,
+                }));
+                setEstoque(parsedData);
+            } catch (error) {
+                console.error("Erro ao buscar produtos da API:", error);
+                toast.error('Não foi possível carregar os produtos. Verifique o backend.');
+            } finally {
+                setLoadingEstoque(false);
             }
-        } catch (error) {
-            console.error("Erro ao carregar o estoque do localStorage:", error);
-        }
-        // Se o localStorage estiver vazio ou der erro, usa os dados iniciais
-        return initialEstoque.map(p => ({
-            ...p,
-            historico: [{
-                data: new Date(),
-                acao: 'Registro Inicial',
-                detalhes: `Produto carregado no sistema com estoque de ${p.emEstoque}.`
-            }]
-        }));
-    });
+        };
+
+        fetchProducts();
+    }, []); // O array vazio [] garante que isso rode apenas uma vez
 
     // State for stock value history
     const [stockValueHistory, setStockValueHistory] = useState(() => {
@@ -139,22 +146,32 @@ export const useEstoque = () => {
     // ===================================================================
     // SERVICES STATE
     // ===================================================================
-    const [servicos, setServicos] = useState(() => {
-        try {
-            const savedServicos = localStorage.getItem('boycell-servicos');
-            if (savedServicos) {
-                const parsed = JSON.parse(savedServicos);
-                if (Array.isArray(parsed)) return parsed.map(s => ({
+    const [servicos, setServicos] = useState([]);
+    const [loadingServicos, setLoadingServicos] = useState(true);
+
+    useEffect(() => {
+        const fetchServicos = async () => {
+            try {
+                setLoadingServicos(true);
+                const response = await fetch(`${API_URL}/api/services`);
+                if (!response.ok) throw new Error('Falha ao buscar serviços do servidor');
+                const data = await response.json();
+                // Garante que os campos numéricos sejam do tipo correto
+                const parsedData = data.map(s => ({
                     ...s,
-                    preco: typeof s.preco === 'string' ? parsePrice(s.preco) : s.preco,
-                    precoFinal: typeof s.precoFinal === 'string' ? parsePrice(s.precoFinal) : s.precoFinal,
+                    preco: parseFloat(s.preco) || 0,
+                    precoFinal: parseFloat(s.precoFinal) || 0,
                 }));
+                setServicos(parsedData);
+            } catch (error) {
+                console.error("Erro ao buscar serviços da API:", error);
+                toast.error('Não foi possível carregar os serviços.');
+            } finally {
+                setLoadingServicos(false);
             }
-        } catch (error) {
-            console.error("Erro ao carregar os serviços do localStorage:", error);
-        }
-        return initialServicos;
-    });
+        };
+        fetchServicos();
+    }, []);
 
     const [isAddServicoModalOpen, setIsAddServicoModalOpen] = useState(false);
     const [isEditServicoModalOpen, setIsEditServicoModalOpen] = useState(false);
@@ -168,18 +185,34 @@ export const useEstoque = () => {
     // ===================================================================
     // SALES HISTORY STATE
     // ===================================================================
-    const [salesHistory, setSalesHistory] = useState(() => {
-        try {
-            const saved = localStorage.getItem('boycell-salesHistory');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                if (Array.isArray(parsed)) return parsed;
+    const [salesHistory, setSalesHistory] = useState([]);
+
+    useEffect(() => {
+        const fetchSalesHistory = async () => {
+            try {
+                const token = localStorage.getItem('boycell-token');
+                if (!token) {
+                    setSalesHistory([]); // Limpa o histórico se não houver token
+                    return;
+                }
+                const response = await fetch(`${API_URL}/api/sales`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) throw new Error('Falha ao buscar histórico de vendas.');
+                const data = await response.json();
+                setSalesHistory(data);
+            } catch (error) {
+                console.error("Erro ao buscar histórico de vendas da API:", error);
+                toast.error('Não foi possível carregar o histórico de vendas.');
+                setSalesHistory([]); // Limpa em caso de erro
             }
-        } catch (error) {
-            console.error("Erro ao carregar o histórico de vendas:", error);
+        };
+        if (currentUser) { // Só busca se o usuário estiver logado
+            fetchSalesHistory();
+        } else {
+            setSalesHistory([]); // Limpa o histórico no logout
         }
-        return [];
-    });
+    }, [currentUser]); // Re-executa quando o usuário muda
 
     // ===================================================================
     // ACTIVITY LOG STATE
@@ -200,75 +233,74 @@ export const useEstoque = () => {
     // ===================================================================
     // CUSTOMERS STATE
     // ===================================================================
-    const [clientes, setClientes] = useState(() => {
-        try {
-            const saved = localStorage.getItem('boycell-clientes');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                if (Array.isArray(parsed)) return parsed;
+    const [clientes, setClientes] = useState([]);
+
+    useEffect(() => {
+        const fetchClients = async () => {
+            try {
+                const token = localStorage.getItem('boycell-token');
+                if (!token) {
+                    setClientes([]); // Limpa clientes se não houver token
+                    return;
+                }
+                const response = await fetch(`${API_URL}/api/clients`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) throw new Error('Falha ao buscar clientes.');
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'Falha ao buscar clientes.');
+                }
+                const data = await response.json();
+                setClientes(data);
+            } catch (error) {
+                console.error("Erro ao buscar clientes da API:", error);
+                toast.error('Não foi possível carregar os clientes.');
+                setClientes([]); // Limpa em caso de erro
             }
-        } catch (error) {
-            console.error("Erro ao carregar clientes do localStorage:", error);
+        };
+        if (currentUser) { // Só busca se o usuário estiver logado
+            fetchClients();
+        } else {
+            setClientes([]); // Limpa clientes no logout
         }
-        return [];
-    });
+    }, [currentUser]); // Re-executa quando o usuário muda
 
     // ===================================================================
     // USERS STATE
     // ===================================================================
-    const [users, setUsers] = useState(() => {
-        try {
-            const saved = localStorage.getItem('boycell-users');
-            if (saved) {
-                let parsed = JSON.parse(saved);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    // Migration logic: ensure root user exists and has latest permissions
-                    const rootUserDefinition = initialUsers.find(u => u.role === 'root');
-                    let rootUserInStorage = parsed.find(u => u.role === 'root');
+    const [users, setUsers] = useState([]); // Start with empty array
 
-                    if (!rootUserInStorage) {
-                        // If root user is missing, add it.
-                        parsed.unshift(rootUserDefinition);
-                    } else {
-                        // If root exists, ensure its core properties are up-to-date
-                        // This prevents lockout if we change the default password or permissions object structure
-                        Object.assign(rootUserInStorage, rootUserDefinition, { id: rootUserInStorage.id });
-                    }
-
-                    // Ensure all users have a permissions object for backward compatibility
-                    return parsed.map(u => ({
-                        ...u,
-                        permissions: u.permissions || getDefaultPermissions(u.role)
-                    }));
-                }
-            }
-        } catch (error) {
-            console.error("Erro ao carregar usuários do localStorage:", error);
-        }
-        return initialUsers;
-    });
-
+    // Effect to fetch users from API
     useEffect(() => {
-        try {
-            localStorage.setItem('boycell-users', JSON.stringify(users));
-        } catch (error) {
-            console.error("Erro ao salvar usuários no localStorage:", error);
+        const fetchUsers = async (token) => {
+            try {
+                const response = await fetch(`${API_URL}/api/users`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) throw new Error('Falha ao buscar usuários.');
+                const data = await response.json();
+                setUsers(data);
+            } catch (error) {
+                console.error("Erro ao buscar usuários da API:", error);
+                toast.error('Não foi possível carregar os usuários.');
+            }
+        };
+
+        const token = localStorage.getItem('boycell-token');
+        if (currentUser && token) {
+            // Vendedores não precisam e não podem buscar a lista de todos os usuários.
+            if (currentUser.role === 'admin' || currentUser.role === 'root') {
+                fetchUsers(token);
+            }
         }
-    }, [users]);
+
+    }, [currentUser]);
 
 
     // ===================================================================
     // EFFECTS
     // ===================================================================
-    // Efeito para salvar o estoque no localStorage sempre que ele for alterado
-    useEffect(() => {
-        try {
-            localStorage.setItem('boycell-estoque', JSON.stringify(estoque));
-        } catch (error) {
-            console.error("Erro ao salvar o estoque no localStorage:", error);
-        }
-    }, [estoque]);
-
     // Effect to update stock value history
     useEffect(() => {
         const newTotalValue = estoque.reduce((acc, item) => acc + (parsePrice(item.preco) * (item.emEstoque || 0)), 0);
@@ -290,24 +322,6 @@ export const useEstoque = () => {
         }
     }, [stockValueHistory]);
 
-    // Efeito para salvar os serviços no localStorage
-    useEffect(() => {
-        try {
-            localStorage.setItem('boycell-servicos', JSON.stringify(servicos));
-        } catch (error) {
-            console.error("Erro ao salvar os serviços no localStorage:", error);
-        }
-    }, [servicos]);
-
-    // Efeito para salvar o histórico de vendas
-    useEffect(() => {
-        try {
-            localStorage.setItem('boycell-salesHistory', JSON.stringify(salesHistory));
-        } catch (error) {
-            console.error("Erro ao salvar o histórico de vendas:", error);
-        }
-    }, [salesHistory]);
-
     // Efeito para salvar o log de atividades
     useEffect(() => {
         try {
@@ -316,16 +330,6 @@ export const useEstoque = () => {
             console.error("Erro ao salvar o log de atividades:", error);
         }
     }, [activityLog]);
-
-    // Efeito para salvar os clientes no localStorage
-    useEffect(() => {
-        try {
-            localStorage.setItem('boycell-clientes', JSON.stringify(clientes));
-        } catch (error)
-        {
-            console.error("Erro ao salvar clientes no localStorage:", error);
-        }
-    }, [clientes]);
 
     // Helper function to log admin actions
     const logAdminActivity = (adminName, action, details) => {
@@ -362,19 +366,30 @@ export const useEstoque = () => {
     // Form input handlers
     const handleInputChange = (e) => {
         const { name, value, type, checked, files } = e.target;
+
+        if (type === 'file' && files && files[0]) {
+            const file = files[0];
+            const compressAndSetImage = async () => {
+                const options = { maxSizeMB: 1, maxWidthOrHeight: 1024, useWebWorker: true };
+                try {
+                    const compressedFile = await imageCompression(file, options);
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setNewProduct(prevState => ({ ...prevState, imagem: reader.result }));
+                    };
+                    reader.readAsDataURL(compressedFile);
+                } catch (error) {
+                    console.error('Erro ao comprimir imagem:', error);
+                    toast.error('Falha ao processar a imagem. Tente uma imagem menor ou de outro formato.');
+                }
+            };
+            compressAndSetImage();
+            return;
+        }
+
         setNewProduct(prevState => {
-            // Revoke old object URL to prevent memory leaks
-            if (name === 'imagem' && prevState.imagem && prevState.imagem.startsWith('blob:')) {
-                URL.revokeObjectURL(prevState.imagem);
-            }
-    
-            const isFile = type === 'file';
             const isCheckbox = type === 'checkbox';
-            
-            // If no file is selected, keep the previous image
-            const updatedValue = isCheckbox 
-                ? checked 
-                : (isFile ? (files[0] ? URL.createObjectURL(files[0]) : prevState.imagem) : value);
+            const updatedValue = isCheckbox ? checked : value;
             
             const newState = { ...prevState, [name]: updatedValue };
             
@@ -394,12 +409,12 @@ export const useEstoque = () => {
                     if (newState.incluirIcms) {
                         precoFinal *= 1.18;
                     }
-                    newState.precoFinal = precoFinal.toFixed(2);
+                    newState.precoFinal = Math.round(precoFinal * 100) / 100;
                 } else if (name === 'incluirIcms') {
                     // If checkbox is toggled but there's no markup, adjust the existing precoFinal.
                     const precoFinalValue = parseFloat(newState.precoFinal);
                     if (!isNaN(precoFinalValue)) {
-                        newState.precoFinal = (checked ? precoFinalValue * 1.18 : precoFinalValue / 1.18).toFixed(2);
+                        newState.precoFinal = Math.round((checked ? precoFinalValue * 1.18 : precoFinalValue / 1.18) * 100) / 100;
                     }
                 }
             }
@@ -409,18 +424,30 @@ export const useEstoque = () => {
 
     const handleEditInputChange = (e) => {
         const { name, value, type, checked, files } = e.target;
+
+        if (type === 'file' && files && files[0]) {
+            const file = files[0];
+            const compressAndSetImage = async () => {
+                const options = { maxSizeMB: 1, maxWidthOrHeight: 1024, useWebWorker: true };
+                try {
+                    const compressedFile = await imageCompression(file, options);
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setEditingProduct(prevState => ({ ...prevState, imagem: reader.result }));
+                    };
+                    reader.readAsDataURL(compressedFile);
+                } catch (error) {
+                    console.error('Erro ao comprimir imagem:', error);
+                    toast.error('Falha ao processar a imagem. Tente uma imagem menor ou de outro formato.');
+                }
+            };
+            compressAndSetImage();
+            return;
+        }
+
         setEditingProduct(prevState => {
-            // Revoke old object URL
-            if (name === 'imagem' && prevState.imagem && prevState.imagem.startsWith('blob:')) {
-                URL.revokeObjectURL(prevState.imagem);
-            }
-    
-            const isFile = type === 'file';
             const isCheckbox = type === 'checkbox';
-            
-            const updatedValue = isCheckbox 
-                ? checked 
-                : (isFile ? (files[0] ? URL.createObjectURL(files[0]) : prevState.imagem) : value);
+            const updatedValue = isCheckbox ? checked : value;
 
             const newState = { ...prevState, [name]: updatedValue };
             
@@ -440,12 +467,12 @@ export const useEstoque = () => {
                     if (newState.incluirIcms) {
                         precoFinal *= 1.18;
                     }
-                    newState.precoFinal = precoFinal.toFixed(2);
+                    newState.precoFinal = Math.round(precoFinal * 100) / 100;
                 } else if (name === 'incluirIcms') {
                     // If checkbox is toggled but there's no markup, adjust the existing precoFinal.
                     const precoFinalValue = parseFloat(newState.precoFinal);
                     if (!isNaN(precoFinalValue)) {
-                        newState.precoFinal = (checked ? precoFinalValue * 1.18 : precoFinalValue / 1.18).toFixed(2);
+                        newState.precoFinal = Math.round((checked ? precoFinalValue * 1.18 : precoFinalValue / 1.18) * 100) / 100;
                     }
                 }
             }
@@ -457,134 +484,138 @@ export const useEstoque = () => {
     // PRODUCT CRUD
     // ===================================================================
     // CRUD handlers
-    const handleAddProduct = (e, adminName) => {
+    const handleAddProduct = async (e, adminName) => {
         e.preventDefault();
         if (!newProduct.nome || !newProduct.categoria || !newProduct.marca || !newProduct.fornecedor || !newProduct.emEstoque || !newProduct.qtdaMinima || !newProduct.preco || !newProduct.precoFinal) {
             toast.error('Por favor, preencha todos os campos obrigatórios.');
             return;
         }
-
+    
         const emEstoqueNum = parseInt(newProduct.emEstoque, 10);
         const qtdaMinimaNum = parseInt(newProduct.qtdaMinima, 10);
         if (emEstoqueNum < qtdaMinimaNum) {
             toast.error('O estoque não pode ser menor que a quantidade mínima.');
             return;
         }
-        const productToAdd = {
-            id: Date.now(),
-            nome: newProduct.nome,
-            marca: newProduct.marca,
-            categoria: newProduct.categoria,
-            fornecedor: newProduct.fornecedor,
-            imagem: newProduct.imagem || 'https://via.placeholder.com/150',
-            emEstoque: emEstoqueNum,
-            qtdaMinima: qtdaMinimaNum,
-            preco: parseFloat(newProduct.preco),
-            destaque: newProduct.destaque,
-            incluirIcms: newProduct.incluirIcms,
-            markup: newProduct.markup,
-            precoFinal: parseFloat(newProduct.precoFinal),
-            tempoDeGarantia: parseInt(newProduct.tempoDeGarantia, 10) || 0,
-            historico: [{
-                data: new Date(),
-                acao: 'Produto Criado',
-                detalhes: `Produto "${newProduct.nome}" criado com estoque inicial de ${newProduct.emEstoque}.`
-            }]
-        };
-        setEstoque(prevEstoque => [...prevEstoque, productToAdd]);
-        logAdminActivity(adminName, 'Criação de Produto', `Produto "${productToAdd.nome}" foi criado.`);
-        toast.success('Produto adicionado com sucesso!');
-        handleCloseAddModal();
+    
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/products`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    ...newProduct,
+                    emEstoque: emEstoqueNum,
+                    qtdaMinima: qtdaMinimaNum,
+                    preco: parseFloat(newProduct.preco),
+                    precoFinal: parseFloat(newProduct.precoFinal),
+                    tempoDeGarantia: parseInt(newProduct.tempoDeGarantia, 10) || 0,
+                })
+            });
+    
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao adicionar produto.');
+    
+            setEstoque(prevEstoque => [...prevEstoque, data]);
+            logAdminActivity(adminName, 'Criação de Produto', `Produto "${data.nome}" foi criado.`);
+
+            toast.success('Produto adicionado com sucesso!');
+            handleCloseAddModal();
+        } catch (error) {
+            toast.error(error.message);
+        }
     };
 
-    const handleUpdateProduct = (e, adminName) => {
+    const handleUpdateProduct = async (e, adminName) => {
         e.preventDefault();
         if (!editingProduct) return;
-
+    
         const oldItem = estoque.find(item => item.id === editingProduct.id);
         if (!oldItem) return;
-
+    
         const emEstoqueNum = parseInt(editingProduct.emEstoque, 10);
         const qtdaMinimaNum = parseInt(editingProduct.qtdaMinima, 10);
         if (emEstoqueNum < qtdaMinimaNum) {
             toast.error('O estoque não pode ser menor que a quantidade mínima.');
             return;
         }
-
-        const newProductData = {
-            ...editingProduct,
-            imagem: editingProduct.imagem || 'https://via.placeholder.com/150',
-            categoria: editingProduct.categoria,
-            destaque: editingProduct.destaque,
-            emEstoque: emEstoqueNum,
-            qtdaMinima: qtdaMinimaNum,
-            incluirIcms: editingProduct.incluirIcms,
-            preco: parseFloat(editingProduct.preco),
-            markup: editingProduct.markup,
-            precoFinal: parseFloat(editingProduct.precoFinal),
-            tempoDeGarantia: parseInt(editingProduct.tempoDeGarantia, 10) || 0
-        };
-
+    
         const newHistorico = [...(oldItem.historico || [])];
         const changes = [];
         const fieldsToCompare = {
-            nome: 'Nome',
-            marca: 'Marca',
-            categoria: 'Categoria',
-            destaque: 'Destaque na Home',
-            fornecedor: 'Fornecedor',
-            emEstoque: 'Estoque',
-            qtdaMinima: 'Qtda. Mínima',
-            preco: 'Preço',
-            tempoDeGarantia: 'Garantia (dias)',
-            precoFinal: 'Preço Final',
+            nome: 'Nome', marca: 'Marca', categoria: 'Categoria', destaque: 'Destaque na Home',
+            fornecedor: 'Fornecedor', emEstoque: 'Estoque', qtdaMinima: 'Qtda. Mínima',
+            preco: 'Preço', tempoDeGarantia: 'Garantia (dias)', precoFinal: 'Preço Final',
         };
-
+    
         for (const key in fieldsToCompare) {
             const oldValue = oldItem[key];
-            const newValue = newProductData[key];
-            
+            const newValue = editingProduct[key];
             if (String(oldValue ?? '') !== String(newValue ?? '')) {
                 const displayOld = key === 'destaque' ? (!!oldValue ? 'Sim' : 'Não') : (oldValue ?? 'N/A');
                 const displayNew = key === 'destaque' ? (!!newValue ? 'Sim' : 'Não') : (newValue ?? 'N/A');
-
                 changes.push(`${fieldsToCompare[key]} alterado de "${displayOld}" para "${displayNew}"`);
             }
         }
-
+    
         if (changes.length > 0) {
-            newHistorico.push({
-                data: new Date(),
-                acao: 'Produto Atualizado',
-                detalhes: changes.join('; ')
-            });
+            newHistorico.push({ data: new Date(), acao: 'Produto Atualizado', detalhes: changes.join('; ') });
             logAdminActivity(adminName, 'Atualização de Produto', `Produto "${oldItem.nome}" atualizado: ${changes.join('; ')}.`);
         }
-
-        const updatedEstoque = estoque.map(item => {
-            if (item.id === editingProduct.id) {
-                return {
-                    ...newProductData,
-                    historico: newHistorico
-                };
-            }
-            return item;
-        });
-
-        setEstoque(updatedEstoque);
-        toast.success('Produto atualizado com sucesso!');
-        handleCloseEditModal();
+    
+        const productToUpdate = {
+            ...editingProduct,
+            emEstoque: emEstoqueNum,
+            qtdaMinima: qtdaMinimaNum,
+            preco: parseFloat(editingProduct.preco),
+            precoFinal: parseFloat(editingProduct.precoFinal),
+            tempoDeGarantia: parseInt(editingProduct.tempoDeGarantia, 10) || 0,
+            historico: newHistorico,
+        };
+    
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/products/${editingProduct.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(productToUpdate)
+            });
+    
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao atualizar produto.');
+    
+            setEstoque(currentEstoque => currentEstoque.map(item => (item.id === editingProduct.id ? data : item)));
+            toast.success('Produto atualizado com sucesso!');
+            handleCloseEditModal();
+        } catch (error) {
+            toast.error(error.message);
+        }
     };
 
-    const handleExcluirProduto = (idProduto, adminName) => {
+    const handleExcluirProduto = async (idProduto, adminName) => {
         const productToDelete = estoque.find(item => item.id === idProduto);
         if (!productToDelete) return;
 
         if (window.confirm('Tem certeza que deseja excluir este produto?')) {
-            const novoEstoque = estoque.filter(item => item.id !== idProduto);
-            logAdminActivity(adminName, 'Exclusão de Produto', `Produto "${productToDelete.nome}" (ID: ${idProduto}) foi excluído.`);
-            toast.success('Produto excluído com sucesso!');
-            setEstoque(novoEstoque);
+            try {
+                const token = localStorage.getItem('boycell-token');
+                const response = await fetch(`${API_URL}/api/products/${idProduto}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+    
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Erro ao excluir produto.');
+    
+                setEstoque(currentEstoque => currentEstoque.filter(item => item.id !== idProduto));
+                logAdminActivity(adminName, 'Exclusão de Produto', `Produto "${productToDelete.nome}" (ID: ${idProduto}) foi excluído.`);
+                toast.success(data.message);
+            } catch (error) {
+                toast.error(error.message);
+            }
         }
     };
 
@@ -667,16 +698,33 @@ export const useEstoque = () => {
     const handleServicoInputChange = (e) => {
         const { name, value, type, files, checked } = e.target;
         const stateSetter = isEditServicoModalOpen ? setEditingServico : setNewServico;
-
+    
+        if (type === 'file' && files && files[0]) {
+            const file = files[0];
+            const compressAndSetImage = async () => {
+                const options = { maxSizeMB: 1, maxWidthOrHeight: 1024, useWebWorker: true };
+                try {
+                    const compressedFile = await imageCompression(file, options);
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        stateSetter(prevState => ({ ...prevState, imagem: reader.result }));
+                    };
+                    reader.readAsDataURL(compressedFile);
+                } catch (error) {
+                    console.error('Erro ao comprimir imagem:', error);
+                    toast.error('Falha ao processar a imagem. Tente uma imagem menor ou de outro formato.');
+                }
+            };
+            compressAndSetImage();
+            return;
+        }
+    
         stateSetter(prevState => {
-            if (name === 'imagem' && prevState.imagem && prevState.imagem.startsWith('blob:')) {
-                URL.revokeObjectURL(prevState.imagem);
-            }
             const isCheckbox = type === 'checkbox';
-            const updatedValue = isCheckbox ? checked : (type === 'file' ? (files[0] ? URL.createObjectURL(files[0]) : prevState.imagem) : value);
+            const updatedValue = isCheckbox ? checked : value;
             
             const newState = { ...prevState, [name]: updatedValue };
-
+    
             // If final price is edited manually, clear markup.
             if (name === 'precoFinal') {
                 newState.markup = '';
@@ -688,7 +736,7 @@ export const useEstoque = () => {
                 const markup = parseFloat(newState.markup);
 
                 if (!isNaN(preco) && !isNaN(markup) && markup >= 0) {
-                    newState.precoFinal = (preco * (1 + markup / 100)).toFixed(2);
+                    newState.precoFinal = Math.round((preco * (1 + markup / 100)) * 100) / 100;
                 }
             }
             return newState;
@@ -696,87 +744,121 @@ export const useEstoque = () => {
     };
 
     // ===================================================================
-    // SERVICE CRUD
+    // SERVICE CRUD HANDLERS
     // ===================================================================
-    const handleAddServico = (e, adminName) => {
+    const handleAddServico = async (e, adminName) => {
         e.preventDefault();
-        const { servico, fornecedor, marca, tipoReparo, tecnico, preco, precoFinal, tempoDeGarantia } = newServico;
-        if (!servico || !fornecedor || !marca || !tipoReparo || !tecnico || !preco || !precoFinal) {
+        if (!newServico.servico || !newServico.fornecedor || !newServico.marca || !newServico.tipoReparo || !newServico.tecnico || !newServico.preco || !newServico.precoFinal) {
             toast.error('Por favor, preencha todos os campos.');
             return;
         }
-        const servicoToAdd = {
-            id: Date.now(),
-            ...newServico,
-            tempoDeGarantia: parseInt(tempoDeGarantia, 10) || 0,
-            preco: parseFloat(preco),
-            precoFinal: parseFloat(precoFinal),
-            historico: [{
-                data: new Date(),
-                acao: 'Serviço Criado',
-                detalhes: `Serviço "${newServico.servico}" criado.`
-            }]
-        };
-        setServicos(prev => [...prev, servicoToAdd]);
-        logAdminActivity(adminName, 'Criação de Serviço', `Serviço "${servicoToAdd.servico}" foi criado.`);
-        toast.success('Serviço adicionado com sucesso!');
-        handleCloseAddServicoModal();
+    
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/services`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    ...newServico,
+                    preco: parseFloat(newServico.preco),
+                    precoFinal: parseFloat(newServico.precoFinal),
+                    tempoDeGarantia: parseInt(newServico.tempoDeGarantia, 10) || 0,
+                })
+            });
+    
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao adicionar serviço.');
+    
+            setServicos(prev => [...prev, data]);
+            logAdminActivity(adminName, 'Criação de Serviço', `Serviço "${data.servico}" foi criado.`);
+            toast.success('Serviço adicionado com sucesso!');
+            handleCloseAddServicoModal();
+        } catch (error) {
+            toast.error(error.message);
+        }
     };
 
-    const handleUpdateServico = (e, adminName) => {
+    const handleUpdateServico = async (e, adminName) => {
         e.preventDefault();
         if (!editingServico) return;
-
+    
         const oldServico = servicos.find(s => s.id === editingServico.id);
         if (!oldServico) return;
-
-        const newServicoData = {
-            ...editingServico,
-            tempoDeGarantia: parseInt(editingServico.tempoDeGarantia, 10) || 0,
-            preco: parseFloat(editingServico.preco),
-            precoFinal: parseFloat(editingServico.precoFinal),
-        };
-
+    
         const newHistorico = [...(oldServico.historico || [])];
         const changes = [];
         const fieldsToCompare = {
             servico: 'Serviço', fornecedor: 'Fornecedor', marca: 'Marca',
-            tipoReparo: 'Tipo de Reparo', tecnico: 'Técnico', tempoDeGarantia: 'Garantia (dias)', preco: 'Preço',
-            precoFinal: 'Preço Final', destaque: 'Destaque', 
+            tipoReparo: 'Tipo de Reparo', tecnico: 'Técnico', tempoDeGarantia: 'Garantia (dias)',
+            preco: 'Preço', precoFinal: 'Preço Final', destaque: 'Destaque',
         };
-
+    
         for (const key in fieldsToCompare) {
             const oldValue = oldServico[key];
-            const newValue = newServicoData[key];
+            const newValue = editingServico[key];
             if (String(oldValue ?? '') !== String(newValue ?? '')) {
                 const displayOld = key === 'destaque' ? (!!oldValue ? 'Sim' : 'Não') : (oldValue ?? 'N/A');
                 const displayNew = key === 'destaque' ? (!!newValue ? 'Sim' : 'Não') : (newValue ?? 'N/A');
                 changes.push(`${fieldsToCompare[key]} alterado de "${displayOld}" para "${displayNew}"`);
             }
         }
-
+    
         if (changes.length > 0) {
             newHistorico.push({ data: new Date(), acao: 'Serviço Atualizado', detalhes: changes.join('; ') });
             logAdminActivity(adminName, 'Atualização de Serviço', `Serviço "${oldServico.servico}" atualizado: ${changes.join('; ')}.`);
         }
-
-        const updatedServicos = servicos.map(s =>
-            s.id === editingServico.id ? { ...newServicoData, historico: newHistorico } : s
-        );
-
-        setServicos(updatedServicos);
-        toast.success('Serviço atualizado com sucesso!');
-        handleCloseEditServicoModal();
+    
+        const serviceToUpdate = {
+            ...editingServico,
+            tempoDeGarantia: parseInt(editingServico.tempoDeGarantia, 10) || 0,
+            preco: parseFloat(editingServico.preco),
+            precoFinal: parseFloat(editingServico.precoFinal),
+            historico: newHistorico,
+        };
+    
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/services/${editingServico.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(serviceToUpdate)
+            });
+    
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao atualizar serviço.');
+    
+            setServicos(currentServicos => currentServicos.map(s => (s.id === editingServico.id ? data : s)));
+            toast.success('Serviço atualizado com sucesso!');
+            handleCloseEditServicoModal();
+        } catch (error) {
+            toast.error(error.message);
+        }
     };
 
-    const handleExcluirServico = (id, adminName) => {
+    const handleExcluirServico = async (id, adminName) => {
         const serviceToDelete = servicos.find(s => s.id === id);
         if (!serviceToDelete) return;
 
         if (window.confirm('Tem certeza que deseja excluir este serviço?')) {
-            setServicos(servicos.filter(s => s.id !== id));
-            logAdminActivity(adminName, 'Exclusão de Serviço', `Serviço "${serviceToDelete.servico}" (ID: ${id}) foi excluído.`);
-            toast.success('Serviço excluído com sucesso!');
+            try {
+                const token = localStorage.getItem('boycell-token');
+                const response = await fetch(`${API_URL}/api/services/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+    
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Erro ao excluir serviço.');
+    
+                setServicos(currentServicos => currentServicos.filter(s => s.id !== id));
+                logAdminActivity(adminName, 'Exclusão de Serviço', `Serviço "${serviceToDelete.servico}" (ID: ${id}) foi excluído.`);
+                toast.success(data.message);
+            } catch (error) {
+                toast.error(error.message);
+            }
         }
     };
 
@@ -936,253 +1018,333 @@ export const useEstoque = () => {
         .sort((a, b) => (a.nome || '').localeCompare(b.nome || ''))
     , [estoque]);
 
-    const handleSale = (saleDetails) => {
-        // 1. Validate the sale before making any changes
-        for (const item of saleDetails.items) {
-            if (item.type === 'produto') {
-                const productInStock = estoque.find(p => p.id === item.id);
-                if (!productInStock) {
-                    toast.error(`Produto "${item.nome}" não foi encontrado. Venda cancelada.`);
-                    return null;
-                }
-                const sellableStock = (Number(productInStock.emEstoque) || 0) - (Number(productInStock.qtdaMinima) || 0);
-                if (item.quantity > sellableStock) {
-                    toast.error(`Estoque de venda insuficiente para "${item.nome}". Venda cancelada.`);
-                    return null; // Abort transaction
-                }
-            }
-        }
-
-        // 2. If validation passes, update the stock
-        setEstoque(currentEstoque => {
-            const newEstoque = [...currentEstoque];
-            saleDetails.items.forEach(cartItem => {
-                if (cartItem.type === 'produto') {
-                    const productIndex = newEstoque.findIndex(p => p.id === cartItem.id);
-                    if (productIndex !== -1) {
-                        const product = newEstoque[productIndex];
-                        const currentStock = Number(product.emEstoque) || 0;
-                        const newStock = currentStock - cartItem.quantity;
-    
-                        const newHistorico = [...(product.historico || [])];
-                        newHistorico.push({
-                            data: new Date(),
-                            acao: 'Venda Realizada',
-                            detalhes: `Venda de ${cartItem.quantity} unidade(s). Estoque alterado de ${currentStock} para ${newStock}.`
-                        });
-    
-                        newEstoque[productIndex] = { ...product, emEstoque: newStock, historico: newHistorico };
-                    }
-                }
+    const handleSale = async (saleDetails) => {
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/sales`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(saleDetails)
             });
-            return newEstoque;
-        });
-
-        // 3. Prepare customer and sale data, then update states
-        const { customer, customerCpf, customerPhone, customerEmail } = saleDetails;
-        const existingClient = customerCpf ? clientes.find(c => c.cpf === customerCpf) : null;
-        const clienteId = existingClient ? existingClient.id : (customerCpf ? Date.now() : null);
-
-        // Create the final sale object that will be returned and saved
-        const completeSale = { ...saleDetails, id: Date.now(), receiptCode: generateReceiptCode(), clienteId };
-
-        // 4. Add to sales history
-        setSalesHistory(prevHistory => [completeSale, ...prevHistory]);
-
-        // 5. Add or update customer if they exist
-        if (clienteId) {
+    
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao finalizar a venda.');
+    
+            // Update frontend state after successful sale
+            // 1. Update sales history
+            setSalesHistory(prevHistory => [data, ...prevHistory]);
+    
+            // 2. Update stock
+            setEstoque(currentEstoque => {
+                const newEstoque = [...currentEstoque];
+                data.items.forEach(cartItem => {
+                    if (cartItem.type === 'produto') {
+                        const productIndex = newEstoque.findIndex(p => p.id === cartItem.id);
+                        if (productIndex !== -1) {
+                            const product = newEstoque[productIndex];
+                            const newStock = (Number(product.emEstoque) || 0) - cartItem.quantity;
+                            newEstoque[productIndex] = { ...product, emEstoque: newStock };
+                        }
+                    }
+                });
+                return newEstoque;
+            });
+    
+            // 3. Update clients list
             setClientes(currentClientes => {
-                const clientData = {
-                    id: clienteId,
-                    name: customer,
-                    cpf: customerCpf,
-                    phone: customerPhone,
-                    email: customerEmail,
-                    lastPurchase: new Date(),
-                };
+                const existingClient = currentClientes.find(c => c.id === data.clienteId);
+                const clientData = { id: data.clienteId, name: data.customer, cpf: data.customerCpf, phone: data.customerPhone, email: data.customerEmail, lastPurchase: data.date };
                 if (existingClient) {
-                    return currentClientes.map(c => c.id === clienteId ? { ...c, ...clientData } : c);
+                    return currentClientes.map(c => c.id === data.clienteId ? { ...c, ...clientData } : c);
                 } else {
                     return [...currentClientes, clientData];
                 }
             });
+    
+            return data; // Return the complete sale object from the backend
+        } catch (error) {
+            toast.error(error.message);
+            return null;
         }
-
-        return completeSale;
     };
 
-    const handleAddUser = (newUser, adminName) => {
-        if (users.some(user => user.email === newUser.email)) {
-            toast.error('Este email já está cadastrado.');
+    const handleAddUser = async (newUser, adminName) => {
+        try {
+            const token = localStorage.getItem('boycell-token');
+            if (!token) {
+                toast.error('Não autorizado. Faça login novamente.');
+                return false;
+            }
+
+            const response = await fetch(`${API_URL}/api/users/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(newUser)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Erro ao criar usuário.');
+            }
+
+            setUsers(prevUsers => [...prevUsers, data]);
+            logAdminActivity(adminName, 'Criação de Usuário', `Vendedor "${data.name}" (${data.email}) foi criado.`);
+            toast.success('Vendedor adicionado com sucesso!');
+            return true;
+        } catch (error) {
+            toast.error(error.message);
             return false;
         }
-        const userToAdd = { 
-            ...newUser, 
-            id: Date.now(), 
-            role: 'vendedor', 
-            permissions: getDefaultPermissions('vendedor') 
-        };
-        setUsers(prevUsers => [...prevUsers, userToAdd]);
-        logAdminActivity(adminName, 'Criação de Usuário', `Vendedor "${newUser.name}" (${newUser.email}) foi criado.`);
-        toast.success('Vendedor adicionado com sucesso!');
-        return true;
     };
 
-    const handleDeleteUser = (userId, adminName, currentUser) => {
+    const handleDeleteUser = async (userId, adminName, currentUser) => {
         const userToDelete = users.find(user => user.id === userId);
         if (!userToDelete) return;
 
+        // Frontend validation for quick feedback
         if (userToDelete.role === 'root') {
             toast.error('O usuário root não pode ser excluído.');
             return;
         }
-
         if (userToDelete.role === 'admin' && currentUser.role !== 'root') {
             toast.error('Apenas o usuário root pode excluir um administrador.');
             return;
         }
 
         if (window.confirm(`Tem certeza que deseja excluir o usuário "${userToDelete.name}"?`)) {
-            setUsers(users.filter(user => user.id !== userId));
-            logAdminActivity(adminName, 'Exclusão de Usuário', `Usuário "${userToDelete.name}" (${userToDelete.email}) foi excluído.`);
-            toast.success('Usuário excluído com sucesso!');
+            try {
+                const token = localStorage.getItem('boycell-token');
+                const response = await fetch(`${API_URL}/api/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Erro ao excluir usuário.');
+
+                setUsers(currentUsers => currentUsers.filter(user => user.id !== userId));
+                logAdminActivity(adminName, 'Exclusão de Usuário', `Usuário "${userToDelete.name}" (${userToDelete.email}) foi excluído.`);
+                toast.success(data.message);
+            } catch (error) {
+                toast.error(error.message);
+            }
         }
     };
 
-    const handleUpdateUser = (userId, updatedData, adminName, currentUser) => {
-        let success = false;
-        setUsers(currentUsers => {
-            const userToUpdate = currentUsers.find(u => u.id === userId);
-            if (!userToUpdate) {
-                toast.error("Usuário não encontrado.");
-                return currentUsers;
-            }
+    const handleUpdateUser = async (userId, updatedData, adminName, currentUser) => {
+        try {
+            const token = localStorage.getItem('boycell-token');
+            // Remove password from body if it's empty
+            const body = { ...updatedData };
+            if (!body.password) delete body.password;
 
-            if (userToUpdate.role === 'root') {
-                toast.error("O usuário root não pode ser editado.");
-                return currentUsers;
-            }
+            const response = await fetch(`${API_URL}/api/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(body)
+            });
 
-            // Prevent email collision
-            if (updatedData.email && currentUsers.some(u => u.email === updatedData.email && u.id !== userId)) {
-                toast.error("Este email já está em uso por outro usuário.");
-                return currentUsers;
-            }
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao atualizar usuário.');
 
+            setUsers(currentUsers => currentUsers.map(user => (user.id === userId ? data : user)));
+
+            const oldUser = users.find(u => u.id === userId);
             const changes = [];
-            if (userToUpdate.name !== updatedData.name) changes.push(`Nome alterado de "${userToUpdate.name}" para "${updatedData.name}"`);
-            if (userToUpdate.email !== updatedData.email) changes.push(`Email alterado de "${userToUpdate.email}" para "${updatedData.email}"`);
-            if (updatedData.password && updatedData.password.trim() !== '') changes.push('Senha foi alterada');
-            if (currentUser.role === 'root' && JSON.stringify(userToUpdate.permissions) !== JSON.stringify(updatedData.permissions)) {
+            if (oldUser.name !== data.name) changes.push(`Nome alterado de "${oldUser.name}" para "${data.name}"`);
+            if (oldUser.email !== data.email) changes.push(`Email alterado de "${oldUser.email}" para "${data.email}"`);
+            if (updatedData.password) changes.push('Senha foi alterada');
+            if (currentUser.role === 'root' && JSON.stringify(oldUser.permissions) !== JSON.stringify(data.permissions)) {
                 changes.push('Permissões foram alteradas');
             }
-
-            const updatedUsers = currentUsers.map(user => {
-                if (user.id === userId) {
-                    const newUserData = { ...user, name: updatedData.name, email: updatedData.email };
-                    if (updatedData.password && updatedData.password.trim() !== '') {
-                        newUserData.password = updatedData.password;
-                    }
-                    // Only root can change permissions
-                    if (currentUser.role === 'root' && updatedData.permissions) {
-                        newUserData.permissions = updatedData.permissions;
-                    }
-                    return newUserData;
-                }
-                return user;
-            });
             if (changes.length > 0) {
-                logAdminActivity(adminName, 'Atualização de Usuário', `Dados do usuário "${userToUpdate.name}" atualizados: ${changes.join('; ')}.`);
+                logAdminActivity(adminName, 'Atualização de Usuário', `Dados do usuário "${oldUser.name}" atualizados: ${changes.join('; ')}.`);
             }
+
             toast.success("Usuário atualizado com sucesso!");
-            success = true;
-            return updatedUsers;
-        });
-        return success;
+            return true;
+        } catch (error) {
+            toast.error(error.message);
+            return false;
+        }
     };
 
-    const handleUpdateCliente = (clienteId, updatedData, adminName) => {
-        let success = false;
-        setClientes(currentClientes => {
-            const clienteToUpdate = currentClientes.find(c => c.id === clienteId);
-            if (!clienteToUpdate) {
-                toast.error("Cliente não encontrado.");
-                return currentClientes;
-            }
+    const handleUpdateCliente = async (clienteId, updatedData, adminName) => {
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/clients/${clienteId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(updatedData)
+            });
 
-            // Prevent CPF collision
-            if (updatedData.cpf && currentClientes.some(c => c.cpf === updatedData.cpf && c.id !== clienteId)) {
-                toast.error("Este CPF/CNPJ já está em uso por outro cliente.");
-                return currentClientes;
-            }
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao atualizar cliente.');
 
-            const updatedClientes = currentClientes.map(cliente =>
-                cliente.id === clienteId ? { ...cliente, ...updatedData } : cliente
+            setClientes(currentClientes =>
+                currentClientes.map(cliente => (cliente.id === clienteId ? data : cliente))
             );
 
-            logAdminActivity(adminName, 'Atualização de Cliente', `Dados do cliente "${clienteToUpdate.name}" foram atualizados.`);
+            logAdminActivity(adminName, 'Atualização de Cliente', `Dados do cliente "${data.name}" foram atualizados.`);
             toast.success("Cliente atualizado com sucesso!");
-            success = true;
-            return updatedClientes;
-        });
-        return success;
+            return true;
+        } catch (error) {
+            toast.error(error.message);
+            return false;
+        }
     };
 
-    const handleDeleteCliente = (clienteId, adminName) => {
+    const handleDeleteCliente = async (clienteId, adminName) => {
         const clienteToDelete = clientes.find(c => c.id === clienteId);
         if (!clienteToDelete) return;
 
-        if (window.confirm(`Tem certeza que deseja excluir o cliente "${clienteToDelete.name}"? Esta ação não pode ser desfeita.`)) {
-            setClientes(clientes.filter(c => c.id !== clienteId));
-            logAdminActivity(adminName, 'Exclusão de Cliente', `Cliente "${clienteToDelete.name}" (CPF: ${clienteToDelete.cpf}) foi excluído.`);
-            toast.success('Cliente excluído com sucesso!');
+        if (window.confirm('vc perdera os dados do cliente e todo o historico pertencente a ele, será irrecuperavel!!! tem certeza?')) {
+            try {
+                const token = localStorage.getItem('boycell-token');
+                const response = await fetch(`${API_URL}/api/clients/${clienteId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Erro ao excluir cliente.');
+
+                setClientes(currentClientes => currentClientes.filter(c => c.id !== clienteId));
+                // Também remove o histórico de vendas do cliente do estado local para atualizar os gráficos.
+                if (clienteToDelete.cpf) {
+                    setSalesHistory(currentHistory => 
+                        currentHistory.filter(sale => sale.customerCpf !== clienteToDelete.cpf)
+                    );
+                }
+                logAdminActivity(adminName, 'Exclusão de Cliente', `Cliente "${clienteToDelete.name}" (CPF: ${clienteToDelete.cpf}) foi excluído.`);
+                toast.success(data.message);
+            } catch (error) {
+                toast.error(error.message);
+            }
         }
     };
 
-    const handleResetUserPassword = (userId, adminName, currentUser) => {
+    const handleBackup = () => {
+        try {
+            const backupData = {
+                estoque,
+                servicos,
+                users,
+                salesHistory,
+                clientes,
+                activityLog,
+                stockValueHistory: JSON.parse(localStorage.getItem('boycell-stockValueHistory') || '[]'),
+                columns: JSON.parse(localStorage.getItem('boycell-columns') || 'null'),
+                servicosColumns: JSON.parse(localStorage.getItem('boycell-servicos-columns') || 'null'),
+                chartsConfig: JSON.parse(localStorage.getItem('boycell-chartsConfig') || 'null'),
+            };
+
+            const jsonString = JSON.stringify(backupData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const date = new Date().toISOString().split('T')[0];
+            link.href = url;
+            link.download = `backup-boycell-${date}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            toast.success('Backup realizado com sucesso!');
+        } catch (error) {
+            console.error("Erro ao criar backup:", error);
+            toast.error('Ocorreu um erro ao criar o backup.');
+        }
+    };
+
+    const handleRestore = (fileContent) => {
+        try {
+            const restoredData = JSON.parse(fileContent);
+            
+            // AVISO: Esta é uma restauração local e não afeta o banco de dados.
+            // Uma restauração completa exigiria endpoints de API para cada tipo de dado.
+            Object.keys(restoredData).forEach(key => {
+                localStorage.setItem(`boycell-${key}`, JSON.stringify(restoredData[key]));
+            });
+
+            toast.success('Dados restaurados localmente! A aplicação será recarregada.');
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+
+        } catch (error) {
+            console.error("Erro ao restaurar backup:", error);
+            toast.error('Arquivo de backup inválido ou corrompido.');
+        }
+    };
+
+    const handleResetUserPassword = async (userId, adminName, currentUser) => {
         const userToReset = users.find(user => user.id === userId);
         if (!userToReset) {
             toast.error('Usuário não encontrado.');
             return;
         }
 
+        // Validações no frontend para feedback rápido
         if (userToReset.role === 'root') {
             toast.error('Não é possível resetar a senha do usuário root.');
             return;
         }
-
         if (userToReset.role === 'admin' && currentUser.role !== 'root') {
             toast.error('Apenas o usuário root pode resetar a senha de um administrador.');
             return;
         }
 
         if (window.confirm(`Tem certeza que deseja resetar a senha de "${userToReset.name}"? Uma nova senha será gerada.`)) {
-            // Gera uma senha aleatória simples para este exemplo
-            const newPassword = Math.random().toString(36).slice(-8);
+            try {
+                const token = localStorage.getItem('boycell-token');
+                const response = await fetch(`${API_URL}/api/users/${userId}/reset-password`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
 
-            setUsers(currentUsers =>
-                currentUsers.map(user =>
-                    user.id === userId ? { ...user, password: newPassword } : user
-                )
-            );
-            logAdminActivity(adminName, 'Reset de Senha', `A senha do usuário "${userToReset.name}" foi resetada.`);
-            toast.success(`Senha de ${userToReset.name} resetada para: "${newPassword}"`, {
-                duration: 10000, // Mantém o toast por mais tempo para o admin copiar
-            });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Erro ao resetar senha.');
+
+                const { newPassword } = data;
+                logAdminActivity(adminName, 'Reset de Senha', `A senha do usuário "${userToReset.name}" foi resetada.`);
+                toast.success(`Senha de ${userToReset.name} resetada para: "${newPassword}"`, {
+                    duration: 10000,
+                });
+            } catch (error) {
+                toast.error(error.message);
+            }
         }
     };
 
-    const handlePasswordRecovery = (email, name) => {
-        const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.name.toLowerCase() === name.toLowerCase());
+    const handlePasswordRecovery = async (email, name) => {
+        try {
+            const response = await fetch(`${API_URL}/api/auth/recover`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, name })
+            });
 
-        if (user) {
-            // Em um aplicativo real, aqui você enviaria um e-mail.
-            // Para este exemplo, vamos apenas exibir um toast de sucesso.
-            console.log(`Recuperação de senha para ${user.email}: a senha é "${user.password}"`);
-            toast.success(`Um e-mail com a senha foi enviado para ${email}.`);
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao solicitar recuperação.');
+
+            toast.success(data.message);
             return true;
-        } else {
-            toast.error('Nenhum usuário encontrado com este e-mail e nome.');
+        } catch (error) {
+            toast.error(error.message);
             return false;
         }
     };
@@ -1253,5 +1415,7 @@ export const useEstoque = () => {
         handleUpdateCliente,
         handleDeleteCliente,
         activityLog,
+        handleBackup,
+        handleRestore,
     };
 };

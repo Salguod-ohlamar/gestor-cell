@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Search, X, Edit, LogOut, ShoppingCart, Mail, Printer, Send, Banknote, CreditCard, QrCode, DollarSign, ShoppingBag, Calendar, Eye, EyeOff } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import ReciboVenda from './ReciboVenda';
 import Modal from './Modal.jsx';
@@ -25,14 +26,30 @@ const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue
     );
   };
 
-const VendasPage = ({ onLogout, onNavigateToEstoque, currentUser, estoque, servicos, handleSale, salesHistory, }) => {
+const VendasPage = ({ 
+    onLogout, 
+    currentUser, 
+    handleSale, 
+    salesHistory,
+    estoque,
+    servicos
+}) => {
+    const navigate = useNavigate();
+
     const [carrinho, setCarrinho] = useState(() => {
         try {
             const savedCart = localStorage.getItem('boycell-carrinho');
             if (savedCart) {
                 const parsed = JSON.parse(savedCart);
                 if (Array.isArray(parsed)) {
-                    return parsed;
+                    // Validação para garantir que os itens do carrinho recuperados são válidos
+                    const validCart = parsed.filter(item => 
+                        item && typeof item.id !== 'undefined' && typeof item.precoFinal === 'number'
+                    );
+                    if (validCart.length < parsed.length) {
+                        console.warn("Itens inválidos ou com formato antigo foram removidos do carrinho.");
+                    }
+                    return validCart;
                 }
             }
         } catch (error) {
@@ -62,6 +79,9 @@ const VendasPage = ({ onLogout, onNavigateToEstoque, currentUser, estoque, servi
     const [showVendasHoje, setShowVendasHoje] = useState(false);
     const [showVendidoHoje, setShowVendidoHoje] = useState(false);
     const [showVendidoMes, setShowVendidoMes] = useState(false);
+    const [isSearchingClient, setIsSearchingClient] = useState(false);
+
+    const API_URL = import.meta.env.VITE_API_URL || '';
 
     const handleCpfChange = (e) => {
         const value = e.target.value;
@@ -85,18 +105,44 @@ const VendasPage = ({ onLogout, onNavigateToEstoque, currentUser, estoque, servi
         }
     };
 
-    const filteredProdutos = useMemo(() => 
-        estoque.filter(p => 
-            p.nome.toLowerCase().includes(produtoSearchTerm.toLowerCase()) && 
-            (Number(p.emEstoque) > Number(p.qtdaMinima))
-        ),
-        [estoque, produtoSearchTerm]
-    );
-
-    const filteredServicos = useMemo(() =>
-        servicos.filter(s => s.servico.toLowerCase().includes(servicoSearchTerm.toLowerCase())),
-        [servicos, servicoSearchTerm]
-    );
+    const handleCpfBlur = async () => {
+        const cleanedCpf = customerCpf.replace(/[^\d]/g, '');
+        if (cleanedCpf.length < 11) return;
+    
+        if (!validateCPF(customerCpf)) {
+            setIsCpfValid(false);
+            return;
+        }
+        setIsCpfValid(true);
+    
+        try {
+            setIsSearchingClient(true);
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/clients/search?cpf=${customerCpf}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+    
+            if (response.status === 404) {
+                toast.success('Cliente não encontrado. Preencha os dados para um novo cadastro.');
+                setCustomerName('');
+                setCustomerPhone('');
+                setCustomerEmail('');
+                return;
+            }
+    
+            if (!response.ok) throw new Error('Erro ao buscar cliente.');
+    
+            const clientData = await response.json();
+            setCustomerName(clientData.name);
+            setCustomerPhone(clientData.phone || '');
+            setCustomerEmail(clientData.email || '');
+            toast.success(`Cliente "${clientData.name}" encontrado!`);
+        } catch (error) {
+            toast.error(error.message);
+        } finally {
+            setIsSearchingClient(false);
+        }
+    };
 
     const vendedorDashboardData = useMemo(() => {
         if (!salesHistory || !currentUser) {
@@ -151,26 +197,26 @@ const VendasPage = ({ onLogout, onNavigateToEstoque, currentUser, estoque, servi
     };
 
     const updateQuantity = (itemId, type, newQuantity) => {
-        const itemInStock = type === 'produto' ? estoque.find(p => p.id === itemId) : null;
+        const itemInCart = carrinho.find(item => item.id === itemId && item.type === type);
+        if (!itemInCart) return;
 
-        if (type === 'produto' && itemInStock) {
-            const sellableStock = Number(itemInStock.emEstoque) - Number(itemInStock.qtdaMinima);
+        if (type === 'produto') {
+            const sellableStock = Number(itemInCart.emEstoque) - Number(itemInCart.qtdaMinima);
 
             if (sellableStock <= 0) {
-                toast.error(`"${itemInStock.nome}" não possui estoque de venda.`);
+                toast.error(`"${itemInCart.nome}" não possui estoque de venda.`);
                 removeFromCart(itemId, type);
                 return;
             }
 
             if (newQuantity > sellableStock) {
-                toast.error(`Estoque de venda insuficiente. Apenas ${sellableStock} unidades de "${itemInStock.nome}" podem ser vendidas.`);
+                toast.error(`Estoque de venda insuficiente. Apenas ${sellableStock} unidades de "${itemInCart.nome}" podem ser vendidas.`);
                 setCarrinho(carrinho.map(item => 
                     item.id === itemId && item.type === type ? { ...item, quantity: sellableStock } : item
                 ));
                 return;
             }
         }
-
         if (newQuantity < 1) {
             removeFromCart(itemId, type);
         } else {
@@ -200,7 +246,7 @@ const VendasPage = ({ onLogout, onNavigateToEstoque, currentUser, estoque, servi
         };
     }, [subtotalCarrinho, discount]);
 
-    const handleFinalizarVenda = () => {
+    const handleFinalizarVenda = async () => {
         if (carrinho.length === 0) {
             toast.error("O carrinho está vazio.");
             return;
@@ -238,7 +284,7 @@ const VendasPage = ({ onLogout, onNavigateToEstoque, currentUser, estoque, servi
             vendedor: currentUser.name,
         };
 
-        const completeSaleDetails = handleSale(saleDetails);
+        const completeSaleDetails = await handleSale(saleDetails);
 
         if (completeSaleDetails) {
             setLastSaleDetails(completeSaleDetails);
@@ -349,10 +395,40 @@ const VendasPage = ({ onLogout, onNavigateToEstoque, currentUser, estoque, servi
         return () => window.removeEventListener('afterprint', afterPrint);
     }, []);
 
+    const produtoResults = useMemo(() => {
+        if (!Array.isArray(estoque)) return [];
+        const lowerCaseSearch = produtoSearchTerm.toLowerCase().trim();
+        // Se a busca estiver vazia, mostra os produtos em destaque. Se não houver, mostra todos os disponíveis.
+        if (!lowerCaseSearch) {
+            const featured = estoque.filter(p => p.destaque && (Number(p.emEstoque) > Number(p.qtdaMinima)));
+            return featured.length > 0 ? featured : estoque.filter(p => Number(p.emEstoque) > Number(p.qtdaMinima));
+        }
+        return estoque.filter(p =>
+            (p.nome?.toLowerCase().includes(lowerCaseSearch) ||
+             p.categoria?.toLowerCase().includes(lowerCaseSearch) ||
+             p.marca?.toLowerCase().includes(lowerCaseSearch))
+        );
+    }, [estoque, produtoSearchTerm]);
+
+    const servicoResults = useMemo(() => {
+        if (!Array.isArray(servicos)) return [];
+        const lowerCaseSearch = servicoSearchTerm.toLowerCase().trim();
+        // Se a busca estiver vazia, mostra os serviços em destaque. Se não houver, mostra todos.
+        if (!lowerCaseSearch) {
+            const featured = servicos.filter(s => s.destaque);
+            return featured.length > 0 ? featured : servicos;
+        }
+        return servicos.filter(s =>
+            s.servico?.toLowerCase().includes(lowerCaseSearch) ||
+            s.tipoReparo?.toLowerCase().includes(lowerCaseSearch) ||
+            s.marca?.toLowerCase().includes(lowerCaseSearch)
+        );
+    }, [servicos, servicoSearchTerm]);
+
     return (
         <div className="bg-gray-950 text-gray-100 min-h-screen font-sans">
             <Toaster position="top-right" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
-            <div id="recibo-printable-area">
+            <div id="recibo-printable-area" className="hidden">
                 <ReciboVenda saleDetails={lastSaleDetails} />
             </div>
             <div id="vendas-non-printable-area">
@@ -361,7 +437,7 @@ const VendasPage = ({ onLogout, onNavigateToEstoque, currentUser, estoque, servi
                         <h1 className="text-2xl font-bold text-white">Olá, {currentUser?.name?.split(' ')[0] || 'Vendedor'}!</h1>
                         <div>
                             {(currentUser?.role === 'admin' || currentUser?.role === 'root') && (
-                                <button onClick={onNavigateToEstoque} className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors mr-6" title="Gerenciar Estoque">
+                                <button onClick={() => navigate('/estoque')} className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors mr-6" title="Gerenciar Estoque">
                                     <Edit size={20} />
                                     <span className="hidden sm:inline">Gerenciar Estoque</span>
                                 </button>
@@ -461,9 +537,10 @@ const VendasPage = ({ onLogout, onNavigateToEstoque, currentUser, estoque, servi
                                         type="text"
                                         id="customerCpf"
                                         value={customerCpf}
+                                        onBlur={handleCpfBlur}
                                         onChange={handleCpfChange}
                                         placeholder="Insira o CPF ou CNPJ"
-                                        className={`w-full p-2 bg-gray-800 border rounded-lg transition-colors ${isCpfValid ? 'border-gray-700 focus:ring-green-500' : 'border-red-500 focus:ring-red-500'}`}
+                                        className={`w-full p-2 bg-gray-800 border rounded-lg transition-colors ${isCpfValid ? 'border-gray-700 focus:ring-green-500' : 'border-red-500 focus:ring-red-500'} ${isSearchingClient ? 'animate-pulse' : ''}`}
                                         required
                                     />
                                     {!isCpfValid && <p className="text-red-500 text-xs mt-1">CPF/CNPJ inválido.</p>}
@@ -566,7 +643,7 @@ const VendasPage = ({ onLogout, onNavigateToEstoque, currentUser, estoque, servi
                                             />
                                         </div>
                                         <div className="space-y-2 overflow-y-auto max-h-[65vh] pr-2">
-                                            {filteredProdutos.map(p => (
+                                            {produtoResults.map(p => (
                                                 <div key={p.id} className="flex items-center gap-4 p-3 bg-gray-800 rounded-lg hover:bg-gray-700/50">
                                                     <img src={p.imagem} alt={p.nome} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
                                                     <div className="flex-grow min-w-0">
@@ -594,7 +671,7 @@ const VendasPage = ({ onLogout, onNavigateToEstoque, currentUser, estoque, servi
                                             />
                                         </div>
                                         <div className="space-y-2 overflow-y-auto max-h-[65vh] pr-2">
-                                            {filteredServicos.map(s => (
+                                            {servicoResults.map(s => (
                                                 <div key={s.id} className="flex items-center gap-4 p-3 bg-gray-800 rounded-lg hover:bg-gray-700/50">
                                                     <img src={s.imagem} alt={s.servico} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
                                                     <div className="flex-grow min-w-0">

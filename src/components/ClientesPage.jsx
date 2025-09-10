@@ -1,18 +1,19 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowLeft, LogOut, Search, Edit, Trash2, ChevronLeft, ChevronRight, History, RefreshCw, Mail, Send, Printer } from 'lucide-react';
+import { ArrowLeft, LogOut, Search, Edit, Trash2, ChevronLeft, ChevronRight, History, RefreshCw, Mail, Send, Printer, Settings, Package } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import Modal from './Modal.jsx';
 import ReciboVenda from './ReciboVenda.jsx';
 
 const ClientesPage = ({
     onLogout,
-    onNavigateToEstoque,
     currentUser,
     clientes,
     salesHistory,
     handleUpdateCliente,
     handleDeleteCliente,
 }) => {
+    const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -80,6 +81,11 @@ const ClientesPage = ({
         items.forEach(item => {
             const itemSubtotal = (item.precoFinal * item.quantity).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             emailBody += `- ${item.nome || item.servico} (x${item.quantity}) - ${itemSubtotal}\n`;
+            if (item.tempoDeGarantia > 0) {
+                const dataGarantia = new Date(date);
+                dataGarantia.setDate(dataGarantia.getDate() + item.tempoDeGarantia);
+                emailBody += `  Garantia até: ${dataGarantia.toLocaleDateString('pt-BR')}\n`;
+            }
         });
         emailBody += `\nSubtotal: ${subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n`;
         if (discountPercentage > 0) emailBody += `Desconto (${discountPercentage}%): -${discountValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n`;
@@ -95,6 +101,11 @@ const ClientesPage = ({
         items.forEach(item => {
             const itemSubtotal = (item.precoFinal * item.quantity).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             whatsAppText += `- ${item.nome || item.servico} (x${item.quantity}) - ${itemSubtotal}\n`;
+            if (item.tempoDeGarantia > 0) {
+                const dataGarantia = new Date(date);
+                dataGarantia.setDate(dataGarantia.getDate() + item.tempoDeGarantia);
+                whatsAppText += `  _Garantia até: ${dataGarantia.toLocaleDateString('pt-BR')}_\n`;
+            }
         });
         whatsAppText += `\n*Subtotal:* ${subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n`;
         if (discountPercentage > 0) whatsAppText += `*Desconto (${discountPercentage}%):* -${discountValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n`;
@@ -118,10 +129,10 @@ const ClientesPage = ({
         setEditingCliente(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleUpdateSubmit = (e) => {
+    const handleUpdateSubmit = async (e) => {
         e.preventDefault();
         if (!editingCliente) return;
-        const success = handleUpdateCliente(editingCliente.id, editingCliente, currentUser.name);
+        const success = await handleUpdateCliente(editingCliente.id, editingCliente, currentUser.name);
         if (success) {
             handleCloseEditModal();
         }
@@ -137,7 +148,7 @@ const ClientesPage = ({
                 <nav className="container mx-auto flex items-center justify-between p-4">
                     <h1 className="text-2xl font-bold text-white">Gerenciar Clientes</h1>
                     <div className="flex items-center gap-4">
-                        <button onClick={onNavigateToEstoque} className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors" title="Voltar ao Estoque">
+                        <button onClick={() => navigate('/estoque')} className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors" title="Voltar ao Estoque">
                             <ArrowLeft size={20} />
                             <span className="hidden sm:inline">Voltar ao Estoque</span>
                         </button>
@@ -194,7 +205,7 @@ const ClientesPage = ({
                                                 <button onClick={() => handleOpenEditModal(cliente)} className="text-blue-400 hover:text-blue-300" title="Editar Cliente">
                                                     <Edit size={18} />
                                                 </button>
-                                                <button onClick={() => handleDeleteCliente(cliente.id, currentUser.name)} className="text-red-400 hover:text-red-300" title="Excluir Cliente">
+                                                <button onClick={async () => await handleDeleteCliente(cliente.id, currentUser.name)} className="text-red-400 hover:text-red-300" title="Excluir Cliente">
                                                     <Trash2 size={18} />
                                                 </button>
                                             </div>

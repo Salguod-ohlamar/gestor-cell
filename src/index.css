@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+@page {
+  size: auto;
+  margin: 0mm;
+}
+
+/* Garante que o container do mapa tenha altura */
+.leaflet-container {
+  height: 400px;
+  width: 100%;
+}
+
 @media print {
   body:not(.print-mode-compra-imediata) * {
     visibility: hidden;
