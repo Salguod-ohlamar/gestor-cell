@@ -288,7 +288,7 @@ const AdminPage = ({
             return;
         }
 
-        const totalVendido = monthlySales.reduce((acc, sale) => acc + sale.total, 0);
+        const totalVendido = monthlySales.reduce((acc, sale) => acc + Number(sale.total || 0), 0);
         const totalVendas = monthlySales.length;
 
         setMonthlySalesReport({
