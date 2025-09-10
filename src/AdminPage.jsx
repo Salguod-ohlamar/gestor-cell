@@ -287,15 +287,25 @@ const AdminPage = ({
             toast.error("Nenhuma venda encontrada para o mês atual.");
             return;
         }
-
+        //faz a somatoria do total vendido no mês
         const totalVendido = monthlySales.reduce((acc, sale) => acc + Number(sale.total || 0), 0);
         const totalVendas = monthlySales.length;
+        const totalsByPaymentMethod = monthlySales.reduce((acc, sale) => {
+            const method = sale.paymentMethod || 'Indefinido';
+            const total = Number(sale.total || 0);
+            if (!acc[method]) {
+                acc[method] = 0;
+            }
+            acc[method] += total;
+            return acc;
+        }, {});
 
         setMonthlySalesReport({
             sales: monthlySales.sort((a, b) => new Date(a.date) - new Date(b.date)),
             month: today.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }),
             totalVendido,
             totalVendas,
+            totalsByPaymentMethod,
         });
 
         setTimeout(() => {

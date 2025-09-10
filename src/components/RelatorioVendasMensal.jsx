@@ -3,7 +3,7 @@ import React from 'react';
 const RelatorioVendasMensal = ({ reportData }) => {
     if (!reportData) return null;
 
-    const { sales, month, totalVendido, totalVendas } = reportData;
+    const { sales, month, totalVendido, totalVendas, totalsByPaymentMethod } = reportData;
 
     return (
         <div className="p-8 bg-white text-black font-sans">
@@ -52,10 +52,30 @@ const RelatorioVendasMensal = ({ reportData }) => {
             </table>
 
             <div className="flex justify-end">
-                <div className="w-1/2 space-y-2 text-base">
+                <div className="w-1/2 space-y-2 text-base mt-4">
                     <div className="flex justify-between font-bold">
                         <span>Total de Vendas no Mês:</span>
                         <span>{totalVendas}</span>
+                    </div>
+                    <div className="text-sm space-y-1 pl-4 border-l-2 border-gray-300 py-2">
+                        {totalsByPaymentMethod?.Dinheiro > 0 && (
+                            <div className="flex justify-between text-gray-700">
+                                <span>- Em Dinheiro:</span>
+                                <span>{totalsByPaymentMethod.Dinheiro.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                            </div>
+                        )}
+                        {totalsByPaymentMethod?.Cartão > 0 && (
+                            <div className="flex justify-between text-gray-700">
+                                <span>- No Cartão:</span>
+                                <span>{totalsByPaymentMethod.Cartão.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                            </div>
+                        )}
+                        {totalsByPaymentMethod?.Pix > 0 && (
+                            <div className="flex justify-between text-gray-700">
+                                <span>- No Pix:</span>
+                                <span>{totalsByPaymentMethod.Pix.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                            </div>
+                        )}
                     </div>
                     <div className="flex justify-between font-bold text-lg border-t-2 border-black pt-2 mt-2">
                         <span>Valor Total Vendido:</span>
