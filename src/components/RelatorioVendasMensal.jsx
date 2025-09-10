@@ -24,13 +24,27 @@ const RelatorioVendasMensal = ({ reportData }) => {
                 </thead>
                 <tbody>
                     {sales.map(sale => (
-                        <tr key={sale.id} className="border-b border-gray-300">
-                            <td className="p-2">{new Date(sale.date).toLocaleDateString('pt-BR')}</td>
-                            <td className="p-2 font-mono">{sale.receiptCode}</td>
-                            <td className="p-2">{sale.customer}</td>
-                            <td className="p-2">{sale.vendedor}</td>
-                            <td className="p-2 text-right">{sale.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                        </tr>
+                        <React.Fragment key={sale.id}>
+                            <tr className="border-b border-gray-400 bg-gray-100">
+                                <td className="p-2">{new Date(sale.date).toLocaleDateString('pt-BR')}</td>
+                                <td className="p-2 font-mono">{sale.receiptCode}</td>
+                                <td className="p-2">{sale.customer}</td>
+                                <td className="p-2">{sale.vendedor}</td>
+                                <td className="p-2 text-right font-semibold">{sale.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                            </tr>
+                            <tr className="border-b-2 border-black">
+                                <td colSpan="5" className="p-2 pl-8 text-xs">
+                                    <strong className="text-xs">Itens:</strong>
+                                    <ul className="list-disc list-inside ml-2">
+                                        {sale.items.map(item => (
+                                            <li key={`${sale.id}-${item.type}-${item.id}`}>
+                                                {item.nome || item.servico} (x{item.quantity}) - {item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </td>
+                            </tr>
+                        </React.Fragment>
                     ))}
                 </tbody>
             </table>
