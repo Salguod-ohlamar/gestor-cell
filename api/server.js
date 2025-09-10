@@ -900,6 +900,5 @@ app.post('/sales', protect, async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
+// Exporta o app para ser usado pela Vercel como uma Serverless Function
+module.exports = app;
