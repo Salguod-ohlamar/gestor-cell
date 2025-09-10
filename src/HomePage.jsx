@@ -49,8 +49,7 @@ const HomePage = ({ onLoginClick }) => {
                 setFeaturedServices(services.filter(s => s.destaque === true));
 
             } catch (error) {
-                // A página pode funcionar parcialmente mesmo com uma falha. Mudando para 'warn' para ser menos alarmante.
-                console.warn("Aviso ao carregar dados da página inicial:", error);
+                console.error("Erro ao carregar dados da página inicial:", error);
                 setProductsByCategory({});
                 setFeaturedServices([]);
             } finally {
