@@ -17,8 +17,8 @@ const BannerCarousel = ({ banners }) => {
             className="rounded-2xl overflow-hidden shadow-2xl"
         >
             {banners.map(banner => (
-                <div key={banner.id} className="relative h-64 md:h-96">
-                    <img src={banner.image_url} alt={banner.title || 'Banner promocional'} className="w-full h-full object-cover" />
+                <div key={banner.id} className="relative h-64 md:h-96 bg-gray-900">
+                    <img src={banner.image_url} alt={banner.title || 'Banner promocional'} className="w-full h-full object-contain" />
                     <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
                         <div className="text-center text-white max-w-2xl">
                             {banner.title && <h2 className="text-2xl md:text-4xl font-bold mb-2">{banner.title}</h2>}
