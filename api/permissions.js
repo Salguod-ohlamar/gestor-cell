@@ -55,4 +55,4 @@ const getDefaultPermissions = (role) => {
     return permissions;
 };
 
-module.exports = { getDefaultPermissions };
+module.exports = { PERMISSION_GROUPS, getDefaultPermissions };

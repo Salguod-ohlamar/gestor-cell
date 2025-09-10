@@ -6,8 +6,8 @@ const db = require('./db.js');
 const bcrypt = require('bcryptjs'); 
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
-const { protect, adminOnly } = require('./authMiddleware.js');
-const { getDefaultPermissions } = require('./permissions.js');
+const { protect, hasPermission } = require('./authMiddleware.js');
+const { getDefaultPermissions, PERMISSION_GROUPS } = require('./permissions.js');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -84,7 +84,7 @@ app.get('/api/products/search', protect, async (req, res) => {
 // ==================
 
 // Rota para criar um novo serviço
-app.post('/api/services', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.post('/api/services', protect, hasPermission('addService'), async (req, res) => {
     const {
         servico, fornecedor, marca, tipoReparo, tecnico,
         preco, precoFinal, markup, imagem, destaque, tempoDeGarantia
@@ -141,7 +141,7 @@ app.post('/api/services', protect, adminOnly(['root', 'admin']), async (req, res
 });
 
 // Rota para atualizar um serviço
-app.put('/api/services/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.put('/api/services/:id', protect, hasPermission('editService'), async (req, res) => {
     const { id } = req.params;
     const {
         servico, fornecedor, marca, tipoReparo, tecnico,
@@ -184,7 +184,7 @@ app.put('/api/services/:id', protect, adminOnly(['root', 'admin']), async (req, 
 });
 
 // Rota para excluir um serviço
-app.delete('/api/services/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.delete('/api/services/:id', protect, hasPermission('deleteService'), async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -271,7 +271,7 @@ app.get('/api/banners', async (req, res) => {
 });
 
 // Rota para buscar TODOS os banners (admin)
-app.get('/api/banners/all', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.get('/api/banners/all', protect, hasPermission('manageBanners'), async (req, res) => {
   try {
     const { rows } = await db.query('SELECT * FROM banners ORDER BY sort_order ASC, created_at DESC');
     res.json(rows);
@@ -282,7 +282,7 @@ app.get('/api/banners/all', protect, adminOnly(['root', 'admin']), async (req, r
 });
 
 // Rota para criar um novo banner
-app.post('/api/banners', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.post('/api/banners', protect, hasPermission('manageBanners'), async (req, res) => {
     const { title, text, image_url, link_url, is_active, sort_order } = req.body;
 
     if (!image_url) {
@@ -305,7 +305,7 @@ app.post('/api/banners', protect, adminOnly(['root', 'admin']), async (req, res)
 });
 
 // Rota para atualizar um banner
-app.put('/api/banners/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.put('/api/banners/:id', protect, hasPermission('manageBanners'), async (req, res) => {
     const { id } = req.params;
     const { title, text, image_url, link_url, is_active, sort_order } = req.body;
 
@@ -333,7 +333,7 @@ app.put('/api/banners/:id', protect, adminOnly(['root', 'admin']), async (req, r
 });
 
 // Rota para excluir um banner
-app.delete('/api/banners/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.delete('/api/banners/:id', protect, hasPermission('manageBanners'), async (req, res) => {
     const { id } = req.params;
     try {
         const result = await db.query('DELETE FROM banners WHERE id = $1', [id]);
@@ -348,7 +348,7 @@ app.delete('/api/banners/:id', protect, adminOnly(['root', 'admin']), async (req
 });
 
 // Rota para criar um novo produto
-app.post('/api/products', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.post('/api/products', protect, hasPermission('addProduct'), async (req, res) => {
     const {
         nome, categoria, marca, fornecedor, emEstoque, qtdaMinima,
         preco, precoFinal, markup, imagem, destaque, tempoDeGarantia
@@ -406,7 +406,7 @@ app.post('/api/products', protect, adminOnly(['root', 'admin']), async (req, res
 });
 
 // Rota para atualizar um produto
-app.put('/api/products/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.put('/api/products/:id', protect, hasPermission('editProduct'), async (req, res) => {
     const { id } = req.params;
     const {
         nome, categoria, marca, fornecedor, emEstoque, qtdaMinima,
@@ -458,7 +458,7 @@ app.put('/api/products/:id', protect, adminOnly(['root', 'admin']), async (req, 
 });
 
 // Rota para excluir um produto
-app.delete('/api/products/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.delete('/api/products/:id', protect, hasPermission('deleteProduct'), async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -508,6 +508,17 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ message: 'Credenciais inválidas.' });
     }
 
+    // Garante que o usuário tenha as permissões mais recentes para sua role
+    const defaultPerms = getDefaultPermissions(user.role);
+    const finalPermissions = { ...defaultPerms, ...(user.permissions || {}) };
+
+    // Garante que o root sempre tenha todas as permissões
+    if (user.role === 'root') {
+        Object.keys(finalPermissions).forEach(key => {
+            finalPermissions[key] = true;
+        });
+    }
+
     // Create JWT
     const token = jwt.sign(
       { id: user.id, role: user.role, name: user.name },
@@ -515,9 +526,9 @@ app.post('/api/auth/login', async (req, res) => {
       { expiresIn: '8h' } // Token expires in 8 hours
     );
 
-    // Return token and user info (without password hash)
     const { password_hash, ...userWithoutPassword } = user;
-    res.json({ token, user: userWithoutPassword });
+    // Retorna o token e as informações do usuário com as permissões atualizadas
+    res.json({ token, user: { ...userWithoutPassword, permissions: finalPermissions } });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).send('Erro no servidor durante o login.');
@@ -556,7 +567,7 @@ app.post('/api/auth/recover', async (req, res) => {
 // ==================
 
 // Rota para criar um novo usuário (somente admin/root)
-app.post('/api/users/register', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.post('/api/users/register', protect, hasPermission('manageUsers'), async (req, res) => {
   const { name, email, password, role } = req.body;
   const requestingUser = req.user;
   const finalRole = role || 'vendedor';
@@ -592,7 +603,7 @@ app.post('/api/users/register', protect, adminOnly(['root', 'admin']), async (re
 });
 
 // Rota para resetar a senha de um usuário
-app.post('/api/users/:id/reset-password', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.post('/api/users/:id/reset-password', protect, hasPermission('resetUserPassword'), async (req, res) => {
     const { id } = req.params;
     const requestingUser = req.user;
 
@@ -621,7 +632,7 @@ app.post('/api/users/:id/reset-password', protect, adminOnly(['root', 'admin']),
 });
 
 // Rota para buscar todos os usuários (protegida)
-app.get('/api/users', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.get('/api/users', protect, hasPermission('manageUsers'), async (req, res) => {
   const requestingUser = req.user;
   try {
     let queryText = 'SELECT id, name, email, role, permissions FROM users';
@@ -643,7 +654,7 @@ app.get('/api/users', protect, adminOnly(['root', 'admin']), async (req, res) =>
 });
 
 // Rota para atualizar um usuário
-app.put('/api/users/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.put('/api/users/:id', protect, hasPermission('manageUsers'), async (req, res) => {
     const { id } = req.params;
     const { name, email, password, permissions, role } = req.body;
     const requestingUser = req.user;
@@ -698,7 +709,7 @@ app.put('/api/users/:id', protect, adminOnly(['root', 'admin']), async (req, res
 });
 
 // Rota para excluir um usuário
-app.delete('/api/users/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.delete('/api/users/:id', protect, hasPermission('manageUsers'), async (req, res) => {
     const { id } = req.params;
     const requestingUser = req.user;
 
@@ -737,7 +748,7 @@ app.get('/api/clients', protect, async (req, res) => {
 });
 
 // Rota para criar um novo cliente (pela tela de gerenciamento)
-app.post('/api/clients', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.post('/api/clients', protect, hasPermission('manageClients'), async (req, res) => {
     const { name, cpf, phone, email } = req.body;
 
     if (!name || !cpf || !phone) {
@@ -762,7 +773,7 @@ app.post('/api/clients', protect, adminOnly(['root', 'admin']), async (req, res)
 });
 
 // Rota para atualizar um cliente
-app.put('/api/clients/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.put('/api/clients/:id', protect, hasPermission('manageClients'), async (req, res) => {
     const { id } = req.params;
     const { name, cpf, phone, email } = req.body;
 
@@ -801,7 +812,7 @@ app.put('/api/clients/:id', protect, adminOnly(['root', 'admin']), async (req, r
 });
 
 // Rota para excluir um cliente
-app.delete('/api/clients/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.delete('/api/clients/:id', protect, hasPermission('manageClients'), async (req, res) => {
     const { id } = req.params;
     const dbClient = await db.getClient();
 

@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const db = require('./db.js');
 require('dotenv').config();
 
 const protect = (req, res, next) => {
@@ -34,4 +35,32 @@ const adminOnly = (roles) => (req, res, next) => {
     next();
 };
 
-module.exports = { protect, adminOnly };
+const hasPermission = (permission) => async (req, res, next) => {
+    if (!req.user) {
+        return res.status(401).json({ message: 'Não autorizado.' });
+    }
+
+    // O usuário root tem acesso a tudo
+    if (req.user.role === 'root') {
+        return next();
+    }
+
+    try {
+        const { rows } = await db.query('SELECT permissions FROM users WHERE id = $1', [req.user.id]);
+        if (rows.length === 0) {
+            return res.status(401).json({ message: 'Usuário não encontrado.' });
+        }
+
+        const userPermissions = rows[0].permissions;
+        if (userPermissions && userPermissions[permission]) {
+            next();
+        } else {
+            res.status(403).json({ message: 'Acesso negado. Permissão específica insuficiente.' });
+        }
+    } catch (error) {
+        console.error('Erro ao verificar permissão:', error);
+        res.status(500).send('Erro no servidor ao verificar permissão.');
+    }
+};
+
+module.exports = { protect, adminOnly, hasPermission };
