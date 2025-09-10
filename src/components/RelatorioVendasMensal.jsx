@@ -58,22 +58,22 @@ const RelatorioVendasMensal = ({ reportData }) => {
                         <span>{totalVendas}</span>
                     </div>
                     <div className="text-sm space-y-1 pl-4 border-l-2 border-gray-300 py-2">
-                        {totalsByPaymentMethod?.Dinheiro > 0 && (
+                        {totalsByPaymentMethod?.Dinheiro?.total > 0 && (
                             <div className="flex justify-between text-gray-700">
-                                <span>- Em Dinheiro:</span>
-                                <span>{totalsByPaymentMethod.Dinheiro.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                <span>- Em Dinheiro ({totalsByPaymentMethod.Dinheiro.count}):</span>
+                                <span>{totalsByPaymentMethod.Dinheiro.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                             </div>
                         )}
-                        {totalsByPaymentMethod?.Cartão > 0 && (
+                        {totalsByPaymentMethod?.Cartão?.total > 0 && (
                             <div className="flex justify-between text-gray-700">
-                                <span>- No Cartão:</span>
-                                <span>{totalsByPaymentMethod.Cartão.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                <span>- No Cartão ({totalsByPaymentMethod.Cartão.count}):</span>
+                                <span>{totalsByPaymentMethod.Cartão.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                             </div>
                         )}
-                        {totalsByPaymentMethod?.Pix > 0 && (
+                        {totalsByPaymentMethod?.Pix?.total > 0 && (
                             <div className="flex justify-between text-gray-700">
-                                <span>- No Pix:</span>
-                                <span>{totalsByPaymentMethod.Pix.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                <span>- No Pix ({totalsByPaymentMethod.Pix.count}):</span>
+                                <span>{totalsByPaymentMethod.Pix.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                             </div>
                         )}
                     </div>

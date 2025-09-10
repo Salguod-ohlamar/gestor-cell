@@ -294,9 +294,10 @@ const AdminPage = ({
             const method = sale.paymentMethod || 'Indefinido';
             const total = Number(sale.total || 0);
             if (!acc[method]) {
-                acc[method] = 0;
+                acc[method] = { total: 0, count: 0 };
             }
-            acc[method] += total;
+            acc[method].total += total;
+            acc[method].count += 1;
             return acc;
         }, {});
 
