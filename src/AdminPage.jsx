@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Toaster, toast } from 'react-hot-toast';
 import Modal from './components/Modal.jsx';
 import ReciboVenda from './components/ReciboVenda.jsx';
+import RelatorioVendasMensal from './components/RelatorioVendasMensal.jsx';
 import { useEstoque, PERMISSION_GROUPS, getDefaultPermissions } from './components/useEstoque.jsx';
 
 // Dashboard components can be moved to their own file later
@@ -83,6 +84,7 @@ const AdminPage = ({
     const [newUserData, setNewUserData] = useState({ name: '', email: '', password: '' });
     const [editingUser, setEditingUser] = useState(null);
     const [reprintingSale, setReprintingSale] = useState(null);
+    const [monthlySalesReport, setMonthlySalesReport] = useState(null);
     const [logActionFilter, setLogActionFilter] = useState('');
     const [logAdminFilter, setLogAdminFilter] = useState('');
     const [showTotalValue, setShowTotalValue] = useState(false);
@@ -131,6 +133,17 @@ const AdminPage = ({
             console.error("Failed to save chart config to localStorage", error);
         }
     }, [chartsConfig]);
+
+    useEffect(() => {
+        const afterPrint = () => {
+            document.body.classList.remove('print-mode-recibo');
+            document.body.classList.remove('print-mode-monthly-report');
+        };
+
+        window.addEventListener('afterprint', afterPrint);
+
+        return () => window.removeEventListener('afterprint', afterPrint);
+    }, []);
 
     const canManageUser = (targetUser) => {
         if (!currentUser || !targetUser) return false;
@@ -396,6 +409,9 @@ const AdminPage = ({
             <input type="file" ref={restoreInputRef} onChange={handleFileRestore} accept=".json" className="hidden" />
             <div id="recibo-printable-area" className="hidden">
                 <ReciboVenda saleDetails={reprintingSale} />
+            </div>
+            <div id="monthly-report-printable-area" className="hidden">
+                <RelatorioVendasMensal reportData={monthlySalesReport} />
             </div>
 
             <main id="admin-non-printable-area" className="container mx-auto px-4 py-8 md:py-16">
@@ -692,6 +708,12 @@ const AdminPage = ({
                         className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white text-sm font-medium rounded-lg transition-colors"
                     >
                         Limpar Filtros
+                    </button>
+                    <button 
+                        onClick={handlePrintMonthlyReport}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                        <Printer size={16} /> Imprimir Relatório do Mês
                     </button>
                 </div>
 
