@@ -110,8 +110,8 @@ export const useEstoque = (currentUser) => {
                 }));
                 setEstoque(parsedData);
             } catch (error) {
-                console.error("Erro ao buscar produtos da API:", error);
-                toast.error('Não foi possível carregar os produtos. Verifique o backend.');
+                console.warn("Aviso ao buscar produtos da API:", error);
+                toast.error('Não foi possível carregar os produtos.');
             } finally {
                 setLoadingEstoque(false);
             }
@@ -164,7 +164,7 @@ export const useEstoque = (currentUser) => {
                 }));
                 setServicos(parsedData);
             } catch (error) {
-                console.error("Erro ao buscar serviços da API:", error);
+                console.warn("Aviso ao buscar serviços da API:", error);
                 toast.error('Não foi possível carregar os serviços.');
             } finally {
                 setLoadingServicos(false);
@@ -202,8 +202,9 @@ export const useEstoque = (currentUser) => {
                 const data = await response.json();
                 setSalesHistory(data);
             } catch (error) {
-                console.error("Erro ao buscar histórico de vendas da API:", error);
-                toast.error('Não foi possível carregar o histórico de vendas.');
+                // Erros aqui podem ser normais se o usuário não tiver permissão total.
+                console.warn("Aviso ao buscar histórico de vendas:", error);
+                // toast.error('Não foi possível carregar o histórico de vendas.');
                 setSalesHistory([]); // Limpa em caso de erro
             }
         };
@@ -254,8 +255,9 @@ export const useEstoque = (currentUser) => {
                 const data = await response.json();
                 setClientes(data);
             } catch (error) {
-                console.error("Erro ao buscar clientes da API:", error);
-                toast.error('Não foi possível carregar os clientes.');
+                // Erros aqui podem ser normais se o usuário não tiver permissão total.
+                console.warn("Aviso ao buscar clientes da API:", error);
+                // toast.error('Não foi possível carregar os clientes.');
                 setClientes([]); // Limpa em caso de erro
             }
         };
@@ -282,8 +284,8 @@ export const useEstoque = (currentUser) => {
                 const data = await response.json();
                 setUsers(data);
             } catch (error) {
-                console.error("Erro ao buscar usuários da API:", error);
-                toast.error('Não foi possível carregar os usuários.');
+                console.warn("Aviso ao buscar usuários da API:", error);
+                // toast.error('Não foi possível carregar os usuários.');
             }
         };
 

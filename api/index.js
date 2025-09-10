@@ -2,25 +2,17 @@
 //server.js
 const express = require('express');
 const cors = require('cors');
-const db = require('./db');
+const db = require('./db.js');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
-const { protect, adminOnly } = require('./authMiddleware');
+const { protect, adminOnly } = require('./authMiddleware.js');
 const { getDefaultPermissions } = require('./permissions.js');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-// Adicionado para compatibilidade com Vercel: remove o prefixo /api da URL
-// para que as rotas do Express funcionem como esperado.
-app.use((req, res, next) => {
-    if (req.url.startsWith('/api/')) {
-        req.url = req.url.replace('/api', '');
-    }
-    next();
-});
 app.use(cors()); // Permite requisições do nosso frontend React
 app.use(express.json()); // Permite que o Express entenda JSON
 
@@ -52,7 +44,7 @@ app.get('/products', async (req, res) => {
     }));
     res.json(products);
   } catch (err) {
-    console.error(err.message);
+    console.error('Erro ao buscar produtos:', err);
     res.status(500).send('Erro no servidor ao buscar produtos.');
   }
 });
@@ -82,7 +74,7 @@ app.get('/products/search', protect, async (req, res) => {
         }));
         res.json(products);
     } catch (err) {
-        console.error('Product search error:', err.message);
+        console.error('Product search error:', err);
         res.status(500).send('Erro no servidor ao buscar produtos.');
     }
 });
@@ -143,7 +135,7 @@ app.post('/services', protect, adminOnly(['root', 'admin']), async (req, res) =>
         });
 
     } catch (err) {
-        console.error('Create service error:', err.message);
+        console.error('Create service error:', err);
         res.status(500).send('Erro no servidor ao criar serviço.');
     }
 });
@@ -186,7 +178,7 @@ app.put('/services/:id', protect, adminOnly(['root', 'admin']), async (req, res)
         });
 
     } catch (err) {
-        console.error('Update service error:', err.message);
+        console.error('Update service error:', err);
         res.status(500).send('Erro no servidor ao atualizar serviço.');
     }
 });
@@ -210,7 +202,7 @@ app.delete('/services/:id', protect, adminOnly(['root', 'admin']), async (req, r
         res.status(200).json({ message: `Serviço "${result.rows[0].servico}" excluído com sucesso.` });
 
     } catch (err) {
-        console.error('Delete service error:', err.message);
+        console.error('Delete service error:', err);
         res.status(500).send('Erro no servidor ao excluir serviço.');
     }
 });
@@ -236,7 +228,7 @@ app.get('/services', async (req, res) => {
     }));
     res.json(services);
   } catch (err) {
-    console.error(err.message);
+    console.error('Erro ao buscar serviços:', err);
     res.status(500).send('Erro no servidor ao buscar serviços.');
   }
 });
@@ -258,7 +250,7 @@ app.get('/services/search', protect, async (req, res) => {
         }));
         res.json(services);
     } catch (err) {
-        console.error('Service search error:', err.message);
+        console.error('Service search error:', err);
         res.status(500).send('Erro no servidor ao buscar serviços.');
     }
 });
@@ -317,7 +309,7 @@ app.post('/products', protect, adminOnly(['root', 'admin']), async (req, res) =>
         });
 
     } catch (err) {
-        console.error('Create product error:', err.message);
+        console.error('Create product error:', err);
         res.status(500).send('Erro no servidor ao criar produto.');
     }
 });
@@ -369,7 +361,7 @@ app.put('/products/:id', protect, adminOnly(['root', 'admin']), async (req, res)
         });
 
     } catch (err) {
-        console.error('Update product error:', err.message);
+        console.error('Update product error:', err);
         res.status(500).send('Erro no servidor ao atualizar produto.');
     }
 });
@@ -393,7 +385,7 @@ app.delete('/products/:id', protect, adminOnly(['root', 'admin']), async (req, r
         res.status(200).json({ message: `Produto "${result.rows[0].nome}" excluído com sucesso.` });
 
     } catch (err) {
-        console.error('Delete product error:', err.message);
+        console.error('Delete product error:', err);
         res.status(500).send('Erro no servidor ao excluir produto.');
     }
 });
@@ -436,7 +428,7 @@ app.post('/auth/login', async (req, res) => {
     const { password_hash, ...userWithoutPassword } = user;
     res.json({ token, user: userWithoutPassword });
   } catch (err) {
-    console.error('Login error:', err.message);
+    console.error('Login error:', err);
     res.status(500).send('Erro no servidor durante o login.');
   }
 });
@@ -463,7 +455,7 @@ app.post('/auth/recover', async (req, res) => {
         res.json({ message: `Se um usuário com esse email e nome existir, um link de recuperação foi enviado.` });
 
     } catch (err) {
-        console.error('Password recovery error:', err.message);
+        console.error('Password recovery error:', err);
         res.status(500).send('Erro no servidor durante a recuperação de senha.');
     }
 });
@@ -503,7 +495,7 @@ app.post('/users/register', protect, adminOnly(['root', 'admin']), async (req, r
 
     res.status(201).json(rows[0]);
   } catch (err) {
-    console.error('Registration error:', err.message);
+    console.error('Registration error:', err);
     res.status(500).send('Erro no servidor ao registrar usuário.');
   }
 });
@@ -532,7 +524,7 @@ app.post('/users/:id/reset-password', protect, adminOnly(['root', 'admin']), asy
         res.json({ message: `Senha de ${targetUser.name} resetada com sucesso.`, newPassword: newPassword });
 
     } catch (err) {
-        console.error('Reset password error:', err.message);
+        console.error('Reset password error:', err);
         res.status(500).send('Erro no servidor ao resetar a senha.');
     }
 });
@@ -554,7 +546,7 @@ app.get('/users', protect, adminOnly(['root', 'admin']), async (req, res) => {
     const { rows } = await db.query(queryText, queryParams);
     res.json(rows);
   } catch (err) {
-    console.error('Error fetching users:', err.message);
+    console.error('Error fetching users:', err);
     res.status(500).send('Erro no servidor ao buscar usuários.');
   }
 });
@@ -609,7 +601,7 @@ app.put('/users/:id', protect, adminOnly(['root', 'admin']), async (req, res) =>
         res.json(rows[0]);
 
     } catch (err) {
-        console.error('Update user error:', err.message);
+        console.error('Update user error:', err);
         res.status(500).send('Erro no servidor ao atualizar o usuário.');
     }
 });
@@ -631,7 +623,7 @@ app.delete('/users/:id', protect, adminOnly(['root', 'admin']), async (req, res)
         res.status(200).json({ message: `Usuário "${targetUser.name}" excluído com sucesso.` });
 
     } catch (err) {
-        console.error('Delete user error:', err.message);
+        console.error('Delete user error:', err);
         res.status(500).send('Erro no servidor ao excluir o usuário.');
     }
 });
@@ -648,7 +640,7 @@ app.get('/clients', protect, async (req, res) => {
         const { rows } = await db.query(query);
         res.json(rows);
     } catch (err) {
-        console.error('Error fetching clients:', err.message);
+        console.error('Error fetching clients:', err);
         res.status(500).send('Erro no servidor ao buscar clientes.');
     }
 });
@@ -673,7 +665,7 @@ app.post('/clients', protect, adminOnly(['root', 'admin']), async (req, res) => 
         );
         res.status(201).json(rows[0]);
     } catch (err) {
-        console.error('Create client error:', err.message);
+        console.error('Create client error:', err);
         res.status(500).send('Erro no servidor ao criar cliente.');
     }
 });
@@ -712,7 +704,7 @@ app.put('/clients/:id', protect, adminOnly(['root', 'admin']), async (req, res) 
             // Não precisamos enviar created_at ou updated_at para a interface
         });
     } catch (err) {
-        console.error('Update client error:', err.message);
+        console.error('Update client error:', err);
         res.status(500).send('Erro no servidor ao atualizar o cliente.');
     }
 });
@@ -744,7 +736,7 @@ app.delete('/clients/:id', protect, adminOnly(['root', 'admin']), async (req, re
 
     } catch (err) {
         await dbClient.query('ROLLBACK');
-        console.error('Hard delete client error:', err.message);
+        console.error('Hard delete client error:', err);
         res.status(500).send('Erro no servidor ao excluir o cliente e seu histórico.');
     } finally {
         dbClient.release();
@@ -764,7 +756,7 @@ app.get('/clients/search', protect, async (req, res) => {
         }
         res.json(rows[0]);
     } catch (err) {
-        console.error('Search client error:', err.message);
+        console.error('Search client error:', err);
         res.status(500).send('Erro no servidor ao buscar cliente.');
     }
 });
@@ -813,7 +805,7 @@ app.get('/sales', protect, async (req, res) => {
         const { rows } = await db.query(query);
         res.json(rows);
     } catch (err) {
-        console.error('Error fetching sales history:', err.message);
+        console.error('Error fetching sales history:', err);
         res.status(500).send('Erro no servidor ao buscar histórico de vendas.');
     }
 });
