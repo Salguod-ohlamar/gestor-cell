@@ -272,6 +272,38 @@ const AdminPage = ({
         setChartsConfig(prevConfig => prevConfig.map(chart => chart.id === id ? { ...chart, visible: !chart.visible } : chart));
     };
 
+    const handlePrintMonthlyReport = () => {
+        const today = new Date();
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+
+        const monthlySales = salesHistory.filter(sale => {
+            if (!sale || !sale.date) return false;
+            const saleDate = new Date(sale.date);
+            return saleDate >= startOfMonth && saleDate <= endOfMonth;
+        });
+
+        if (monthlySales.length === 0) {
+            toast.error("Nenhuma venda encontrada para o mês atual.");
+            return;
+        }
+
+        const totalVendido = monthlySales.reduce((acc, sale) => acc + sale.total, 0);
+        const totalVendas = monthlySales.length;
+
+        setMonthlySalesReport({
+            sales: monthlySales.sort((a, b) => new Date(a.date) - new Date(b.date)),
+            month: today.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }),
+            totalVendido,
+            totalVendas,
+        });
+
+        setTimeout(() => {
+            document.body.classList.add('print-mode-monthly-report');
+            window.print();
+        }, 100);
+    };
+
     const handleOpenReprintModal = (sale) => setReprintingSale(sale);
     const handleCloseReprintModal = () => setReprintingSale(null);
 
