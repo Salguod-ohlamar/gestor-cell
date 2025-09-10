@@ -44,6 +44,12 @@ export const PERMISSION_GROUPS = {
             deleteService: { label: 'Excluir Serviço', roles: ['root', 'admin'] },
         }
     },
+    siteContent: {
+        title: 'Conteúdo do Site',
+        permissions: {
+            manageBanners: { label: 'Gerenciar Banners', roles: ['root', 'admin'] },
+        }
+    },
     admin: {
         title: 'Administração',
         permissions: {

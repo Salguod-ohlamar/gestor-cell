@@ -16,6 +16,12 @@ const PERMISSION_GROUPS = {
             deleteService: { roles: ['root', 'admin'] },
         }
     },
+    siteContent: {
+        title: 'Conteúdo do Site',
+        permissions: {
+            manageBanners: { roles: ['root', 'admin'] },
+        }
+    },
     admin: {
         title: 'Administração',
         permissions: {

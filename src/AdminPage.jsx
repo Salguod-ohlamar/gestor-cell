@@ -498,15 +498,16 @@ const AdminPage = ({
                         </div>
                     </div>
 
-                    <div className="bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-green-500 md:col-span-1 lg:col-span-1">
-                        <h3 className="text-xl font-semibold text-green-400 mb-4">Conteúdo do Site</h3>
-                        <div className="flex flex-col gap-3">
-                            {/* Adicionar permissão específica se necessário */}
-                            <button onClick={() => setIsBannerModalOpen(true)} className={actionButtonClasses}>
-                                <ImageIcon size={18} /> Gerenciar Banners
-                            </button>
+                    {currentUser.permissions?.manageBanners && (
+                        <div className="bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-green-500 md:col-span-1 lg:col-span-1">
+                            <h3 className="text-xl font-semibold text-green-400 mb-4">Conteúdo do Site</h3>
+                            <div className="flex flex-col gap-3">
+                                <button onClick={() => setIsBannerModalOpen(true)} className={actionButtonClasses}>
+                                    <ImageIcon size={18} /> Gerenciar Banners
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     <div className="bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-cyan-500 md:col-span-1 lg:col-span-1">
                         <h3 className="text-xl font-semibold text-cyan-400 mb-4">Relatórios e Dados</h3>
