@@ -252,15 +252,16 @@ const VendasPage = ({
             return;
         }
         
-        if (!customerName || !customerCpf || !customerPhone) {
-            toast.error("Por favor, preencha os dados do cliente: Nome, CPF/CNPJ e Telefone.");
+        if (!customerName || !customerPhone) {
+            toast.error("Por favor, preencha os dados do cliente: Nome e Telefone.");
             return;
         }
 
-        if (!validateCPF(customerCpf)) {
-            toast.error("CPF/CNPJ inválido. Por favor, verifique.");
-            setIsCpfValid(false);
-            return;
+        // Valida o CPF apenas se ele for preenchido
+        if (customerCpf && !validateCPF(customerCpf)) {
+             toast.error("CPF/CNPJ inválido. Por favor, verifique.");
+             setIsCpfValid(false);
+             return;
         }
 
         if (!validatePhone(customerPhone)) {
@@ -532,16 +533,15 @@ const VendasPage = ({
                                     />
                                 </div>
                                 <div className="mb-4">
-                                    <label htmlFor="customerCpf" className="block text-sm font-medium text-gray-300 mb-1">CPF/CNPJ do Cliente <span className="text-red-500">*</span></label>
+                                    <label htmlFor="customerCpf" className="block text-sm font-medium text-gray-300 mb-1">CPF/CNPJ do Cliente (Opcional)</label>
                                     <input
                                         type="text"
                                         id="customerCpf"
                                         value={customerCpf}
                                         onBlur={handleCpfBlur}
                                         onChange={handleCpfChange}
-                                        placeholder="Insira o CPF ou CNPJ"
+                                        placeholder="Insira o CPF ou CNPJ para buscar"
                                         className={`w-full p-2 bg-gray-800 border rounded-lg transition-colors ${isCpfValid ? 'border-gray-700 focus:ring-green-500' : 'border-red-500 focus:ring-red-500'} ${isSearchingClient ? 'animate-pulse' : ''}`}
-                                        required
                                     />
                                     {!isCpfValid && <p className="text-red-500 text-xs mt-1">CPF/CNPJ inválido.</p>}
                                 </div>
