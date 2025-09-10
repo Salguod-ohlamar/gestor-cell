@@ -8,6 +8,7 @@ import Button from './components/Button.jsx';
 import ProductCard from './components/ProductCard.jsx';
 import WhatsAppButton from './components/WhatsAppButton.jsx';
 import LocationMap from './LocationMap.jsx';
+import BannerCarousel from './components/BannerCarousel.jsx';
 import Modal from './components/Modal.jsx';
 
 const navLinksData = [
@@ -20,6 +21,7 @@ const navLinksData = [
 const HomePage = ({ onLoginClick }) => {
     const [productsByCategory, setProductsByCategory] = useState({});
     const [featuredServices, setFeaturedServices] = useState([]);
+    const [banners, setBanners] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isLgpdModalOpen, setIsLgpdModalOpen] = useState(false);
@@ -30,6 +32,10 @@ const HomePage = ({ onLoginClick }) => {
         const loadData = async () => {
             setLoading(true);
             try {
+                // Fetch banners
+                const bannersResponse = await fetch(`${API_URL}/api/banners`);
+                if (bannersResponse.ok) setBanners(await bannersResponse.json());
+
                 // Fetch products
                 const productsResponse = await fetch(`${API_URL}/api/products`);
                 if (!productsResponse.ok) throw new Error('Falha ao buscar produtos.');
@@ -53,6 +59,7 @@ const HomePage = ({ onLoginClick }) => {
             } catch (error) {
                 console.error("Erro ao carregar dados da página inicial:", error);
                 setProductsByCategory({});
+                setBanners([]);
                 setFeaturedServices([]);
             } finally {
                 setLoading(false);
@@ -107,6 +114,10 @@ const HomePage = ({ onLoginClick }) => {
             )}
 
             <main className="container mx-auto px-4 py-8 md:py-16">
+                <section id="banners" className="mb-20">
+                    <BannerCarousel banners={banners} />
+                </section>
+
                 <section id="inicio" className="text-center py-20 md:py-32">
                     <div className="relative z-10 space-y-6">
                         <h1 className="text-4xl md:text-6xl font-extrabold text-white"><BrandText>Boycell</BrandText>: Conectando você ao futuro</h1>

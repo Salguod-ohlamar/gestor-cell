@@ -255,6 +255,97 @@ app.get('/api/services/search', protect, async (req, res) => {
     }
 });
 
+// ==================
+// BANNER MANAGEMENT ROUTES
+// ==================
+
+// Rota para buscar todos os banners ativos (público)
+app.get('/api/banners', async (req, res) => {
+  try {
+    const { rows } = await db.query('SELECT * FROM banners WHERE is_active = TRUE ORDER BY sort_order ASC, created_at DESC');
+    res.json(rows);
+  } catch (err) {
+    console.error('Erro ao buscar banners:', err);
+    res.status(500).send('Erro no servidor ao buscar banners.');
+  }
+});
+
+// Rota para buscar TODOS os banners (admin)
+app.get('/api/banners/all', protect, adminOnly(['root', 'admin']), async (req, res) => {
+  try {
+    const { rows } = await db.query('SELECT * FROM banners ORDER BY sort_order ASC, created_at DESC');
+    res.json(rows);
+  } catch (err) {
+    console.error('Erro ao buscar todos os banners:', err);
+    res.status(500).send('Erro no servidor ao buscar banners.');
+  }
+});
+
+// Rota para criar um novo banner
+app.post('/api/banners', protect, adminOnly(['root', 'admin']), async (req, res) => {
+    const { title, text, image_url, link_url, is_active, sort_order } = req.body;
+
+    if (!image_url) {
+        return res.status(400).json({ message: 'A imagem do banner é obrigatória.' });
+    }
+
+    try {
+        const query = `
+            INSERT INTO banners (title, text, image_url, link_url, is_active, sort_order)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING *;
+        `;
+        const values = [title, text, image_url, link_url, is_active, sort_order || 0];
+        const { rows } = await db.query(query, values);
+        res.status(201).json(rows[0]);
+    } catch (err) {
+        console.error('Create banner error:', err);
+        res.status(500).send('Erro no servidor ao criar banner.');
+    }
+});
+
+// Rota para atualizar um banner
+app.put('/api/banners/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+    const { id } = req.params;
+    const { title, text, image_url, link_url, is_active, sort_order } = req.body;
+
+    if (!image_url) {
+        return res.status(400).json({ message: 'A imagem do banner é obrigatória.' });
+    }
+
+    try {
+        const query = `
+            UPDATE banners SET
+                title = $1, text = $2, image_url = $3, link_url = $4, is_active = $5, sort_order = $6, updated_at = NOW()
+            WHERE id = $7
+            RETURNING *;
+        `;
+        const values = [title, text, image_url, link_url, is_active, sort_order || 0, id];
+        const { rows } = await db.query(query, values);
+
+        if (rows.length === 0) return res.status(404).json({ message: 'Banner não encontrado.' });
+        
+        res.json(rows[0]);
+    } catch (err) {
+        console.error('Update banner error:', err);
+        res.status(500).send('Erro no servidor ao atualizar banner.');
+    }
+});
+
+// Rota para excluir um banner
+app.delete('/api/banners/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await db.query('DELETE FROM banners WHERE id = $1', [id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Banner não encontrado.' });
+        }
+        res.status(200).json({ message: 'Banner excluído com sucesso.' });
+    } catch (err) {
+        console.error('Delete banner error:', err);
+        res.status(500).send('Erro no servidor ao excluir banner.');
+    }
+});
 
 // Rota para criar um novo produto
 app.post('/api/products', protect, adminOnly(['root', 'admin']), async (req, res) => {

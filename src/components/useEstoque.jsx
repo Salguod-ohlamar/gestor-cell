@@ -297,6 +297,30 @@ export const useEstoque = (currentUser) => {
 
     }, [currentUser]);
 
+    // ===================================================================
+    // BANNERS STATE
+    // ===================================================================
+    const [banners, setBanners] = useState([]);
+
+    useEffect(() => {
+        const fetchBanners = async () => {
+            if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'root')) {
+                try {
+                    const token = localStorage.getItem('boycell-token');
+                    const response = await fetch(`${API_URL}/api/banners/all`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (!response.ok) throw new Error('Falha ao buscar banners.');
+                    const data = await response.json();
+                    setBanners(data);
+                } catch (error) {
+                    console.error("Erro ao buscar banners para o admin:", error);
+                    toast.error('Não foi possível carregar os banners.');
+                }
+            }
+        };
+        fetchBanners();
+    }, [currentUser]);
 
     // ===================================================================
     // EFFECTS
@@ -1349,6 +1373,64 @@ export const useEstoque = (currentUser) => {
         }
     };
 
+    const handleAddBanner = async (newBannerData, adminName) => {
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/banners`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(newBannerData)
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao adicionar banner.');
+            setBanners(prev => [...prev, data].sort((a, b) => a.sort_order - b.sort_order));
+            logAdminActivity(adminName, 'Criação de Banner', `Banner "${data.title || 'Novo'}" foi criado.`);
+            toast.success('Banner adicionado com sucesso!');
+            return true;
+        } catch (error) {
+            toast.error(error.message);
+            return false;
+        }
+    };
+
+    const handleUpdateBanner = async (bannerId, bannerData, adminName) => {
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/banners/${bannerId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(bannerData)
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao atualizar banner.');
+            setBanners(prev => prev.map(b => b.id === bannerId ? data : b).sort((a, b) => a.sort_order - b.sort_order));
+            logAdminActivity(adminName, 'Atualização de Banner', `Banner "${data.title || 'ID: '+bannerId}" foi atualizado.`);
+            toast.success('Banner atualizado com sucesso!');
+            return true;
+        } catch (error) {
+            toast.error(error.message);
+            return false;
+        }
+    };
+
+    const handleDeleteBanner = async (bannerId, adminName) => {
+        if (!window.confirm('Tem certeza que deseja excluir este banner?')) return;
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/banners/${bannerId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao excluir banner.');
+            setBanners(prev => prev.filter(b => b.id !== bannerId));
+            logAdminActivity(adminName, 'Exclusão de Banner', `Banner com ID ${bannerId} foi excluído.`);
+            toast.success(data.message);
+        } catch (error) {
+            toast.error(error.message);
+        }
+    };
+
     return {
         estoque,
         servicos,
@@ -1417,5 +1499,10 @@ export const useEstoque = (currentUser) => {
         activityLog,
         handleBackup,
         handleRestore,
+        // Banners
+        banners,
+        handleAddBanner,
+        handleUpdateBanner,
+        handleDeleteBanner,
     };
 };

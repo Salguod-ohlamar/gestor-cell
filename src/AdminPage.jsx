@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ArrowLeft, LogOut, PlusCircle, Search, Edit, DollarSign, Package, FileDown, ChevronLeft, ChevronRight, GripVertical, Printer, Eye, EyeOff, ChevronUpSquare, ChevronDownSquare, History, Trash2, Layers, ShoppingCart, TrendingUp, ShoppingBag, Banknote, LayoutDashboard, Users, KeyRound, ListChecks, Mail, Send, RefreshCw, Upload, Download, UserCog, Settings } from 'lucide-react';
+import { ArrowLeft, LogOut, PlusCircle, Search, Edit, DollarSign, Package, FileDown, ChevronLeft, ChevronRight, GripVertical, Printer, Eye, EyeOff, ChevronUpSquare, ChevronDownSquare, History, Trash2, Layers, ShoppingCart, TrendingUp, ShoppingBag, Banknote, LayoutDashboard, Users, KeyRound, ListChecks, Mail, Send, RefreshCw, Upload, Download, UserCog, Settings, Image as ImageIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Label, AreaChart, Area } from 'recharts';
 import { Toaster, toast } from 'react-hot-toast';
 import Modal from './components/Modal.jsx';
 import ReciboVenda from './components/ReciboVenda.jsx';
+import BannerManager from './components/BannerManager.jsx';
 import RelatorioVendasMensal from './components/RelatorioVendasMensal.jsx'; 
 import { PERMISSION_GROUPS, getDefaultPermissions } from './components/useEstoque.jsx';
 
@@ -67,6 +68,10 @@ const AdminPage = ({
     handleBackup,
     handleRestore,
     stockValueHistory,
+    banners,
+    handleAddBanner,
+    handleUpdateBanner,
+    handleDeleteBanner,
  }) => {
 
     const navigate = useNavigate();
@@ -77,6 +82,7 @@ const AdminPage = ({
     const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
     const [isActivityLogModalOpen, setIsActivityLogModalOpen] = useState(false);
     const [isSalesHistoryModalOpen, setIsSalesHistoryModalOpen] = useState(false);
+    const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
     const [isChartsModalOpen, setIsChartsModalOpen] = useState(false);
     const [newUserData, setNewUserData] = useState({ name: '', email: '', password: '' });
     const [editingUser, setEditingUser] = useState(null);
@@ -469,7 +475,7 @@ const AdminPage = ({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
                     {/* Painel de Administração */}
                     <div className="bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-purple-500 md:col-span-1 lg:col-span-1">
                         <h3 className="text-xl font-semibold text-purple-400 mb-4">Gerenciamento</h3>
@@ -489,6 +495,16 @@ const AdminPage = ({
                                     <UserCog size={18} /> Gerenciar Clientes
                                 </button>
                             )}
+                        </div>
+                    </div>
+
+                    <div className="bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-green-500 md:col-span-1 lg:col-span-1">
+                        <h3 className="text-xl font-semibold text-green-400 mb-4">Conteúdo do Site</h3>
+                        <div className="flex flex-col gap-3">
+                            {/* Adicionar permissão específica se necessário */}
+                            <button onClick={() => setIsBannerModalOpen(true)} className={actionButtonClasses}>
+                                <ImageIcon size={18} /> Gerenciar Banners
+                            </button>
                         </div>
                     </div>
 
@@ -532,6 +548,16 @@ const AdminPage = ({
             </main>
 
             {/* MODALS */}
+            <Modal isOpen={isBannerModalOpen} onClose={() => setIsBannerModalOpen(false)} size="2xl">
+                <BannerManager 
+                    banners={banners}
+                    onAdd={handleAddBanner}
+                    onUpdate={handleUpdateBanner}
+                    onDelete={handleDeleteBanner}
+                    currentUser={currentUser}
+                />
+            </Modal>
+
             <Modal isOpen={isUserManagementModalOpen} onClose={handleCloseUserManagementModal} size="lg">
                 <h2 className="text-2xl font-bold text-center text-purple-400 mb-6">Gerenciar Usuários</h2>
                 <div>
