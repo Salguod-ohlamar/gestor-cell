@@ -114,15 +114,14 @@ const HomePage = ({ onLoginClick }) => {
             )}
 
             <main className="container mx-auto px-4 py-8 md:py-16">
-                <section id="banners" className="mb-20">
-                    <BannerCarousel banners={banners} />
-                </section>
-
                 <section id="inicio" className="text-center py-20 md:py-32">
                     <div className="relative z-10 space-y-6">
                         <h1 className="text-4xl md:text-6xl font-extrabold text-white"><BrandText>Boycell</BrandText>: Conectando você ao futuro</h1>
                         <p className="text-xl md:text-2xl text-gray-400 max-w-3xl mx-auto">Periféricos de ponta e conserto especializado para o seu universo móvel.</p>
-                        <div className="mt-8 flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+                        <div className="!mt-12 max-w-5xl mx-auto">
+                            <BannerCarousel banners={banners} />
+                        </div>
+                        <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
                             <Button as="a" href="#produtos" size="lg">Compre agora</Button>
                             <Button as="a" href="#servicos" variant="secondary" size="lg">Reparo rápido</Button>
                         </div>
