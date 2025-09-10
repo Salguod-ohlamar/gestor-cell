@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node node_modules/vite/bin/vite.js build",
-    "postinstall": "if [ -f ./node_modules/@esbuild/linux-x64/bin/esbuild ]; then chmod +x ./node_modules/@esbuild/linux-x64/bin/esbuild; fi",
+    "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
