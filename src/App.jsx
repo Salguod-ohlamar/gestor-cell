@@ -84,6 +84,7 @@ const App = () => {
                                 <AdminPage
                                     onLogout={handleLogout}
                                     currentUser={currentUser}
+                                    {...estoqueData}
                                 />
                             } />
                         </Route>

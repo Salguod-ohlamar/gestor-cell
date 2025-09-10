@@ -5,8 +5,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Toaster, toast } from 'react-hot-toast';
 import Modal from './components/Modal.jsx';
 import ReciboVenda from './components/ReciboVenda.jsx';
-import RelatorioVendasMensal from './components/RelatorioVendasMensal.jsx';
-import { useEstoque, PERMISSION_GROUPS, getDefaultPermissions } from './components/useEstoque.jsx';
+import RelatorioVendasMensal from './components/RelatorioVendasMensal.jsx'; 
+import { PERMISSION_GROUPS, getDefaultPermissions } from './components/useEstoque.jsx';
 
 // Dashboard components can be moved to their own file later
 const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue, onToggle }) => {
@@ -56,23 +56,20 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
 const AdminPage = ({ 
     onLogout, 
     currentUser,
+    dashboardData,
+    salesHistory,
+    users,
+    handleAddUser,
+    handleDeleteUser,
+    handleUpdateUser,
+    handleResetUserPassword,
+    activityLog,
+    handleBackup,
+    handleRestore,
+    stockValueHistory,
  }) => {
 
     const navigate = useNavigate();
-
-    const {
-        dashboardData,
-        salesHistory,
-        users,
-        handleAddUser,
-        handleDeleteUser,
-        handleUpdateUser,
-        handleResetUserPassword,
-        activityLog,
-        handleBackup,
-        handleRestore,
-        stockValueHistory,
-    } = useEstoque(currentUser);
 
     // State and handlers that were in StockControl.jsx
     const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState(false);
