@@ -50,7 +50,7 @@ app.get('/products', async (req, res) => {
 });
 
 // Rota para buscar produtos por nome para a tela de vendas
-app.get('/products/search', protect, async (req, res) => {
+app.get('/api/products/search', protect, async (req, res) => {
     const { q } = req.query;
     if (!q) {
         return res.json([]);
@@ -84,7 +84,7 @@ app.get('/products/search', protect, async (req, res) => {
 // ==================
 
 // Rota para criar um novo serviço
-app.post('/services', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.post('/api/services', protect, adminOnly(['root', 'admin']), async (req, res) => {
     const {
         servico, fornecedor, marca, tipoReparo, tecnico,
         preco, precoFinal, markup, imagem, destaque, tempoDeGarantia
@@ -141,7 +141,7 @@ app.post('/services', protect, adminOnly(['root', 'admin']), async (req, res) =>
 });
 
 // Rota para atualizar um serviço
-app.put('/services/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.put('/api/services/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
     const { id } = req.params;
     const {
         servico, fornecedor, marca, tipoReparo, tecnico,
@@ -184,7 +184,7 @@ app.put('/services/:id', protect, adminOnly(['root', 'admin']), async (req, res)
 });
 
 // Rota para excluir um serviço
-app.delete('/services/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.delete('/api/services/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -208,7 +208,7 @@ app.delete('/services/:id', protect, adminOnly(['root', 'admin']), async (req, r
 });
 
 // Rota para buscar todos os serviços (mantida, mas agora com o bloco de rotas de gerenciamento)
-app.get('/services', async (req, res) => {
+app.get('/api/services', async (req, res) => {
   try {
     const { rows } = await db.query('SELECT * FROM services ORDER BY servico ASC');
     const services = rows.map(s => ({
@@ -234,7 +234,7 @@ app.get('/services', async (req, res) => {
 });
 
 // Rota para buscar serviços por nome para a tela de vendas
-app.get('/services/search', protect, async (req, res) => {
+app.get('/api/services/search', protect, async (req, res) => {
     const { q } = req.query;
     if (!q) {
         return res.json([]);
@@ -257,7 +257,7 @@ app.get('/services/search', protect, async (req, res) => {
 
 
 // Rota para criar um novo produto
-app.post('/products', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.post('/api/products', protect, adminOnly(['root', 'admin']), async (req, res) => {
     const {
         nome, categoria, marca, fornecedor, emEstoque, qtdaMinima,
         preco, precoFinal, markup, imagem, destaque, tempoDeGarantia
@@ -315,7 +315,7 @@ app.post('/products', protect, adminOnly(['root', 'admin']), async (req, res) =>
 });
 
 // Rota para atualizar um produto
-app.put('/products/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.put('/api/products/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
     const { id } = req.params;
     const {
         nome, categoria, marca, fornecedor, emEstoque, qtdaMinima,
@@ -367,7 +367,7 @@ app.put('/products/:id', protect, adminOnly(['root', 'admin']), async (req, res)
 });
 
 // Rota para excluir um produto
-app.delete('/products/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.delete('/api/products/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -393,7 +393,7 @@ app.delete('/products/:id', protect, adminOnly(['root', 'admin']), async (req, r
 // ==================
 // AUTH ROUTES
 // ==================
-app.post('/auth/login', async (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -434,7 +434,7 @@ app.post('/auth/login', async (req, res) => {
 });
 
 // Rota para recuperação de senha (simulada)
-app.post('/auth/recover', async (req, res) => {
+app.post('/api/auth/recover', async (req, res) => {
     const { email, name } = req.body;
 
     if (!email || !name) {
@@ -465,7 +465,7 @@ app.post('/auth/recover', async (req, res) => {
 // ==================
 
 // Rota para criar um novo usuário (somente admin/root)
-app.post('/users/register', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.post('/api/users/register', protect, adminOnly(['root', 'admin']), async (req, res) => {
   const { name, email, password, role } = req.body;
   const requestingUser = req.user;
   const finalRole = role || 'vendedor';
@@ -501,7 +501,7 @@ app.post('/users/register', protect, adminOnly(['root', 'admin']), async (req, r
 });
 
 // Rota para resetar a senha de um usuário
-app.post('/users/:id/reset-password', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.post('/api/users/:id/reset-password', protect, adminOnly(['root', 'admin']), async (req, res) => {
     const { id } = req.params;
     const requestingUser = req.user;
 
@@ -530,7 +530,7 @@ app.post('/users/:id/reset-password', protect, adminOnly(['root', 'admin']), asy
 });
 
 // Rota para buscar todos os usuários (protegida)
-app.get('/users', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.get('/api/users', protect, adminOnly(['root', 'admin']), async (req, res) => {
   const requestingUser = req.user;
   try {
     let queryText = 'SELECT id, name, email, role, permissions FROM users';
@@ -552,7 +552,7 @@ app.get('/users', protect, adminOnly(['root', 'admin']), async (req, res) => {
 });
 
 // Rota para atualizar um usuário
-app.put('/users/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.put('/api/users/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
     const { id } = req.params;
     const { name, email, password, permissions, role } = req.body;
     const requestingUser = req.user;
@@ -607,7 +607,7 @@ app.put('/users/:id', protect, adminOnly(['root', 'admin']), async (req, res) =>
 });
 
 // Rota para excluir um usuário
-app.delete('/users/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.delete('/api/users/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
     const { id } = req.params;
     const requestingUser = req.user;
 
@@ -633,7 +633,7 @@ app.delete('/users/:id', protect, adminOnly(['root', 'admin']), async (req, res)
 // ==================
 
 // Rota para buscar todos os clientes
-app.get('/clients', protect, async (req, res) => {
+app.get('/api/clients', protect, async (req, res) => {
     const { includeInactive = 'false' } = req.query;
     try {
         const query = includeInactive === 'true' ? 'SELECT * FROM clients ORDER BY name ASC' : 'SELECT * FROM clients WHERE is_active = TRUE ORDER BY name ASC';
@@ -646,7 +646,7 @@ app.get('/clients', protect, async (req, res) => {
 });
 
 // Rota para criar um novo cliente (pela tela de gerenciamento)
-app.post('/clients', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.post('/api/clients', protect, adminOnly(['root', 'admin']), async (req, res) => {
     const { name, cpf, phone, email } = req.body;
 
     if (!name || !cpf || !phone) {
@@ -671,7 +671,7 @@ app.post('/clients', protect, adminOnly(['root', 'admin']), async (req, res) => 
 });
 
 // Rota para atualizar um cliente
-app.put('/clients/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.put('/api/clients/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
     const { id } = req.params;
     const { name, cpf, phone, email } = req.body;
 
@@ -710,7 +710,7 @@ app.put('/clients/:id', protect, adminOnly(['root', 'admin']), async (req, res) 
 });
 
 // Rota para excluir um cliente
-app.delete('/clients/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.delete('/api/clients/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
     const { id } = req.params;
     const dbClient = await db.getClient();
 
@@ -744,7 +744,7 @@ app.delete('/clients/:id', protect, adminOnly(['root', 'admin']), async (req, re
 });
 
 // Rota para buscar um cliente pelo CPF/CNPJ
-app.get('/clients/search', protect, async (req, res) => {
+app.get('/api/clients/search', protect, async (req, res) => {
     const { cpf } = req.query;
     if (!cpf) {
         return res.status(400).json({ message: 'CPF/CNPJ é obrigatório para a busca.' });
@@ -766,7 +766,7 @@ app.get('/clients/search', protect, async (req, res) => {
 // ==================
 
 // Rota para buscar o histórico de vendas
-app.get('/sales', protect, async (req, res) => {
+app.get('/api/sales', protect, async (req, res) => {
     try {
         const query = `
             SELECT
@@ -811,7 +811,7 @@ app.get('/sales', protect, async (req, res) => {
 });
 
 // Rota para criar uma nova venda
-app.post('/sales', protect, async (req, res) => {
+app.post('/api/sales', protect, async (req, res) => {
     const {
         items, subtotal, discountPercentage, discountValue, total,
         customer, customerCpf, customerPhone, customerEmail,
