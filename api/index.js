@@ -22,7 +22,7 @@ app.get('/', (req, res) => {
 });
 
 // Rota para buscar todos os produtos
-app.get('/products', async (req, res) => {
+app.get('/api/products', async (req, res) => {
   try {
     const { rows } = await db.query('SELECT * FROM products ORDER BY nome ASC');
     // Converte o padrão snake_case do DB para camelCase do JS
