@@ -1002,6 +1002,63 @@ app.post('/api/sales', protect, async (req, res) => {
     }
 });
 
+app.get('/api/reports/sales-by-user', protect, hasPermission('viewUserSalesReport'), async (req, res) => {
+    const { userId, startDate, endDate } = req.query;
+
+    if (!userId || !startDate || !endDate) {
+        return res.status(400).json({ message: 'ID do usuário, data de início e fim são obrigatórios.' });
+    }
+
+    try {
+        const salesResult = await db.query(`
+            SELECT
+                s.id,
+                s.receipt_code AS "receiptCode",
+                s.client_id AS "clienteId",
+                c.name AS "customer",
+                s.total,
+                s.payment_method AS "paymentMethod",
+                s.sale_date AS "date",
+                json_agg(json_build_object(
+                    'id', COALESCE(si.product_id, si.service_id),
+                    'type', si.item_type,
+                    'nome', si.item_name,
+                    'servico', si.item_name,
+                    'quantity', si.quantity,
+                    'precoFinal', si.unit_price
+                )) AS items
+            FROM sales s
+            JOIN sale_items si ON s.id = si.sale_id
+            LEFT JOIN clients c ON s.client_id = c.id
+            WHERE s.user_id = $1 AND s.sale_date >= $2 AND s.sale_date <= $3
+            GROUP BY s.id, c.id
+            ORDER BY s.sale_date ASC;
+        `, [userId, startDate, endDate]);
+
+        const sales = salesResult.rows.map(sale => ({
+            ...sale,
+            total: parseFloat(sale.total)
+        }));
+
+        if (sales.length === 0) {
+            return res.json({ sales: [], totalVendido: 0, totalVendas: 0, totalsByPaymentMethod: {} });
+        }
+
+        const totalVendido = sales.reduce((acc, sale) => acc + sale.total, 0);
+        const totalVendas = sales.length;
+
+        res.json({
+            sales,
+            totalVendido,
+            totalVendas,
+        });
+
+    } catch (err) {
+        console.error('Sales by user report error:', err);
+        res.status(500).send('Erro no servidor ao gerar o relatório de vendas por vendedor.');
+    }
+});
+
 // ==================
 // REPORTS ROUTES
 // ==================

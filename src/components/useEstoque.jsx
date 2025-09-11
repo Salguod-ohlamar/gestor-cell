@@ -55,6 +55,7 @@ export const PERMISSION_GROUPS = {
         permissions: {
             viewDashboardCharts: { label: 'Ver Análise Gráfica', roles: ['root'] },
             viewSalesHistory: { label: 'Ver Histórico de Vendas', roles: ['root', 'admin'] },
+            viewUserSalesReport: { label: 'Ver Relatório por Vendedor', roles: ['root', 'admin'] },
             viewDreReport: { label: 'Ver DRE Simplificado', roles: ['root', 'admin'] },
             viewActivityLog: { label: 'Ver Log de Atividades', roles: ['root'] },
             manageClients: { label: 'Gerenciar Clientes', roles: ['root', 'admin'] },

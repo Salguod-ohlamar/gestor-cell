@@ -7,6 +7,7 @@ import Modal from './components/Modal.jsx';
 import ReciboVenda from './components/ReciboVenda.jsx';
 import BannerManager from './components/BannerManager.jsx';
 import RelatorioVendasMensal from './components/RelatorioVendasMensal.jsx';
+import RelatorioVendasUsuario from './components/RelatorioVendasUsuario.jsx';
 import DreReport from './components/DreReport.jsx';
 import { PERMISSION_GROUPS, getDefaultPermissions } from './components/useEstoque.jsx';
 
@@ -83,6 +84,7 @@ const AdminPage = ({
     const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
     const [isActivityLogModalOpen, setIsActivityLogModalOpen] = useState(false);
     const [isSalesHistoryModalOpen, setIsSalesHistoryModalOpen] = useState(false);
+    const [isUserSalesReportModalOpen, setIsUserSalesReportModalOpen] = useState(false);
     const [isDreModalOpen, setIsDreModalOpen] = useState(false);
     const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
     const [isChartsModalOpen, setIsChartsModalOpen] = useState(false);
@@ -98,6 +100,11 @@ const AdminPage = ({
     const [salesHistorySearchTerm, setSalesHistorySearchTerm] = useState('');
     const [salesHistoryEndDate, setSalesHistoryEndDate] = useState('');
     const [salesChartPeriod, setSalesChartPeriod] = useState('day');
+    const [userSalesReportData, setUserSalesReportData] = useState(null);
+    const [userSalesReportUserId, setUserSalesReportUserId] = useState('');
+    const [userSalesReportStartDate, setUserSalesReportStartDate] = useState('');
+    const [userSalesReportEndDate, setUserSalesReportEndDate] = useState('');
+    const [loadingUserSalesReport, setLoadingUserSalesReport] = useState(false);
     const restoreInputRef = useRef(null);
     const [dreStartDate, setDreStartDate] = useState('');
     const [dreEndDate, setDreEndDate] = useState('');
@@ -148,6 +155,7 @@ const AdminPage = ({
             document.body.classList.remove('print-mode-recibo');
             document.body.classList.remove('print-mode-monthly-report');
             document.body.classList.remove('print-mode-dre-report');
+            document.body.classList.remove('print-mode-user-sales-report');
         };
 
         window.addEventListener('afterprint', afterPrint);
@@ -328,6 +336,59 @@ const AdminPage = ({
         }, 100);
     };
 
+    const handleGenerateUserSalesReport = async () => {
+        if (!userSalesReportUserId || !userSalesReportStartDate || !userSalesReportEndDate) {
+            toast.error('Por favor, selecione o vendedor e o período.');
+            return;
+        }
+        setLoadingUserSalesReport(true);
+        setUserSalesReportData(null);
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const user = users.find(u => u.id == userSalesReportUserId);
+            if (!user) {
+                toast.error('Vendedor não encontrado.');
+                setLoadingUserSalesReport(false);
+                return;
+            }
+    
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reports/sales-by-user?userId=${userSalesReportUserId}&startDate=${userSalesReportStartDate}&endDate=${userSalesReportEndDate}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Erro ao gerar o relatório.');
+            }
+            
+            if (data.sales.length === 0) {
+                toast.error('Nenhuma venda encontrada para este vendedor no período selecionado.');
+                setUserSalesReportData(null);
+            } else {
+                setUserSalesReportData({
+                    ...data,
+                    user: user.name,
+                    period: { start: userSalesReportStartDate, end: userSalesReportEndDate },
+                });
+            }
+        } catch (error) {
+            toast.error(error.message);
+            setUserSalesReportData(null);
+        } finally {
+            setLoadingUserSalesReport(false);
+        }
+    };
+
+    const handlePrintUserSalesReport = () => {
+        if (!userSalesReportData) {
+            toast.error("Gere um relatório antes de imprimir.");
+            return;
+        }
+        setTimeout(() => {
+            document.body.classList.add('print-mode-user-sales-report');
+            window.print();
+        }, 100);
+    };
+
     const handleGenerateDreReport = async () => {
         if (!dreStartDate || !dreEndDate) {
             toast.error('Por favor, selecione as datas de início e fim.');
@@ -502,6 +563,9 @@ const AdminPage = ({
             <div id="monthly-report-printable-area" className="hidden">
                 <RelatorioVendasMensal reportData={monthlySalesReport} />
             </div>
+            <div id="user-sales-report-printable-area" className="hidden">
+                <RelatorioVendasUsuario reportData={userSalesReportData} />
+            </div>
             <div id="dre-report-printable-area" className="hidden">
                 <DreReport reportData={dreData} />
             </div>
@@ -573,6 +637,11 @@ const AdminPage = ({
                                     <History size={18} /> Histórico de Vendas
                                 </button>
                             )}
+                            {currentUser.permissions?.viewUserSalesReport && (
+                                <button onClick={() => setIsUserSalesReportModalOpen(true)} className={actionButtonClasses}>
+                                    <Users size={18} /> Relatório por Vendedor
+                                </button>
+                            )}
                             {currentUser.permissions?.viewDreReport && (
                                 <button onClick={() => setIsDreModalOpen(true)} className={actionButtonClasses}>
                                     <TrendingUpIcon size={18} /> DRE Simplificado
@@ -608,6 +677,54 @@ const AdminPage = ({
                     onDelete={handleDeleteBanner}
                     currentUser={currentUser}
                 />
+            </Modal>
+
+            <Modal isOpen={isUserSalesReportModalOpen} onClose={() => setIsUserSalesReportModalOpen(false)} size="xl">
+                <h2 className="text-2xl font-bold text-center text-cyan-400 mb-6">Relatório de Vendas por Vendedor</h2>
+                <div className="flex flex-wrap items-center justify-center gap-4 mb-6 p-4 bg-gray-800/50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="userSelect" className="text-sm font-medium text-gray-300">Vendedor:</label>
+                        <select
+                            id="userSelect"
+                            value={userSalesReportUserId}
+                            onChange={e => setUserSalesReportUserId(e.target.value)}
+                            className="p-2 bg-gray-700 border border-gray-600 rounded-lg text-sm"
+                        >
+                            <option value="">Selecione um vendedor</option>
+                            {users.filter(u => u.role !== 'root').map(user => (
+                                <option key={user.id} value={user.id}>{user.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="userSaleStartDate" className="text-sm font-medium text-gray-300">De:</label>
+                        <input 
+                            type="date" 
+                            id="userSaleStartDate"
+                            value={userSalesReportStartDate}
+                            onChange={e => setUserSalesReportStartDate(e.target.value)}
+                            className="p-2 bg-gray-700 border border-gray-600 rounded-lg text-sm"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="userSaleEndDate" className="text-sm font-medium text-gray-300">Até:</label>
+                        <input 
+                            type="date" 
+                            id="userSaleEndDate"
+                            value={userSalesReportEndDate}
+                            onChange={e => setUserSalesReportEndDate(e.target.value)}
+                            className="p-2 bg-gray-700 border border-gray-600 rounded-lg text-sm"
+                        />
+                    </div>
+                    <button onClick={handleGenerateUserSalesReport} disabled={loadingUserSalesReport} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium rounded-lg transition-colors disabled:bg-gray-500">
+                        {loadingUserSalesReport ? 'Gerando...' : 'Gerar Relatório'}
+                    </button>
+                    <button onClick={handlePrintUserSalesReport} disabled={!userSalesReportData} className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors disabled:bg-gray-500">
+                        <Printer size={16} /> Imprimir
+                    </button>
+                </div>
+
+                <div className="bg-white rounded-lg overflow-y-auto max-h-[60vh]"><RelatorioVendasUsuario reportData={userSalesReportData} /></div>
             </Modal>
 
             <Modal isOpen={isDreModalOpen} onClose={() => setIsDreModalOpen(false)} size="xl">
