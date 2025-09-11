@@ -3,7 +3,7 @@ import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { usePersistedState } from './components/usePersistedState';
 import { useEstoque } from './components/useEstoque.jsx';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider } from './components/ThemeContext.jsx';
 import LoginPage from './components/LoginPage.jsx';
 import Modal from './components/Modal.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';

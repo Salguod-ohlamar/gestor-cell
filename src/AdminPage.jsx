@@ -6,7 +6,7 @@ import { Toaster, toast } from 'react-hot-toast';
 import Modal from './components/Modal.jsx';
 import ReciboVenda from './components/ReciboVenda.jsx';
 import BannerManager from './components/BannerManager.jsx';
-import { useTheme } from './contexts/ThemeContext.jsx';
+import { useTheme } from './components/ThemeContext.jsx';
 import RelatorioVendasMensal from './components/RelatorioVendasMensal.jsx';
 import RelatorioVendasUsuario from './components/RelatorioVendasUsuario.jsx';
 import DreReport from './components/DreReport.jsx';
