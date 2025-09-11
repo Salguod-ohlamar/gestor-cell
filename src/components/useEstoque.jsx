@@ -34,6 +34,7 @@ export const PERMISSION_GROUPS = {
             editProduct: { label: 'Editar Produto', roles: ['root', 'admin'] },
             deleteProduct: { label: 'Excluir Produto', roles: ['root', 'admin'] },
             exportCsv: { label: 'Exportar CSV de Produtos', roles: ['root', 'admin'] },
+            viewProductHistory: { label: 'Visualizar Histórico do Produto', roles: ['root', 'admin'] },
         }
     },
     services: {
@@ -42,6 +43,7 @@ export const PERMISSION_GROUPS = {
             addService: { label: 'Adicionar Serviço', roles: ['root', 'admin'] },
             editService: { label: 'Editar Serviço', roles: ['root', 'admin'] },
             deleteService: { label: 'Excluir Serviço', roles: ['root', 'admin'] },
+            viewServiceHistory: { label: 'Visualizar Histórico do Serviço', roles: ['root', 'admin'] },
         }
     },
     siteContent: {

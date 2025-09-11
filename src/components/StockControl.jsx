@@ -196,7 +196,7 @@ const StockControl = ({ onLogout, currentUser }) => {
               return (
                 <td key={col.id} className={`p-4 text-${col.align} printable-hidden`}>
                   <div className="flex items-center justify-end gap-4">
-                    <button onClick={() => handleOpenHistoryModal(item)} className="text-purple-500 dark:text-purple-400 hover:text-purple-600 dark:hover:text-purple-300 transition-colors" title="Ver Histórico"><History size={18} /></button>
+                    {currentUser.permissions?.viewProductHistory && (<button onClick={() => handleOpenHistoryModal(item)} className="text-purple-500 dark:text-purple-400 hover:text-purple-600 dark:hover:text-purple-300 transition-colors" title="Ver Histórico"><History size={18} /></button>)}
                     {currentUser.permissions?.editProduct && (<button onClick={() => handleOpenEditModal(item)} className="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" title="Editar Produto"><Edit size={18} /></button>)}
                     {currentUser.permissions?.deleteProduct && (<button onClick={() => handleExcluirProduto(item.id, currentUser.name)} className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors" title="Excluir Produto"><Trash2 size={18} /></button>)}
                   </div>
@@ -226,7 +226,7 @@ const StockControl = ({ onLogout, currentUser }) => {
                     return (
                         <td key={col.id} className={`p-4 text-${col.align}`}>
                             <div className="flex items-center justify-end gap-4">
-                                <button onClick={() => handleOpenServiceHistoryModal(item)} className="text-purple-500 dark:text-purple-400 hover:text-purple-600 dark:hover:text-purple-300 transition-colors" title="Ver Histórico"><History size={18} /></button>
+                                {currentUser.permissions?.viewServiceHistory && (<button onClick={() => handleOpenServiceHistoryModal(item)} className="text-purple-500 dark:text-purple-400 hover:text-purple-600 dark:hover:text-purple-300 transition-colors" title="Ver Histórico"><History size={18} /></button>)}
                                 {currentUser.permissions?.editService && (<button onClick={() => handleOpenEditServicoModal(item)} className="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" title="Editar Serviço"><Edit size={18} /></button>)}
                                 {currentUser.permissions?.deleteService && (<button onClick={() => handleExcluirServico(item.id, currentUser.name)} className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors" title="Excluir Serviço"><Trash2 size={18} /></button>)}
                             </div>
