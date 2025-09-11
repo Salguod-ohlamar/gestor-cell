@@ -150,11 +150,6 @@ const StockControl = ({ onLogout, currentUser }) => {
     setViewingServiceHistory(null);
   };
 
-  const handleAddNewProduct = async (e) => {
-    e.preventDefault();
-    await handleUpdateProduct(e, currentUser.name);
-  };
-
   const handleAddNewServico = async (e) => {
     e.preventDefault();
     if (!newServico.servico || !newServico.fornecedor || !newServico.marca || !newServico.tipoReparo || !newServico.tecnico || !newServico.preco || !newServico.precoFinal) {
@@ -188,18 +183,18 @@ const StockControl = ({ onLogout, currentUser }) => {
         {currentColumns.map(col => {
           switch (col.id) {
             case 'imagem':
-              return <td key={col.id} className="p-2 printable-hidden"><img src={item.imagem || 'https://via.placeholder.com/40'} alt={item.nome} className="w-12 h-12 object-cover rounded-md bg-gray-200 dark:bg-gray-700" /></td>;
+              return <td key={col.id} className={`p-2 printable-hidden text-${col.align}`}><img src={item.imagem || 'https://via.placeholder.com/40'} alt={item.nome} className="w-12 h-12 object-cover rounded-md bg-gray-200 dark:bg-gray-700" /></td>;
             case 'nome':
-              return <td key={col.id} className="p-4 font-medium">{item.nome}</td>;
+              return <td key={col.id} className={`p-4 font-medium text-${col.align}`}>{item.nome}</td>;
             case 'emEstoque':
-              return <td key={col.id} className={`p-4 font-semibold ${isLowStock ? 'text-red-500 dark:text-red-400' : ''}`}>{item.emEstoque}</td>;
+              return <td key={col.id} className={`p-4 font-semibold text-${col.align} ${isLowStock ? 'text-red-500 dark:text-red-400' : ''}`}>{item.emEstoque}</td>;
             case 'preco':
-              return <td key={col.id} className="p-4">{item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
+              return <td key={col.id} className={`p-4 text-${col.align}`}>{item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
             case 'precoFinal':
-              return <td key={col.id} className={`p-4 ${col.printable === false ? 'printable-hidden' : ''}`}>{item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
+              return <td key={col.id} className={`p-4 text-${col.align} ${col.printable === false ? 'printable-hidden' : ''}`}>{item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
             case 'acoes':
               return (
-                <td key={col.id} className="p-4 text-right printable-hidden">
+                <td key={col.id} className={`p-4 text-${col.align} printable-hidden`}>
                   <div className="flex items-center justify-end gap-4">
                     <button onClick={() => handleOpenHistoryModal(item)} className="text-purple-500 dark:text-purple-400 hover:text-purple-600 dark:hover:text-purple-300 transition-colors" title="Ver Histórico"><History size={18} /></button>
                     {currentUser.permissions?.editProduct && (<button onClick={() => handleOpenEditModal(item)} className="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" title="Editar Produto"><Edit size={18} /></button>)}
@@ -208,7 +203,7 @@ const StockControl = ({ onLogout, currentUser }) => {
                 </td>
               );
             default:
-              return <td key={col.id} className={`p-4 ${col.printable === false ? 'printable-hidden' : ''}`}>{item[col.id]}</td>;
+              return <td key={col.id} className={`p-4 text-${col.align} ${col.printable === false ? 'printable-hidden' : ''}`}>{item[col.id]}</td>;
           }
         })}
       </tr>
@@ -220,16 +215,16 @@ const StockControl = ({ onLogout, currentUser }) => {
         {currentColumns.map(col => {
             switch (col.id) {
                 case 'imagem':
-                    return <td key={col.id} className="p-2"><img src={item.imagem || 'https://via.placeholder.com/40'} alt={item.servico} className="w-12 h-12 object-cover rounded-md bg-gray-200 dark:bg-gray-700" /></td>;
+                    return <td key={col.id} className={`p-2 text-${col.align}`}><img src={item.imagem || 'https://via.placeholder.com/40'} alt={item.servico} className="w-12 h-12 object-cover rounded-md bg-gray-200 dark:bg-gray-700" /></td>;
                 case 'preco':
-                    return <td key={col.id} className="p-4">{item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
+                    return <td key={col.id} className={`p-4 text-${col.align}`}>{item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
                 case 'precoFinal':
-                    return <td key={col.id} className="p-4">{item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
+                    return <td key={col.id} className={`p-4 text-${col.align}`}>{item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
                 case 'servico':
-                    return <td key={col.id} className="p-4 font-medium">{item.servico}</td>;
+                    return <td key={col.id} className={`p-4 font-medium text-${col.align}`}>{item.servico}</td>;
                 case 'acoes':
                     return (
-                        <td key={col.id} className="p-4 text-right">
+                        <td key={col.id} className={`p-4 text-${col.align}`}>
                             <div className="flex items-center justify-end gap-4">
                                 <button onClick={() => handleOpenServiceHistoryModal(item)} className="text-purple-500 dark:text-purple-400 hover:text-purple-600 dark:hover:text-purple-300 transition-colors" title="Ver Histórico"><History size={18} /></button>
                                 {currentUser.permissions?.editService && (<button onClick={() => handleOpenEditServicoModal(item)} className="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" title="Editar Serviço"><Edit size={18} /></button>)}
@@ -238,7 +233,7 @@ const StockControl = ({ onLogout, currentUser }) => {
                         </td>
                     );
                 default:
-                    return <td key={col.id} className="p-4">{item[col.id]}</td>;
+                    return <td key={col.id} className={`p-4 text-${col.align}`}>{item[col.id]}</td>;
             }
         })}
     </tr>
@@ -454,7 +449,7 @@ const StockControl = ({ onLogout, currentUser }) => {
       {/* Modal para Adicionar Novo Produto */}
       <Modal isOpen={isAddModalOpen} onClose={handleCloseAddModal}>
         <h2 className="text-2xl font-bold text-center text-green-600 dark:text-green-400 mb-6">Adicionar Novo Produto</h2>
-        <form className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4" onSubmit={handleAddNewProduct}>
+        <form className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4" onSubmit={(e) => handleAddProduct(e, currentUser.name)}>
             <div className="md:col-span-2">
                 <label htmlFor="add-nome" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome do Produto</label>
                 <input id="add-nome" name="nome" type="text" value={newProduct.nome} onChange={handleInputChange} required className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
@@ -494,18 +489,18 @@ const StockControl = ({ onLogout, currentUser }) => {
                     Mostrar produto na página inicial
                 </label>
             </div>
-            <hr className="md:col-span-2 border-gray-700 my-2" />
+            <hr className="md:col-span-2 border-gray-300 dark:border-gray-700 my-2" />
             <div>
-                <label htmlFor="add-preco" className="block text-sm font-medium text-gray-300">Preço de Custo</label>
-                <input id="add-preco" name="preco" type="number" step="0.01" value={newProduct.preco} onChange={handleInputChange} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Ex: 50.00" />
+                <label htmlFor="add-preco" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Preço de Custo</label>
+                <input id="add-preco" name="preco" type="number" step="0.01" value={newProduct.preco} onChange={handleInputChange} required className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Ex: 50.00" />
             </div>
             <div>
-                <label htmlFor="add-markup" className="block text-sm font-medium text-gray-300">Markup (%)</label>
-                <input id="add-markup" name="markup" type="number" step="0.01" placeholder="Ex: 25" value={newProduct.markup} onChange={handleInputChange} className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                <label htmlFor="add-markup" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Markup (%)</label>
+                <input id="add-markup" name="markup" type="number" step="0.01" placeholder="Ex: 25" value={newProduct.markup} onChange={handleInputChange} className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
             </div>
             <div className="md:col-span-2">
-                <label htmlFor="add-precoFinal" className="block text-sm font-medium text-gray-300">Preço Final (Venda)</label>
-                <input id="add-precoFinal" name="precoFinal" type="number" step="0.01" value={newProduct.precoFinal} onChange={handleInputChange} required disabled={!!newProduct.markup} className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-700 disabled:cursor-not-allowed" />
+                <label htmlFor="add-precoFinal" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Preço Final (Venda)</label>
+                <input id="add-precoFinal" name="precoFinal" type="number" step="0.01" value={newProduct.precoFinal} onChange={handleInputChange} required disabled={!!newProduct.markup} className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:cursor-not-allowed" />
             </div>
             <button type="submit" className="w-full md:col-span-2 mt-4 px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-300">
                 Salvar Produto
