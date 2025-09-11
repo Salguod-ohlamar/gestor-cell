@@ -126,7 +126,7 @@ export const useEstoque = (currentUser) => {
                 setEstoque(parsedData);
             } catch (error) {
                 console.error("Erro ao buscar produtos da API:", error);
-                toast.error('Não foi possível carregar os produtos. Verifique o backend.');
+                console.log('Info: Não foi possível carregar os produtos. Isso pode ocorrer se não houver produtos cadastrados ou por um erro de conexão.');
             } finally {
                 setLoadingEstoque(false);
             }
@@ -180,7 +180,7 @@ export const useEstoque = (currentUser) => {
                 setServicos(parsedData);
             } catch (error) {
                 console.error("Erro ao buscar serviços da API:", error);
-                toast.error('Não foi possível carregar os serviços.');
+                console.log('Info: Não foi possível carregar os serviços. Isso pode ocorrer se não houver serviços cadastrados ou por um erro de conexão.');
             } finally {
                 setLoadingServicos(false);
             }
@@ -270,7 +270,7 @@ export const useEstoque = (currentUser) => {
                 setClientes(data);
             } catch (error) {
                 console.error("Erro ao buscar clientes da API:", error);
-                toast.error('Não foi possível carregar os clientes.');
+                console.log('Info: Não foi possível carregar os clientes. Isso pode ocorrer se não houver clientes cadastrados ou por um erro de conexão.');
                 setClientes([]); // Limpa em caso de erro
             }
         };
