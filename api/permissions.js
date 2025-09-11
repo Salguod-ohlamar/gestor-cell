@@ -39,6 +39,7 @@ const PERMISSION_GROUPS = {
             manageUsers: { roles: ['root'] },
             resetUserPassword: { roles: ['root'] },
             manageBackup: { roles: ['root'] },
+            manageTheme: { roles: ['root'] },
         }
     }
 };

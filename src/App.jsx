@@ -1,8 +1,9 @@
 import React, { useState, Suspense, lazy } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { usePersistedState } from './components/usePersistedState.js';
+import { usePersistedState } from './components/usePersistedState';
 import { useEstoque } from './components/useEstoque.jsx';
+import { ThemeProvider } from './contexts/ThemeContext';
 import LoginPage from './components/LoginPage.jsx';
 import Modal from './components/Modal.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
@@ -14,7 +15,7 @@ const VendasPage = lazy(() => import('./components/VendasPage.jsx'));
 const ClientesPage = lazy(() => import('./components/ClientesPage.jsx'));
 const AdminPage = lazy(() => import('./AdminPage.jsx'));
 
-const App = () => {
+const AppContent = () => {
     const [currentUser, setCurrentUser] = usePersistedState('boycell-currentUser', null);
     const estoqueData = useEstoque(currentUser);
     const { handlePasswordRecovery } = estoqueData;
@@ -40,14 +41,14 @@ const App = () => {
     };
 
     const LoadingFallback = () => (
-        <div className="flex justify-center items-center h-screen bg-gray-950 text-white text-xl">
+        <div className="flex justify-center items-center h-screen bg-white dark:bg-gray-950 text-gray-800 dark:text-white text-xl">
           Carregando...
         </div>
     );
 
     return (
         <>
-            <Toaster position="top-right" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
+            <Toaster position="top-right" toastOptions={{ className: 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white', style: { background: 'transparent', boxShadow: 'none' } }} />
             <Suspense fallback={<LoadingFallback />}>
                 <Routes>
                     {/* Rota Pública */}
@@ -98,6 +99,14 @@ const App = () => {
                 <LoginPage onLogin={handleLogin} handlePasswordRecovery={handlePasswordRecovery} />
             </Modal>
         </>
+    );
+};
+
+const App = () => {
+    return (
+        <ThemeProvider>
+            <AppContent />
+        </ThemeProvider>
     );
 };
 

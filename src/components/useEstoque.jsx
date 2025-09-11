@@ -67,6 +67,7 @@ export const PERMISSION_GROUPS = {
             manageUsers: { label: 'Gerenciar Usuários', roles: ['root'] },
             resetUserPassword: { label: 'Resetar Senha', roles: ['root'] },
             manageBackup: { label: 'Gerenciar Backup/Restore', roles: ['root'] },
+            manageTheme: { label: 'Alterar Tema do Site', roles: ['root'] },
         }
     }
 };

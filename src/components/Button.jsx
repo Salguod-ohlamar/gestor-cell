@@ -8,12 +8,12 @@ const Button = ({
   className, 
   ...props 
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-950 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-950 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed';
 
   const variantClasses = {
     primary: 'bg-green-600 hover:bg-green-700 text-white shadow-lg border border-transparent',
-    secondary: 'bg-gray-800/50 border border-green-500/50 text-green-400 hover:bg-green-400 hover:text-white shadow-lg',
-    icon: 'hover:bg-gray-800 text-green-400',
+    secondary: 'bg-gray-200 dark:bg-gray-800/50 border border-green-500/50 text-green-600 dark:text-green-400 hover:bg-green-500 hover:text-white dark:hover:bg-green-400 dark:hover:text-white shadow-lg',
+    icon: 'hover:bg-gray-200 dark:hover:bg-gray-800 text-green-600 dark:text-green-400',
   };
 
   const sizeClasses = {
