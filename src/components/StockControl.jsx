@@ -598,7 +598,9 @@ const StockControl = ({
                 <input id="add-imagem" name="imagem" type="file" accept="image/*" onChange={handleInputChange} className="mt-1 block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700 cursor-pointer" />
                 {newProduct.imagem && <img src={newProduct.imagem} alt="Pré-visualização" className="mt-4 w-24 h-24 object-cover rounded-lg shadow-md" />}
             </div>
-            <div className="md:col-span-2 flex items-center p-3 bg-gray-100 dark:bg-gray-
+            <div className="md:col-span-2 flex items-center p-3 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
+                <label htmlFor="add-destaque" className="flex items-center gap-3 cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <input id="add-destaque" name="destaque" type="checkbox" checked={newProduct.destaque} onChange={handleInputChange} className="form-checkbox h-5 w-5 text-green-500 bg-gray-200 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded focus:ring-green-500" />
                     Mostrar produto na página inicial
                 </label>
             </div>
