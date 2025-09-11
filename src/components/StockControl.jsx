@@ -1,9 +1,11 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ArrowLeft, LogOut, PlusCircle, Search, ArrowUp, ArrowDown, Edit, Package, FileDown, ChevronLeft, ChevronRight, GripVertical, Printer, History, Trash2, ShoppingCart, Settings, Sun, Moon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, LogOut, PlusCircle, Search, Edit, FileDown, Printer, History, Trash2, ShoppingCart, Settings, Sun, Moon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Toaster, toast } from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast';
 import Modal from './Modal.jsx';
 import { useTheme } from './ThemeContext.jsx';
+import { useEstoqueContext } from './EstoqueContext.jsx';
+import DataTable from './DataTable.jsx';
 
 // ===================================================================
 // DEFINIÇÃO DAS COLUNAS DA TABELA
@@ -38,55 +40,55 @@ const servicosFallbackColumns = [
 // ===================================================================
 // PÁGINA DE CONTROLE DE ESTOQUE
 // ===================================================================
-const StockControl = ({ 
-  onLogout, 
-  currentUser,
-  paginatedEstoque,
-  sortConfig,
-  handleSort,
-  handleExcluirProduto,
-  searchTerm,
-  setSearchTerm,
-  showLowStockOnly,
-  setShowLowStockOnly,
-  currentPage,
-  setCurrentPage,
-  totalPages,
-  isAddModalOpen,
-  handleOpenAddModal,
-  handleCloseAddModal,
-  newProduct,
-  handleInputChange,
-  handleAddProduct,
-  isEditModalOpen,
-  handleOpenEditModal,
-  handleCloseEditModal,
-  editingProduct,
-  handleEditInputChange,
-  handleUpdateProduct,
-  handleExportCSV,
-  lowStockItems,
-  paginatedServicos,
-  servicoSortConfig,
-  handleServicoSort,
-  handleExcluirServico,
-  servicoSearchTerm,
-  setServicoSearchTerm,
-  servicoCurrentPage,
-  setServicoCurrentPage,
-  totalServicoPages,
-  isAddServicoModalOpen,
-  handleOpenAddServicoModal,
-  handleCloseAddServicoModal,
-  newServico,
-  isEditServicoModalOpen,
-  handleOpenEditServicoModal,
-  handleCloseEditServicoModal,
-  editingServico,
-  handleServicoInputChange,
-  handleAddServico,
-  handleUpdateServico,
-}) => {
+const StockControl = ({ onLogout, currentUser }) => {
+  const {
+    paginatedEstoque,
+    sortConfig,
+    handleSort,
+    handleExcluirProduto,
+    searchTerm,
+    setSearchTerm,
+    showLowStockOnly,
+    setShowLowStockOnly,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    isAddModalOpen,
+    handleOpenAddModal,
+    handleCloseAddModal,
+    newProduct,
+    handleInputChange,
+    handleAddProduct,
+    isEditModalOpen,
+    handleOpenEditModal,
+    handleCloseEditModal,
+    editingProduct,
+    handleEditInputChange,
+    handleUpdateProduct,
+    handleExportCSV,
+    lowStockItems,
+    paginatedServicos,
+    servicoSortConfig,
+    handleServicoSort,
+    handleExcluirServico,
+    servicoSearchTerm,
+    setServicoSearchTerm,
+    servicoCurrentPage,
+    setServicoCurrentPage,
+    totalServicoPages,
+    isAddServicoModalOpen,
+    handleOpenAddServicoModal,
+    handleCloseAddServicoModal,
+    newServico,
+    isEditServicoModalOpen,
+    handleOpenEditServicoModal,
+    handleCloseEditServicoModal,
+    editingServico,
+    handleServicoInputChange,
+    handleAddServico,
+    handleUpdateServico,
+  } = useEstoqueContext();
+
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   // ===================================================================
@@ -120,13 +122,6 @@ const StockControl = ({
     }
   });
 
-  // Refs
-  const dragItem = useRef(null);
-  const dragOverItem = useRef(null);
-
-  // ===================================================================
-  // EFFECTS
-  // ===================================================================
   useEffect(() => {
     localStorage.setItem('boycell-columns', JSON.stringify(columns));
   }, [columns]);
@@ -156,10 +151,7 @@ const StockControl = ({
   };
 
   const handleAddNewProduct = async (e) => {
-    await handleAddProduct(e, currentUser.name);
-  };
-
-  const handleUpdateExistingProduct = async (e) => {
+    e.preventDefault();
     await handleUpdateProduct(e, currentUser.name);
   };
 
@@ -169,24 +161,7 @@ const StockControl = ({
       toast.error('Por favor, preencha todos os campos.');
       return;
     }
-    await handleAddServico(e, currentUser.name); // Pass event and adminName
-  };
-
-  const handleDragStart = (e, index) => {
-    dragItem.current = index;
-    e.currentTarget.classList.add('bg-gray-700');
-  };
-  const handleDragEnter = (e, index) => {
-    dragOverItem.current = index;
-  };
-  const handleDragEnd = (e) => {
-    e.currentTarget.classList.remove('bg-gray-700');
-    const newColumns = [...columns];
-    const draggedItem = newColumns.splice(dragItem.current, 1)[0];
-    newColumns.splice(dragOverItem.current, 0, draggedItem);
-    dragItem.current = null;
-    dragOverItem.current = null;
-    setColumns(newColumns);
+    await handleAddServico(e, currentUser.name);
   };
   const handlePrintCompraImediata = () => {
     document.body.classList.add('print-mode-compra-imediata');
@@ -202,6 +177,72 @@ const StockControl = ({
   };
 
   const actionButtonClasses = "w-full inline-flex items-center justify-start gap-3 px-4 py-3 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium rounded-lg transition-colors duration-300 text-sm";
+
+  const renderProductRow = (item, currentColumns) => {
+    const isLowStock = item.emEstoque <= item.qtdaMinima;
+    return (
+      <tr 
+        key={item.id}
+        className={`border-b border-gray-200 dark:border-gray-800 transition-colors ${isLowStock ? 'bg-red-100 dark:bg-red-950/40 hover:bg-red-200 dark:hover:bg-red-950/60' : 'hover:bg-gray-100 dark:hover:bg-gray-800/50'}`}
+      >
+        {currentColumns.map(col => {
+          switch (col.id) {
+            case 'imagem':
+              return <td key={col.id} className="p-2 printable-hidden"><img src={item.imagem || 'https://via.placeholder.com/40'} alt={item.nome} className="w-12 h-12 object-cover rounded-md bg-gray-200 dark:bg-gray-700" /></td>;
+            case 'nome':
+              return <td key={col.id} className="p-4 font-medium">{item.nome}</td>;
+            case 'emEstoque':
+              return <td key={col.id} className={`p-4 font-semibold ${isLowStock ? 'text-red-500 dark:text-red-400' : ''}`}>{item.emEstoque}</td>;
+            case 'preco':
+              return <td key={col.id} className="p-4">{item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
+            case 'precoFinal':
+              return <td key={col.id} className={`p-4 ${col.printable === false ? 'printable-hidden' : ''}`}>{item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
+            case 'acoes':
+              return (
+                <td key={col.id} className="p-4 text-right printable-hidden">
+                  <div className="flex items-center justify-end gap-4">
+                    <button onClick={() => handleOpenHistoryModal(item)} className="text-purple-500 dark:text-purple-400 hover:text-purple-600 dark:hover:text-purple-300 transition-colors" title="Ver Histórico"><History size={18} /></button>
+                    {currentUser.permissions?.editProduct && (<button onClick={() => handleOpenEditModal(item)} className="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" title="Editar Produto"><Edit size={18} /></button>)}
+                    {currentUser.permissions?.deleteProduct && (<button onClick={() => handleExcluirProduto(item.id, currentUser.name)} className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors" title="Excluir Produto"><Trash2 size={18} /></button>)}
+                  </div>
+                </td>
+              );
+            default:
+              return <td key={col.id} className={`p-4 ${col.printable === false ? 'printable-hidden' : ''}`}>{item[col.id]}</td>;
+          }
+        })}
+      </tr>
+    );
+  };
+
+  const renderServiceRow = (item, currentColumns) => (
+    <tr key={item.id} className="border-b border-gray-200 dark:border-gray-800 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800/50">
+        {currentColumns.map(col => {
+            switch (col.id) {
+                case 'imagem':
+                    return <td key={col.id} className="p-2"><img src={item.imagem || 'https://via.placeholder.com/40'} alt={item.servico} className="w-12 h-12 object-cover rounded-md bg-gray-200 dark:bg-gray-700" /></td>;
+                case 'preco':
+                    return <td key={col.id} className="p-4">{item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
+                case 'precoFinal':
+                    return <td key={col.id} className="p-4">{item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
+                case 'servico':
+                    return <td key={col.id} className="p-4 font-medium">{item.servico}</td>;
+                case 'acoes':
+                    return (
+                        <td key={col.id} className="p-4 text-right">
+                            <div className="flex items-center justify-end gap-4">
+                                <button onClick={() => handleOpenServiceHistoryModal(item)} className="text-purple-500 dark:text-purple-400 hover:text-purple-600 dark:hover:text-purple-300 transition-colors" title="Ver Histórico"><History size={18} /></button>
+                                {currentUser.permissions?.editService && (<button onClick={() => handleOpenEditServicoModal(item)} className="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" title="Editar Serviço"><Edit size={18} /></button>)}
+                                {currentUser.permissions?.deleteService && (<button onClick={() => handleExcluirServico(item.id, currentUser.name)} className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors" title="Excluir Serviço"><Trash2 size={18} /></button>)}
+                            </div>
+                        </td>
+                    );
+                default:
+                    return <td key={col.id} className="p-4">{item[col.id]}</td>;
+            }
+        })}
+    </tr>
+  );
 
   // ===================================================================
   // RENDER
@@ -326,102 +367,18 @@ const StockControl = ({
           </div>
 
           {/* Tabela de produtos */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="border-b border-gray-200 dark:border-gray-700">
-                <tr>
-                  {columns.map((col, index) => (
-                    <th 
-                      key={col.id} 
-                      className={`p-4 font-semibold text-${col.align} ${col.sortable ? 'cursor-pointer' : 'cursor-move'} group ${col.printable === false ? 'printable-hidden' : ''}`}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, index)}
-                      onDragEnter={(e) => handleDragEnter(e, index)}
-                      onDragEnd={handleDragEnd}
-                      onDragOver={(e) => e.preventDefault()}
-                    >
-                      <div className="flex items-center gap-2">
-                        <GripVertical size={16} className="text-gray-400 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        {col.sortable ? (
-                          <button onClick={() => handleSort(col.id)} className="flex items-center hover:text-green-600 dark:hover:text-green-400 transition-colors">
-                            {col.label}
-                            {sortConfig.key === col.id && (sortConfig.direction === 'ascending' ? <ArrowUp size={16} className="ml-2" /> : <ArrowDown size={16} className="ml-2" />)}
-                          </button>
-                        ) : (
-                          <span>{col.label}</span>
-                        )}
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedEstoque.length > 0 ? paginatedEstoque.map((item) => {
-                  const isLowStock = item.emEstoque <= item.qtdaMinima;
-                  return (
-                  <tr 
-                    key={item.id}
-                    className={`border-b border-gray-200 dark:border-gray-800 transition-colors ${isLowStock ? 'bg-red-100 dark:bg-red-950/40 hover:bg-red-200 dark:hover:bg-red-950/60' : 'hover:bg-gray-100 dark:hover:bg-gray-800/50'}`}
-                  >
-                    {columns.map(col => {
-                      switch (col.id) {
-                        case 'imagem':
-                          return <td key={col.id} className="p-2 printable-hidden"><img src={item.imagem || 'https://via.placeholder.com/40'} alt={item.nome} className="w-12 h-12 object-cover rounded-md bg-gray-200 dark:bg-gray-700" /></td>;
-                        case 'nome':
-                          return <td key={col.id} className="p-4 font-medium">{item.nome}</td>;
-                        case 'emEstoque':
-                          return <td key={col.id} className={`p-4 font-semibold ${isLowStock ? 'text-red-500 dark:text-red-400' : ''}`}>{item.emEstoque}</td>;
-                        case 'preco':
-                          return <td key={col.id} className="p-4">{item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
-                        case 'precoFinal':
-                          return <td key={col.id} className={`p-4 ${col.printable === false ? 'printable-hidden' : ''}`}>{item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
-                        case 'acoes':
-                          return (
-                            <td key={col.id} className="p-4 text-right printable-hidden">
-                              <div className="flex items-center justify-end gap-4">
-                                <button onClick={() => handleOpenHistoryModal(item)} className="text-purple-500 dark:text-purple-400 hover:text-purple-600 dark:hover:text-purple-300 transition-colors" title="Ver Histórico">
-                                  <History size={18} />
-                                </button>
-                                {currentUser.permissions?.editProduct && (
-                                  <button onClick={() => handleOpenEditModal(item)} className="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" title="Editar Produto">
-                                    <Edit size={18} />
-                                  </button>
-                                )}
-                                {currentUser.permissions?.deleteProduct && (
-                                  <button onClick={() => handleExcluirProduto(item.id, currentUser.name)} className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors" title="Excluir Produto">
-                                    <Trash2 size={18} />
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          );
-                        default:
-                          return <td key={col.id} className={`p-4 ${col.printable === false ? 'printable-hidden' : ''}`}>{item[col.id]}</td>;
-                      }
-                    })}
-                  </tr>
-                  );
-                }) : (
-                  <tr>
-                    <td colSpan={columns.length} className="p-8 text-center text-gray-500">Nenhum produto encontrado.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Controles de Paginação */}
-          {totalPages > 1 && (
-            <div className="mt-6 flex justify-between items-center no-print text-sm text-gray-500 dark:text-gray-400">
-              <span>
-                Página {currentPage} de {totalPages}
-              </span>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"><ChevronLeft size={20} /></button>
-                <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"><ChevronRight size={20} /></button>
-              </div>
-            </div>
-          )}
+          <DataTable
+            columns={columns}
+            data={paginatedEstoque}
+            sortConfig={sortConfig}
+            onSort={handleSort}
+            renderRow={renderProductRow}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            onColumnOrderChange={setColumns}
+            noResultsMessage="Nenhum produto encontrado."
+          />
         </div>
       </main>
 
@@ -449,85 +406,18 @@ const StockControl = ({
             </div>
 
             {/* Tabela de Serviços */}
-            <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                    <thead className="border-b border-gray-200 dark:border-gray-700">
-                        <tr>
-                            {servicosColumns.map((col) => (
-                                <th key={col.id} className={`p-4 font-semibold text-${col.align}`}>
-                                    <div className="flex items-center gap-2">
-                                        {col.sortable ? (
-                                            <button onClick={() => handleServicoSort(col.id)} className="flex items-center hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                                                {col.label}
-                                                {servicoSortConfig.key === col.id && (servicoSortConfig.direction === 'ascending' ? <ArrowUp size={16} className="ml-2" /> : <ArrowDown size={16} className="ml-2" />)}
-                                            </button>
-                                        ) : (
-                                            <span>{col.label}</span>
-                                        )}
-                                    </div>
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {paginatedServicos.length > 0 ? paginatedServicos.map((item) => (
-                            <tr key={item.id} className="border-b border-gray-200 dark:border-gray-800 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800/50">
-                                {servicosColumns.map(col => {
-                                    switch (col.id) {
-                                        case 'imagem':
-                                            return <td key={col.id} className="p-2"><img src={item.imagem || 'https://via.placeholder.com/40'} alt={item.servico} className="w-12 h-12 object-cover rounded-md bg-gray-200 dark:bg-gray-700" /></td>;
-                                        case 'preco':
-                                            return <td key={col.id} className="p-4">{item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
-                                        case 'precoFinal':
-                                            return <td key={col.id} className="p-4">{item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
-                                        case 'servico':
-                                            return <td key={col.id} className="p-4 font-medium">{item.servico}</td>;
-                                        case 'acoes':
-                                            return (
-                                                <td key={col.id} className="p-4 text-right">
-                                                    <div className="flex items-center justify-end gap-4">
-                                                        <button onClick={() => handleOpenServiceHistoryModal(item)} className="text-purple-500 dark:text-purple-400 hover:text-purple-600 dark:hover:text-purple-300 transition-colors" title="Ver Histórico">
-                                                            <History size={18} />
-                                                        </button>
-                                                        {currentUser.permissions?.editService && (
-                                                          <button onClick={() => handleOpenEditServicoModal(item)} className="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors" title="Editar Serviço">
-                                                              <Edit size={18} />
-                                                          </button>
-                                                        )}
-                                                        {currentUser.permissions?.deleteService && (
-                                                          <button onClick={() => handleExcluirServico(item.id, currentUser.name)} className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors" title="Excluir Serviço">
-                                                              <Trash2 size={18} />
-                                                          </button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            );
-                                        default:
-                                            return <td key={col.id} className="p-4">{item[col.id]}</td>;
-                                    }
-                                })}
-                            </tr>
-                        )) : (
-                            <tr>
-                                <td colSpan={servicosColumns.length} className="p-8 text-center text-gray-500">Nenhum serviço encontrado.</td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* Controles de Paginação para Serviços */}
-            {totalServicoPages > 1 && (
-                <div className="mt-6 flex justify-between items-center no-print text-sm text-gray-500 dark:text-gray-400">
-                    <span>
-                        Página {servicoCurrentPage} de {totalServicoPages}
-                    </span>
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => setServicoCurrentPage(prev => Math.max(prev - 1, 1))} disabled={servicoCurrentPage === 1} className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"><ChevronLeft size={20} /></button>
-                        <button onClick={() => setServicoCurrentPage(prev => Math.min(prev + 1, totalServicoPages))} disabled={servicoCurrentPage === totalServicoPages} className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"><ChevronRight size={20} /></button>
-                    </div>
-                </div>
-            )}
+            <DataTable
+              columns={servicosColumns}
+              data={paginatedServicos}
+              sortConfig={servicoSortConfig}
+              onSort={handleServicoSort}
+              renderRow={renderServiceRow}
+              currentPage={servicoCurrentPage}
+              totalPages={totalServicoPages}
+              onPageChange={setServicoCurrentPage}
+              onColumnOrderChange={setServicosColumns}
+              noResultsMessage="Nenhum serviço encontrado."
+            />
         </div>
       </main>
 
@@ -627,7 +517,7 @@ const StockControl = ({
       <Modal isOpen={isEditModalOpen} onClose={handleCloseEditModal}>
         <h2 className="text-2xl font-bold text-center text-green-400 mb-6">Editar Produto</h2>
         {editingProduct && (
-            <form className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4" onSubmit={handleUpdateExistingProduct}>
+            <form className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4" onSubmit={(e) => handleUpdateProduct(e, currentUser.name)}>
                 <div className="md:col-span-2">
                     <label htmlFor="edit-nome" className="block text-sm font-medium text-gray-300">Nome do Produto</label>
                     <input id="edit-nome" name="nome" type="text" value={editingProduct.nome} onChange={handleEditInputChange} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
