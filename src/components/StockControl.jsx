@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ArrowLeft, LogOut, PlusCircle, Search, ArrowUp, ArrowDown, Edit, Package, FileDown, ChevronLeft, ChevronRight, GripVertical, Printer, History, Trash2, ShoppingCart, Settings } from 'lucide-react';
+import { ArrowLeft, LogOut, PlusCircle, Search, ArrowUp, ArrowDown, Edit, Package, FileDown, ChevronLeft, ChevronRight, GripVertical, Printer, History, Trash2, ShoppingCart, Settings, Sun, Moon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import Modal from './Modal.jsx';
+import { useTheme } from './ThemeContext.jsx';
 
 // ===================================================================
 // DEFINIÇÃO DAS COLUNAS DA TABELA
@@ -87,6 +88,7 @@ const StockControl = ({
   handleUpdateServico,
 }) => {
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
   // ===================================================================
   // STATE & REFS
   // ===================================================================

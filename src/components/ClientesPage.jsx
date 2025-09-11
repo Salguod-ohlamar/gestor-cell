@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowLeft, LogOut, Search, Edit, Trash2, ChevronLeft, ChevronRight, History, RefreshCw, Mail, Send, Printer, Settings, Package } from 'lucide-react';
+import { ArrowLeft, LogOut, Search, Edit, Trash2, ChevronLeft, ChevronRight, History, RefreshCw, Mail, Send, Printer, Settings, Package, Sun, Moon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import Modal from './Modal.jsx';
 import ReciboVenda from './ReciboVenda.jsx';
+import { useTheme } from './ThemeContext.jsx';
 
 const ClientesPage = ({
     onLogout,
@@ -13,6 +14,7 @@ const ClientesPage = ({
     handleUpdateCliente,
     handleDeleteCliente,
 }) => {
+    const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -152,6 +154,9 @@ const ClientesPage = ({
                             <ArrowLeft size={20} />
                             <span className="hidden sm:inline">Voltar ao Estoque</span>
                         </button>
+            <button onClick={toggleTheme} className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300 transition-colors" title={`Alterar para Tema ${theme === 'dark' ? 'Claro' : 'Escuro'}`}>
+                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
                         <button onClick={onLogout} className="inline-flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors" title="Sair">
                             <LogOut size={20} />
                             <span className="hidden sm:inline">Sair</span>
