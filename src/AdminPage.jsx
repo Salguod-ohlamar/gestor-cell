@@ -6,6 +6,7 @@ import { Toaster, toast } from 'react-hot-toast';
 import Modal from './components/Modal.jsx';
 import ReciboVenda from './components/ReciboVenda.jsx';
 import BannerManager from './components/BannerManager.jsx';
+import { useEstoqueContext } from './components/EstoqueContext.jsx';
 import { useTheme } from './components/ThemeContext.jsx';
 import RelatorioVendasMensal from './components/RelatorioVendasMensal.jsx';
 import RelatorioVendasUsuario from './components/RelatorioVendasUsuario.jsx';
@@ -57,28 +58,27 @@ const ChartContainer = ({ title, show, onToggle, children, onDragStart, onDragEn
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#d0ed57', '#ffc658'];
 
-const AdminPage = ({ 
-    onLogout, 
-    currentUser,
-    dashboardData,
-    salesHistory,
-    users,
-    handleAddUser,
-    handleDeleteUser,
-    handleUpdateUser,
-    handleResetUserPassword,
-    activityLog,
-    handleBackup,
-    handleRestore,
-    stockValueHistory,
-    banners,
-    handleAddBanner,
-    handleUpdateBanner,
-    handleDeleteBanner,
- }) => {
+const AdminPage = ({ onLogout, currentUser }) => {
 
     const navigate = useNavigate();
     const { theme, toggleTheme } = useTheme();
+    const {
+        dashboardData,
+        salesHistory,
+        users,
+        handleAddUser,
+        handleDeleteUser,
+        handleUpdateUser,
+        handleResetUserPassword,
+        activityLog,
+        handleBackup,
+        handleRestore,
+        stockValueHistory,
+        banners,
+        handleAddBanner,
+        handleUpdateBanner,
+        handleDeleteBanner,
+    } = useEstoqueContext();
 
     // State and handlers that were in StockControl.jsx
     const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState(false);

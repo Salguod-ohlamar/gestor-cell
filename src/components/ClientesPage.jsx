@@ -3,19 +3,19 @@ import { ArrowLeft, LogOut, Search, Edit, Trash2, ChevronLeft, ChevronRight, His
 import { useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import Modal from './Modal.jsx';
+import { useEstoqueContext } from './EstoqueContext.jsx';
 import ReciboVenda from './ReciboVenda.jsx';
 import { useTheme } from './ThemeContext.jsx';
 
-const ClientesPage = ({
-    onLogout,
-    currentUser,
-    clientes,
-    salesHistory,
-    handleUpdateCliente,
-    handleDeleteCliente,
-}) => {
+const ClientesPage = ({ onLogout, currentUser }) => {
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
+    const {
+        clientes,
+        salesHistory,
+        handleUpdateCliente,
+        handleDeleteCliente,
+    } = useEstoqueContext();
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);

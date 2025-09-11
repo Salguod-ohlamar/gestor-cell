@@ -5,6 +5,7 @@ import { Toaster, toast } from 'react-hot-toast';
 import ReciboVenda from './ReciboVenda';
 import Modal from './Modal.jsx';
 import { validateCPF, validatePhone } from './formatters.js';
+import { useEstoqueContext } from './EstoqueContext.jsx';
 import { useTheme } from './ThemeContext.jsx';
 
 const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue, onToggle }) => {
@@ -27,16 +28,15 @@ const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue
     );
   };
 
-const VendasPage = ({ 
-    onLogout, 
-    currentUser, 
-    handleSale, 
-    salesHistory,
-    estoque,
-    servicos
-}) => {
+const VendasPage = ({ onLogout, currentUser }) => {
     const navigate = useNavigate();
     const { theme, toggleTheme } = useTheme();
+    const {
+        handleSale,
+        salesHistory,
+        estoque,
+        servicos
+    } = useEstoqueContext();
 
     const [carrinho, setCarrinho] = useState(() => {
         try {
