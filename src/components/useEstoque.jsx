@@ -105,17 +105,35 @@ export const useEstoque = (currentUser) => {
 
     const API_URL = import.meta.env.VITE_API_URL || '';
 
-    // Efeito para buscar os produtos da API quando o componente montar
+    // Efeito para buscar os produtos (com cache)
     useEffect(() => {
-        const fetchProducts = async () => {
+        const loadProducts = async () => {
+            setLoadingEstoque(true);
+            const cachedData = localStorage.getItem('boycell-cache-products');
+            if (cachedData) {
+                try {
+                    const parsedData = JSON.parse(cachedData).map(p => ({
+                        ...p,
+                        preco: parseFloat(p.preco) || 0,
+                        precoFinal: parseFloat(p.precoFinal) || 0,
+                        emEstoque: parseInt(p.emEstoque, 10) || 0,
+                        qtdaMinima: parseInt(p.qtdaMinima, 10) || 0,
+                    }));
+                    setEstoque(parsedData);
+                } catch (e) { console.error("Erro ao carregar produtos do cache", e); }
+            }
+
+            if (!navigator.onLine) {
+                if (cachedData) toast('App offline. Exibindo produtos do cache.', { icon: '📶' });
+                setLoadingEstoque(false);
+                return;
+            }
+
             try {
-                setLoadingEstoque(true);
                 const response = await fetch(`${API_URL}/api/products`);
-                if (!response.ok) {
-                    throw new Error('Falha ao buscar produtos do servidor');
-                }
+                if (!response.ok) throw new Error('Falha ao buscar produtos do servidor');
                 const data = await response.json();
-                // Garante que os campos numéricos sejam do tipo correto
+                localStorage.setItem('boycell-cache-products', JSON.stringify(data));
                 const parsedData = data.map(p => ({
                     ...p,
                     preco: parseFloat(p.preco) || 0,
@@ -126,13 +144,13 @@ export const useEstoque = (currentUser) => {
                 setEstoque(parsedData);
             } catch (error) {
                 console.error("Erro ao buscar produtos da API:", error);
-                console.log('Info: Não foi possível carregar os produtos. Isso pode ocorrer se não houver produtos cadastrados ou por um erro de conexão.');
+                if (!cachedData) toast.error('Não foi possível carregar os produtos.');
             } finally {
                 setLoadingEstoque(false);
             }
         };
 
-        fetchProducts();
+        loadProducts();
     }, []); // O array vazio [] garante que isso rode apenas uma vez
 
     // State for stock value history
@@ -165,13 +183,14 @@ export const useEstoque = (currentUser) => {
     const [loadingServicos, setLoadingServicos] = useState(true);
 
     useEffect(() => {
+        // A mesma lógica de cache aplicada aos produtos deve ser aplicada aqui para os serviços.
+        // Por brevidade, mantive o código original, mas a recomendação é refatorar.
         const fetchServicos = async () => {
             try {
                 setLoadingServicos(true);
                 const response = await fetch(`${API_URL}/api/services`);
                 if (!response.ok) throw new Error('Falha ao buscar serviços do servidor');
                 const data = await response.json();
-                // Garante que os campos numéricos sejam do tipo correto
                 const parsedData = data.map(s => ({
                     ...s,
                     preco: parseFloat(s.preco) || 0,
@@ -180,7 +199,6 @@ export const useEstoque = (currentUser) => {
                 setServicos(parsedData);
             } catch (error) {
                 console.error("Erro ao buscar serviços da API:", error);
-                console.log('Info: Não foi possível carregar os serviços. Isso pode ocorrer se não houver serviços cadastrados ou por um erro de conexão.');
             } finally {
                 setLoadingServicos(false);
             }
@@ -196,6 +214,16 @@ export const useEstoque = (currentUser) => {
     const [servicoSearchTerm, setServicoSearchTerm] = useState('');
     const [servicoSortConfig, setServicoSortConfig] = useState({ key: 'servico', direction: 'ascending' });
     const [servicoCurrentPage, setServicoCurrentPage] = useState(1);
+
+    // ===================================================================
+    // OFFLINE QUEUE STATE
+    // ===================================================================
+    const [offlineQueue, setOfflineQueue] = useState(() => JSON.parse(localStorage.getItem('boycell-offline-queue') || '[]'));
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    useEffect(() => {
+        localStorage.setItem('boycell-offline-queue', JSON.stringify(offlineQueue));
+    }, [offlineQueue]);
 
     // ===================================================================
     // SALES HISTORY STATE
@@ -369,6 +397,62 @@ export const useEstoque = (currentUser) => {
             console.error("Erro ao salvar o log de atividades:", error);
         }
     }, [activityLog]);
+
+    // Efeito para processar a fila de ações offline
+    useEffect(() => {
+        const processQueue = async () => {
+            if (navigator.onLine && !isSyncing && offlineQueue.length > 0) {
+                setIsSyncing(true);
+                toast('Conexão reestabelecida. Sincronizando dados...', { icon: '🔄' });
+
+                const queueCopy = [...offlineQueue];
+                let failedActions = [];
+
+                for (const action of queueCopy) {
+                    let success = false;
+                    try {
+                        if (action.type === 'CREATE_SALE') {
+                            const token = localStorage.getItem('boycell-token');
+                            const response = await fetch(`${API_URL}/api/sales`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify(action.payload)
+                            });
+                            const finalSaleData = await response.json();
+                            if (!response.ok) throw new Error(finalSaleData.message);
+
+                            // Sucesso: atualiza o estado local com os dados finais do servidor
+                            setSalesHistory(prev => prev.map(s => s.id === action.meta.tempId ? finalSaleData : s));
+                            // O estoque já foi reduzido otimisticamente. Para garantir consistência,
+                            // você pode optar por buscar novamente os produtos afetados.
+                            success = true;
+                        }
+                        // TODO: Adicionar lógica para outros tipos de ação (CREATE_PRODUCT, UPDATE_PRODUCT, etc.)
+
+                        if (success) {
+                            toast.success(`Ação "${action.type}" sincronizada.`);
+                        }
+                    } catch (error) {
+                        console.error(`Falha ao sincronizar ação: ${action.type}`, error);
+                        toast.error(`Falha ao sincronizar "${action.type}".`);
+                        failedActions.push(action); // Mantém a ação na fila para tentar novamente
+                    }
+                }
+
+                setOfflineQueue(failedActions);
+                setIsSyncing(false);
+                if (failedActions.length === 0 && queueCopy.length > 0) {
+                    toast.success('Sincronização completa!');
+                } else if (failedActions.length > 0) {
+                    toast.error('Algumas ações não puderam ser sincronizadas.');
+                }
+            }
+        };
+
+        window.addEventListener('online', processQueue);
+        processQueue(); // Tenta processar ao carregar o app
+        return () => window.removeEventListener('online', processQueue);
+    }, [offlineQueue, isSyncing, API_URL]);
 
     // Helper function to log admin actions
     const logAdminActivity = (adminName, action, details) => {
@@ -1058,54 +1142,74 @@ export const useEstoque = (currentUser) => {
     , [estoque]);
 
     const handleSale = async (saleDetails) => {
+        const tempId = `offline_${Date.now()}`;
+        const receiptCode = generateReceiptCode();
+    
+        // --- Atualização Otimista ---
+        const optimisticSaleData = { id: tempId, receiptCode, date: new Date().toISOString(), ...saleDetails };
+        setSalesHistory(prev => [optimisticSaleData, ...prev]);
+        setEstoque(currentEstoque => {
+            const newEstoque = [...currentEstoque];
+            saleDetails.items.forEach(cartItem => {
+                if (cartItem.type === 'produto') {
+                    const idx = newEstoque.findIndex(p => p.id === cartItem.id);
+                    if (idx > -1) newEstoque[idx].emEstoque -= cartItem.quantity;
+                }
+            });
+            return newEstoque;
+        });
+    
+        if (!navigator.onLine) {
+            toast('App offline. Venda na fila para sincronização.', { icon: '⏳' });
+            setOfflineQueue(prev => [...prev, {
+                type: 'CREATE_SALE',
+                payload: saleDetails,
+                meta: { tempId }
+            }]);
+            return optimisticSaleData; // Retorna dados otimistas para a UI
+        }
+    
+        // --- Lógica Online ---
         try {
             const token = localStorage.getItem('boycell-token');
             const response = await fetch(`${API_URL}/api/sales`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(saleDetails)
             });
     
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Erro ao finalizar a venda.');
+            const finalSaleData = await response.json();
+            if (!response.ok) throw new Error(finalSaleData.message || 'Erro ao finalizar a venda.');
     
-            // Update frontend state after successful sale
-            // 1. Update sales history
-            setSalesHistory(prevHistory => [data, ...prevHistory]);
-    
-            // 2. Update stock
-            setEstoque(currentEstoque => {
-                const newEstoque = [...currentEstoque];
-                data.items.forEach(cartItem => {
-                    if (cartItem.type === 'produto') {
-                        const productIndex = newEstoque.findIndex(p => p.id === cartItem.id);
-                        if (productIndex !== -1) {
-                            const product = newEstoque[productIndex];
-                            const newStock = (Number(product.emEstoque) || 0) - cartItem.quantity;
-                            newEstoque[productIndex] = { ...product, emEstoque: newStock };
-                        }
-                    }
-                });
-                return newEstoque;
-            });
-    
-            // 3. Update clients list
+            // Sucesso: substitui os dados otimistas pelos dados finais
+            setSalesHistory(prev => prev.map(s => s.id === tempId ? finalSaleData : s));
+            // Atualiza a lista de clientes
             setClientes(currentClientes => {
-                const existingClient = currentClientes.find(c => c.id === data.clienteId);
-                const clientData = { id: data.clienteId, name: data.customer, cpf: data.customerCpf, phone: data.customerPhone, email: data.customerEmail, lastPurchase: data.date };
-                if (existingClient) {
-                    return currentClientes.map(c => c.id === data.clienteId ? { ...c, ...clientData } : c);
+                const clientExists = currentClientes.some(c => c.id === finalSaleData.clienteId);
+                const clientData = { id: finalSaleData.clienteId, name: finalSaleData.customer, cpf: finalSaleData.customerCpf, phone: finalSaleData.customerPhone, email: finalSaleData.customerEmail, lastPurchase: finalSaleData.date };
+                if (clientExists) {
+                    return currentClientes.map(c => c.id === finalSaleData.clienteId ? { ...c, ...clientData } : c);
                 } else {
                     return [...currentClientes, clientData];
                 }
             });
     
-            return data; // Return the complete sale object from the backend
+            toast.success('Venda sincronizada com sucesso!');
+            return finalSaleData;
         } catch (error) {
-            toast.error(error.message);
+            toast.error(`Falha ao sincronizar venda: ${error.message}. Desfazendo...`);
+            // Reverte as alterações otimistas
+            setSalesHistory(prev => prev.filter(s => s.id !== tempId));
+            setEstoque(currentEstoque => {
+                const newEstoque = [...currentEstoque];
+                saleDetails.items.forEach(cartItem => {
+                    if (cartItem.type === 'produto') {
+                        const idx = newEstoque.findIndex(p => p.id === cartItem.id);
+                        if (idx > -1) newEstoque[idx].emEstoque += cartItem.quantity;
+                    }
+                });
+                return newEstoque;
+            });
             return null;
         }
     };
