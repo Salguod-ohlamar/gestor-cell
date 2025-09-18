@@ -47,7 +47,7 @@ const AppContent = () => {
     return (
         <>
             <EstoqueProvider currentUser={currentUser}>
-                <Toaster position="top-right" toastOptions={{ className: 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white', style: { background: 'transparent', boxShadow: 'none' } }} />
+                <Toaster position="top-right" toastOptions={{ className: 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-lg rounded-lg p-4' }} />
                 <Suspense fallback={<LoadingFallback />}>
                     <Routes>
                         {/* Rota Pública */}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, X, Edit, LogOut, ShoppingCart, Mail, Printer, Send, Banknote, CreditCard, QrCode, DollarSign, ShoppingBag, Calendar, Eye, EyeOff, Sun, Moon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Toaster, toast } from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 import ReciboVenda from './ReciboVenda';
 import Modal from './Modal.jsx';
 import { validateCPF, validatePhone } from './formatters.js';
@@ -430,7 +430,6 @@ const VendasPage = ({ onLogout, currentUser }) => {
 
     return (
         <div className="bg-gray-950 text-gray-100 min-h-screen font-sans">
-            <Toaster position="top-right" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
             <div id="recibo-printable-area" className="hidden">
                 <ReciboVenda saleDetails={lastSaleDetails} />
             </div>
