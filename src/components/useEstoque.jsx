@@ -1441,17 +1441,7 @@ export const useEstoque = (currentUser) => {
             return newEstoque;
         });
     
-        if (!navigator.onLine) {
-            console.log('App offline. Venda na fila para sincronização.');
-            setOfflineQueue(prev => [...prev, {
-                type: 'CREATE_SALE',
-                payload: saleDetails,
-                meta: { tempId }
-            }]);
-            return optimisticSaleData; // Retorna dados otimistas para a UI
-        }
-    
-        // --- Lógica Online ---
+        // --- Tenta Sincronizar, Enfileira em Caso de Falha ---
         try {
             const token = localStorage.getItem('boycell-token');
             const response = await fetch(`${API_URL}/api/sales`, {
@@ -1461,11 +1451,14 @@ export const useEstoque = (currentUser) => {
             });
     
             const finalSaleData = await response.json();
-            if (!response.ok) throw new Error(finalSaleData.message || 'Erro ao finalizar a venda.');
+            if (!response.ok) {
+                // Lança um erro para ser pego pelo catch, que vai enfileirar a ação.
+                throw new Error(finalSaleData.message || 'Erro do servidor ao finalizar a venda.');
+            }
     
-            // Sucesso: substitui os dados otimistas pelos dados finais
+            // --- Sucesso na Sincronização ---
+            console.log('Venda sincronizada com sucesso!');
             setSalesHistory(prev => prev.map(s => s.id === tempId ? finalSaleData : s));
-            // Atualiza a lista de clientes
             setClientes(currentClientes => {
                 const clientExists = currentClientes.some(c => c.id === finalSaleData.clienteId);
                 const clientData = { id: finalSaleData.clienteId, name: finalSaleData.customer, cpf: finalSaleData.customerCpf, phone: finalSaleData.customerPhone, email: finalSaleData.customerEmail, lastPurchase: finalSaleData.date };
@@ -1475,24 +1468,13 @@ export const useEstoque = (currentUser) => {
                     return [...currentClientes, clientData];
                 }
             });
-    
-            console.log('Venda sincronizada com sucesso!');
             return finalSaleData;
         } catch (error) {
-            console.error(`Falha ao sincronizar venda: ${error.message}. Desfazendo...`);
-            // Reverte as alterações otimistas
-            setSalesHistory(prev => prev.filter(s => s.id !== tempId));
-            setEstoque(currentEstoque => {
-                const newEstoque = [...currentEstoque];
-                saleDetails.items.forEach(cartItem => {
-                    if (cartItem.type === 'produto') {
-                        const idx = newEstoque.findIndex(p => p.id === cartItem.id);
-                        if (idx > -1) newEstoque[idx].emEstoque += cartItem.quantity;
-                    }
-                });
-                return newEstoque;
-            });
-            return null;
+            // --- Falha na Sincronização ---
+            console.warn(`Falha ao sincronizar venda: ${error.message}. Ação foi enfileirada.`);
+            setOfflineQueue(prev => [...prev, { type: 'CREATE_SALE', payload: saleDetails, meta: { tempId } }]);
+            // Retorna os dados otimistas para que a UI continue o fluxo.
+            return optimisticSaleData;
         }
     };
 
