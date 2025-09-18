@@ -249,58 +249,65 @@ const VendasPage = ({ onLogout, currentUser }) => {
     }, [subtotalCarrinho, discount]);
 
     const handleFinalizarVenda = async () => {
-        if (carrinho.length === 0) {
-            toast.error("O carrinho está vazio.");
-            return;
-        }
-        
-        if (!customerName || !customerPhone) {
-            toast.error("Por favor, preencha os dados do cliente: Nome e Telefone.");
-            return;
-        }
+        try {
+            if (carrinho.length === 0) {
+                toast.error("O carrinho está vazio.");
+                return;
+            }
+            
+            if (!customerName || !customerPhone) {
+                toast.error("Por favor, preencha os dados do cliente: Nome e Telefone.");
+                return;
+            }
 
-        // Valida o CPF apenas se ele for preenchido
-        if (customerCpf && !validateCPF(customerCpf)) {
-             toast.error("CPF/CNPJ inválido. Por favor, verifique.");
-             setIsCpfValid(false);
-             return;
-        }
+            // Valida o CPF apenas se ele for preenchido
+            if (customerCpf && !validateCPF(customerCpf)) {
+                 toast.error("CPF/CNPJ inválido. Por favor, verifique.");
+                 setIsCpfValid(false);
+                 return;
+            }
 
-        if (!validatePhone(customerPhone)) {
-            toast.error("Telefone inválido. Por favor, verifique. Use o formato (XX) 9XXXX-XXXX.");
-            setIsPhoneValid(false);
-            return;
-        }
+            if (!validatePhone(customerPhone)) {
+                toast.error("Telefone inválido. Por favor, verifique. Use o formato (XX) 9XXXX-XXXX.");
+                setIsPhoneValid(false);
+                return;
+            }
 
-        const saleDetails = {
-            items: [...carrinho],
-            subtotal: subtotalCarrinho,
-            discountPercentage: parseFloat(discount) || 0,
-            discountValue: discountValue,
-            total: totalCarrinho,
-            date: new Date(),
-            customer: customerName,
-            customerCpf: customerCpf,
-            customerPhone: customerPhone,
-            customerEmail: customerEmail,
-            paymentMethod: paymentMethod,
-            vendedor: currentUser.name,
-        };
+            const saleDetails = {
+                items: [...carrinho],
+                subtotal: subtotalCarrinho,
+                discountPercentage: parseFloat(discount) || 0,
+                discountValue: discountValue,
+                total: totalCarrinho,
+                date: new Date(),
+                customer: customerName,
+                customerCpf: customerCpf,
+                customerPhone: customerPhone,
+                customerEmail: customerEmail,
+                paymentMethod: paymentMethod,
+                vendedor: currentUser.name,
+            };
 
-        const completeSaleDetails = await handleSale(saleDetails);
+            const completeSaleDetails = await handleSale(saleDetails);
 
-        if (completeSaleDetails) {
-            setLastSaleDetails(completeSaleDetails);
-            toast.success(`Venda de ${totalCarrinho.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} finalizada!`);
-            setCarrinho([]);
-            setDiscount('');
-            setPaymentMethod('Dinheiro'); // Reseta para o padrão
-            setCustomerCpf('');
-            setCustomerName('');
-            setCustomerPhone('');
-            setCustomerEmail('');
+            if (completeSaleDetails) {
+                setLastSaleDetails(completeSaleDetails);
+                toast.success(`Venda de ${totalCarrinho.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} finalizada!`);
+                setCarrinho([]);
+                setDiscount('');
+                setPaymentMethod('Dinheiro'); // Reseta para o padrão
+                setCustomerCpf('');
+                setCustomerName('');
+                setCustomerPhone('');
+                setCustomerEmail('');
 
-            setIsReciboModalOpen(true);
+                setIsReciboModalOpen(true);
+            } else {
+                toast.error("Ocorreu um erro inesperado e a venda não pôde ser processada.");
+            }
+        } catch (error) {
+            console.error("Erro crítico ao finalizar venda:", error);
+            toast.error(`Erro ao finalizar venda: ${error.message}`);
         }
     };
 
