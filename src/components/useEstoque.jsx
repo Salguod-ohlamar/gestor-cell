@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
 import Papa from 'papaparse';
-import toast from 'react-hot-toast';
 import imageCompression from 'browser-image-compression';
 
 import { parsePrice } from './formatters.js';
@@ -124,7 +123,7 @@ export const useEstoque = (currentUser) => {
             }
 
             if (!navigator.onLine) {
-                if (cachedData) toast('App offline. Exibindo produtos do cache.', { icon: '📶' });
+                if (cachedData) console.log('App offline. Exibindo produtos do cache.');
                 setLoadingEstoque(false);
                 return;
             }
@@ -144,7 +143,7 @@ export const useEstoque = (currentUser) => {
                 setEstoque(parsedData);
             } catch (error) {
                 console.error("Erro ao buscar produtos da API:", error);
-                if (!cachedData) toast.error('Não foi possível carregar os produtos.');
+                if (!cachedData) console.error('Não foi possível carregar os produtos.');
             } finally {
                 setLoadingEstoque(false);
             }
@@ -184,13 +183,31 @@ export const useEstoque = (currentUser) => {
 
     useEffect(() => {
         // A mesma lógica de cache aplicada aos produtos deve ser aplicada aqui para os serviços.
-        // Por brevidade, mantive o código original, mas a recomendação é refatorar.
-        const fetchServicos = async () => {
+        const loadServicos = async () => {
+            setLoadingServicos(true);
+            const cachedData = localStorage.getItem('boycell-cache-services');
+            if (cachedData) {
+                try {
+                    const parsedData = JSON.parse(cachedData).map(s => ({
+                        ...s,
+                        preco: parseFloat(s.preco) || 0,
+                        precoFinal: parseFloat(s.precoFinal) || 0,
+                    }));
+                    setServicos(parsedData);
+                } catch (e) { console.error("Erro ao carregar serviços do cache", e); }
+            }
+
+            if (!navigator.onLine) {
+                if (cachedData) console.log('App offline. Exibindo serviços do cache.');
+                setLoadingServicos(false);
+                return;
+            }
+
             try {
-                setLoadingServicos(true);
                 const response = await fetch(`${API_URL}/api/services`);
                 if (!response.ok) throw new Error('Falha ao buscar serviços do servidor');
                 const data = await response.json();
+                localStorage.setItem('boycell-cache-services', JSON.stringify(data));
                 const parsedData = data.map(s => ({
                     ...s,
                     preco: parseFloat(s.preco) || 0,
@@ -199,11 +216,12 @@ export const useEstoque = (currentUser) => {
                 setServicos(parsedData);
             } catch (error) {
                 console.error("Erro ao buscar serviços da API:", error);
+                if (!cachedData) console.error('Não foi possível carregar os serviços.');
             } finally {
                 setLoadingServicos(false);
             }
         };
-        fetchServicos();
+        loadServicos();
     }, []);
 
     const [isAddServicoModalOpen, setIsAddServicoModalOpen] = useState(false);
@@ -246,7 +264,7 @@ export const useEstoque = (currentUser) => {
                 setSalesHistory(data);
             } catch (error) {
                 console.error("Erro ao buscar histórico de vendas da API:", error);
-                toast.error('Não foi possível carregar o histórico de vendas.');
+                console.error('Não foi possível carregar o histórico de vendas.');
                 setSalesHistory([]); // Limpa em caso de erro
             }
         };
@@ -326,7 +344,7 @@ export const useEstoque = (currentUser) => {
                 setUsers(data);
             } catch (error) {
                 console.error("Erro ao buscar usuários da API:", error);
-                toast.error('Não foi possível carregar os usuários.');
+                console.error('Não foi possível carregar os usuários.');
             }
         };
 
@@ -358,7 +376,7 @@ export const useEstoque = (currentUser) => {
                     setBanners(data);
                 } catch (error) {
                     console.error("Erro ao buscar banners para o admin:", error);
-                    toast.error('Não foi possível carregar os banners.');
+                    console.error('Não foi possível carregar os banners.');
                 }
             }
         };
@@ -403,12 +421,12 @@ export const useEstoque = (currentUser) => {
         const processQueue = async () => {
             if (navigator.onLine && !isSyncing && offlineQueue.length > 0) {
                 setIsSyncing(true);
-                toast('Conexão reestabelecida. Sincronizando dados...', { icon: '🔄' });
+                console.log(`Conexão reestabelecida. Sincronizando ${offlineQueue.length} ações...`);
 
-                const queueCopy = [...offlineQueue];
-                let failedActions = [];
+                const actionsToProcess = [...offlineQueue];
+                let remainingActions = [...offlineQueue];
 
-                for (const action of queueCopy) {
+                for (const action of actionsToProcess) {
                     let success = false;
                     try {
                         if (action.type === 'CREATE_SALE') {
@@ -419,32 +437,120 @@ export const useEstoque = (currentUser) => {
                                 body: JSON.stringify(action.payload)
                             });
                             const finalSaleData = await response.json();
-                            if (!response.ok) throw new Error(finalSaleData.message);
+                            if (!response.ok) throw new Error(finalSaleData.message || 'Erro no servidor');
 
                             // Sucesso: atualiza o estado local com os dados finais do servidor
                             setSalesHistory(prev => prev.map(s => s.id === action.meta.tempId ? finalSaleData : s));
-                            // O estoque já foi reduzido otimisticamente. Para garantir consistência,
-                            // você pode optar por buscar novamente os produtos afetados.
                             success = true;
                         }
-                        // TODO: Adicionar lógica para outros tipos de ação (CREATE_PRODUCT, UPDATE_PRODUCT, etc.)
+                        else if (action.type === 'CREATE_PRODUCT') {
+                            const token = localStorage.getItem('boycell-token');
+                            const response = await fetch(`${API_URL}/api/products`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify(action.payload)
+                            });
+                            const finalProductData = await response.json();
+                            if (!response.ok) throw new Error(finalProductData.message || 'Erro no servidor');
+
+                            // Sucesso: atualiza o estado local com os dados finais do servidor
+                            setEstoque(prev => prev.map(p => p.id === action.meta.tempId ? finalProductData : p));
+                            logAdminActivity(action.meta.adminName, 'Criação de Produto', `Produto "${finalProductData.nome}" foi sincronizado.`);
+                            success = true;
+                        }
+                        else if (action.type === 'UPDATE_PRODUCT') {
+                            const token = localStorage.getItem('boycell-token');
+                            const response = await fetch(`${API_URL}/api/products/${action.meta.productId}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify(action.payload)
+                            });
+                            const finalProductData = await response.json();
+                            if (!response.ok) throw new Error(finalProductData.message || 'Erro no servidor');
+
+                            // The UI is already updated, this just confirms the sync.
+                            logAdminActivity(action.meta.adminName, 'Atualização de Produto', `Produto "${finalProductData.nome}" foi sincronizado.`);
+                            success = true;
+                        }
+                        else if (action.type === 'DELETE_PRODUCT') {
+                            const token = localStorage.getItem('boycell-token');
+                            const response = await fetch(`${API_URL}/api/products/${action.meta.productId}`, {
+                                method: 'DELETE',
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            const data = await response.json();
+                            if (!response.ok) throw new Error(data.message || 'Erro no servidor');
+
+                            logAdminActivity(action.meta.adminName, 'Exclusão de Produto', `Exclusão do produto com ID ${action.meta.productId} foi sincronizada.`);
+                            success = true;
+                        }
+                        else if (action.type === 'CREATE_SERVICE') {
+                            const token = localStorage.getItem('boycell-token');
+                            const response = await fetch(`${API_URL}/api/services`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify(action.payload)
+                            });
+                            const finalServiceData = await response.json();
+                            if (!response.ok) throw new Error(finalServiceData.message || 'Erro no servidor');
+
+                            setServicos(prev => prev.map(s => s.id === action.meta.tempId ? finalServiceData : s));
+                            logAdminActivity(action.meta.adminName, 'Criação de Serviço', `Serviço "${finalServiceData.servico}" foi sincronizado.`);
+                            success = true;
+                        }
+                        else if (action.type === 'UPDATE_SERVICE') {
+                            const token = localStorage.getItem('boycell-token');
+                            const response = await fetch(`${API_URL}/api/services/${action.meta.serviceId}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify(action.payload)
+                            });
+                            const finalServiceData = await response.json();
+                            if (!response.ok) throw new Error(finalServiceData.message || 'Erro no servidor');
+
+                            logAdminActivity(action.meta.adminName, 'Atualização de Serviço', `Serviço "${finalServiceData.servico}" foi sincronizado.`);
+                            success = true;
+                        }
+                        else if (action.type === 'DELETE_SERVICE') {
+                            const token = localStorage.getItem('boycell-token');
+                            const response = await fetch(`${API_URL}/api/services/${action.meta.serviceId}`, {
+                                method: 'DELETE',
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            const data = await response.json();
+                            if (!response.ok) throw new Error(data.message || 'Erro no servidor');
+
+                            logAdminActivity(action.meta.adminName, 'Exclusão de Serviço', `Exclusão do serviço com ID ${action.meta.serviceId} foi sincronizada.`);
+                            success = true;
+                        }
 
                         if (success) {
-                            toast.success(`Ação "${action.type}" sincronizada.`);
+                            const actionId = action.type === 'CREATE_PRODUCT' || action.type === 'CREATE_SALE' || action.type === 'CREATE_SERVICE'
+                                ? action.meta.tempId
+                                : action.meta.productId || action.meta.serviceId;
+                            console.log(`Ação "${action.type}" (ID: ${actionId}) sincronizada.`);
+                            // Remove a ação bem-sucedida da lista de ações restantes
+                            // Usar referência de objeto é a forma mais segura de remover a ação correta
+                            remainingActions = remainingActions.filter(a => a !== action);
                         }
                     } catch (error) {
-                        console.error(`Falha ao sincronizar ação: ${action.type}`, error);
-                        toast.error(`Falha ao sincronizar "${action.type}".`);
-                        failedActions.push(action); // Mantém a ação na fila para tentar novamente
+                        const actionId = action.type === 'CREATE_PRODUCT' || action.type === 'CREATE_SALE' || action.type === 'CREATE_SERVICE'
+                            ? action.meta.tempId
+                            : action.meta.productId || action.meta.serviceId;
+                        console.error(`Falha ao sincronizar ação "${action.type}" (ID: ${actionId}): ${error.message}`);
+                        // A ação que falhou permanece em `remainingActions`
                     }
                 }
 
-                setOfflineQueue(failedActions);
+                setOfflineQueue(remainingActions);
                 setIsSyncing(false);
-                if (failedActions.length === 0 && queueCopy.length > 0) {
-                    toast.success('Sincronização completa!');
-                } else if (failedActions.length > 0) {
-                    toast.error('Algumas ações não puderam ser sincronizadas.');
+
+                const processedCount = actionsToProcess.length - remainingActions.length;
+                if (processedCount > 0) {
+                    console.log(`${processedCount} ações sincronizadas com sucesso.`);
+                }
+                if (remainingActions.length > 0) {
+                    console.error(`${remainingActions.length} ações não puderam ser sincronizadas e permanecem na fila.`);
                 }
             }
         };
@@ -503,7 +609,7 @@ export const useEstoque = (currentUser) => {
                     reader.readAsDataURL(compressedFile);
                 } catch (error) {
                     console.error('Erro ao comprimir imagem:', error);
-                    toast.error('Falha ao processar a imagem. Tente uma imagem menor ou de outro formato.');
+                    console.error('Falha ao processar a imagem. Tente uma imagem menor ou de outro formato.');
                 }
             };
             compressAndSetImage();
@@ -561,7 +667,7 @@ export const useEstoque = (currentUser) => {
                     reader.readAsDataURL(compressedFile);
                 } catch (error) {
                     console.error('Erro ao comprimir imagem:', error);
-                    toast.error('Falha ao processar a imagem. Tente uma imagem menor ou de outro formato.');
+                    console.error('Falha ao processar a imagem. Tente uma imagem menor ou de outro formato.');
                 }
             };
             compressAndSetImage();
@@ -610,62 +716,84 @@ export const useEstoque = (currentUser) => {
     const handleAddProduct = async (e, adminName) => {
         e.preventDefault();
         if (!newProduct.nome || !newProduct.categoria || !newProduct.marca || !newProduct.fornecedor || !newProduct.emEstoque || !newProduct.qtdaMinima || !newProduct.preco || !newProduct.precoFinal) {
-            toast.error('Por favor, preencha todos os campos obrigatórios.');
+            console.error('Por favor, preencha todos os campos obrigatórios.');
             return;
         }
     
         const emEstoqueNum = parseInt(newProduct.emEstoque, 10);
         const qtdaMinimaNum = parseInt(newProduct.qtdaMinima, 10);
         if (emEstoqueNum < qtdaMinimaNum) {
-            toast.error('O estoque não pode ser menor que a quantidade mínima.');
+            console.error('O estoque não pode ser menor que a quantidade mínima.');
+            return;
+        }
+
+        const tempId = `offline_product_${Date.now()}`;
+        const productPayload = {
+            ...newProduct,
+            emEstoque: emEstoqueNum,
+            qtdaMinima: qtdaMinimaNum,
+            preco: parseFloat(newProduct.preco),
+            precoFinal: parseFloat(newProduct.precoFinal),
+            tempoDeGarantia: parseInt(newProduct.tempoDeGarantia, 10) || 0,
+        };
+
+        // --- Atualização Otimista ---
+        const optimisticProductData = { ...productPayload, id: tempId, historico: [] };
+        setEstoque(prev => [optimisticProductData, ...prev]);
+        logAdminActivity(adminName, 'Criação de Produto (Otimista)', `Produto "${optimisticProductData.nome}" foi criado localmente.`);
+        handleCloseAddModal();
+
+        // --- Enfileirar se offline ---
+        if (!navigator.onLine) {
+            console.log('App offline. Criação de produto na fila para sincronização.');
+            setOfflineQueue(prev => [...prev, {
+                type: 'CREATE_PRODUCT',
+                payload: productPayload,
+                meta: { tempId, adminName }
+            }]);
             return;
         }
     
+        // --- Tentar sincronizar se online ---
         try {
             const token = localStorage.getItem('boycell-token');
             const response = await fetch(`${API_URL}/api/products`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    ...newProduct,
-                    emEstoque: emEstoqueNum,
-                    qtdaMinima: qtdaMinimaNum,
-                    preco: parseFloat(newProduct.preco),
-                    precoFinal: parseFloat(newProduct.precoFinal),
-                    tempoDeGarantia: parseInt(newProduct.tempoDeGarantia, 10) || 0,
-                })
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(productPayload)
             });
     
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Erro ao adicionar produto.');
+            const finalProductData = await response.json();
+            if (!response.ok) throw new Error(finalProductData.message || 'Erro ao adicionar produto.');
     
-            setEstoque(prevEstoque => [...prevEstoque, data]);
-            logAdminActivity(adminName, 'Criação de Produto', `Produto "${data.nome}" foi criado.`);
-
-            toast.success('Produto adicionado com sucesso!');
-            handleCloseAddModal();
+            // Sucesso: substitui os dados otimistas pelos dados finais do servidor
+            setEstoque(prevEstoque => prevEstoque.map(p => p.id === tempId ? finalProductData : p));
+            logAdminActivity(adminName, 'Criação de Produto', `Produto "${finalProductData.nome}" foi criado e sincronizado.`);
+            console.log('Produto adicionado e sincronizado com sucesso!');
         } catch (error) {
-            toast.error(error.message);
+            console.error(`Falha ao sincronizar criação de produto: ${error.message}. A ação será tentada novamente mais tarde.`);
+            // A atualização otimista já aconteceu. Agora, apenas enfileiramos a ação para a próxima sincronização.
+            setOfflineQueue(prev => [...prev, {
+                type: 'CREATE_PRODUCT',
+                payload: productPayload,
+                meta: { tempId, adminName }
+            }]);
         }
     };
 
     const handleUpdateProduct = async (e, adminName) => {
         e.preventDefault();
         if (!editingProduct) return;
-    
         const oldItem = estoque.find(item => item.id === editingProduct.id);
         if (!oldItem) return;
-    
+
         const emEstoqueNum = parseInt(editingProduct.emEstoque, 10);
         const qtdaMinimaNum = parseInt(editingProduct.qtdaMinima, 10);
         if (emEstoqueNum < qtdaMinimaNum) {
-            toast.error('O estoque não pode ser menor que a quantidade mínima.');
+            console.error('O estoque não pode ser menor que a quantidade mínima.');
             return;
         }
-    
+
         const newHistorico = [...(oldItem.historico || [])];
         const changes = [];
         const fieldsToCompare = {
@@ -673,7 +801,7 @@ export const useEstoque = (currentUser) => {
             fornecedor: 'Fornecedor', emEstoque: 'Estoque', qtdaMinima: 'Qtda. Mínima',
             preco: 'Preço', tempoDeGarantia: 'Garantia (dias)', precoFinal: 'Preço Final',
         };
-    
+
         for (const key in fieldsToCompare) {
             const oldValue = oldItem[key];
             const newValue = editingProduct[key];
@@ -683,13 +811,13 @@ export const useEstoque = (currentUser) => {
                 changes.push(`${fieldsToCompare[key]} alterado de "${displayOld}" para "${displayNew}"`);
             }
         }
-    
+
         if (changes.length > 0) {
             newHistorico.push({ data: new Date(), acao: 'Produto Atualizado', detalhes: changes.join('; ') });
-            logAdminActivity(adminName, 'Atualização de Produto', `Produto "${oldItem.nome}" atualizado: ${changes.join('; ')}.`);
+            logAdminActivity(adminName, 'Atualização de Produto (Otimista)', `Produto "${oldItem.nome}" atualizado: ${changes.join('; ')}.`);
         }
-    
-        const productToUpdate = {
+
+        const productPayload = {
             ...editingProduct,
             emEstoque: emEstoqueNum,
             qtdaMinima: qtdaMinimaNum,
@@ -698,23 +826,64 @@ export const useEstoque = (currentUser) => {
             tempoDeGarantia: parseInt(editingProduct.tempoDeGarantia, 10) || 0,
             historico: newHistorico,
         };
-    
+
+        // --- Atualização Otimista ---
+        setEstoque(currentEstoque => currentEstoque.map(item => (item.id === editingProduct.id ? productPayload : item)));
+        handleCloseEditModal();
+
+        // --- Lógica Offline ---
+        // Se o produto foi criado offline e ainda não foi sincronizado,
+        // atualizamos a ação de criação na fila em vez de criar uma nova ação de atualização.
+        if (String(editingProduct.id).startsWith('offline_')) {
+            console.log("Editando um produto criado offline. A atualização será mesclada na ação de criação.");
+            setOfflineQueue(prevQueue => {
+                const newQueue = [...prevQueue];
+                const createActionIndex = newQueue.findIndex(action => action.type === 'CREATE_PRODUCT' && action.meta.tempId === editingProduct.id);
+                if (createActionIndex > -1) {
+                    // Atualiza o payload da ação de criação com os novos dados.
+                    newQueue[createActionIndex].payload = productPayload;
+                } else {
+                    console.error(`Não foi possível encontrar a ação de criação original para o produto com ID temporário ${editingProduct.id}. A edição pode não ser salva.`);
+                }
+                return newQueue;
+            });
+            return;
+        }
+
+        if (!navigator.onLine) {
+            console.log('App offline. Edição de produto na fila para sincronização.');
+            setOfflineQueue(prev => [...prev, {
+                type: 'UPDATE_PRODUCT',
+                payload: productPayload,
+                meta: { productId: editingProduct.id, adminName }
+            }]);
+            return;
+        }
+
+        // --- Tentar sincronizar se online ---
         try {
             const token = localStorage.getItem('boycell-token');
             const response = await fetch(`${API_URL}/api/products/${editingProduct.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(productToUpdate)
+                body: JSON.stringify(productPayload)
             });
     
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Erro ao atualizar produto.');
+            const finalProductData = await response.json();
+            if (!response.ok) throw new Error(finalProductData.message || 'Erro ao atualizar produto.');
     
-            setEstoque(currentEstoque => currentEstoque.map(item => (item.id === editingProduct.id ? data : item)));
-            toast.success('Produto atualizado com sucesso!');
-            handleCloseEditModal();
+            // Sucesso: a UI já foi atualizada otimisticamente, mas agora atualizamos com os dados finais do servidor
+            setEstoque(currentEstoque => currentEstoque.map(item => (item.id === editingProduct.id ? finalProductData : item)));
+            logAdminActivity(adminName, 'Atualização de Produto', `Produto "${finalProductData.nome}" foi atualizado e sincronizado.`);
+            console.log('Produto atualizado e sincronizado com sucesso!');
         } catch (error) {
-            toast.error(error.message);
+            console.error(`Falha ao sincronizar atualização de produto: ${error.message}. A ação será enfileirada.`);
+            // A atualização otimista já aconteceu. Agora, enfileiramos a ação.
+            setOfflineQueue(prev => [...prev, {
+                type: 'UPDATE_PRODUCT',
+                payload: productPayload,
+                meta: { productId: editingProduct.id, adminName }
+            }]);
         }
     };
 
@@ -722,23 +891,55 @@ export const useEstoque = (currentUser) => {
         const productToDelete = estoque.find(item => item.id === idProduto);
         if (!productToDelete) return;
 
-        if (window.confirm('Tem certeza que deseja excluir este produto?')) {
-            try {
-                const token = localStorage.getItem('boycell-token');
-                const response = await fetch(`${API_URL}/api/products/${idProduto}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-    
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.message || 'Erro ao excluir produto.');
-    
-                setEstoque(currentEstoque => currentEstoque.filter(item => item.id !== idProduto));
-                logAdminActivity(adminName, 'Exclusão de Produto', `Produto "${productToDelete.nome}" (ID: ${idProduto}) foi excluído.`);
-                toast.success(data.message);
-            } catch (error) {
-                toast.error(error.message);
-            }
+        if (!window.confirm('Tem certeza que deseja excluir este produto?')) {
+            return;
+        }
+
+        // --- Atualização Otimista ---
+        setEstoque(currentEstoque => currentEstoque.filter(item => item.id !== idProduto));
+        logAdminActivity(adminName, 'Exclusão de Produto (Otimista)', `Produto "${productToDelete.nome}" (ID: ${idProduto}) foi removido localmente.`);
+
+        // --- Lógica Offline ---
+        // Caso 1: O produto foi criado offline e ainda não foi sincronizado.
+        // Apenas removemos a ação de criação da fila.
+        if (String(idProduto).startsWith('offline_')) {
+            console.log("Excluindo um produto criado offline. Removendo da fila de sincronização.");
+            setOfflineQueue(prevQueue => prevQueue.filter(action => 
+                !(action.type === 'CREATE_PRODUCT' && action.meta.tempId === idProduto)
+            ));
+            return;
+        }
+
+        // Caso 2: O app está offline. Adicionamos a exclusão à fila.
+        if (!navigator.onLine) {
+            console.log('App offline. Exclusão de produto na fila para sincronização.');
+            setOfflineQueue(prev => [...prev, {
+                type: 'DELETE_PRODUCT',
+                meta: { productId: idProduto, adminName }
+            }]);
+            return;
+        }
+
+        // --- Tentar sincronizar se online ---
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/products/${idProduto}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao excluir produto.');
+
+            console.log(`Exclusão do produto "${productToDelete.nome}" sincronizada com sucesso.`);
+            // A UI já foi atualizada, então não precisamos fazer mais nada.
+        } catch (error) {
+            console.error(`Falha ao sincronizar exclusão de produto: ${error.message}. A ação será enfileirada.`);
+            // A UI já foi atualizada otimisticamente. Apenas enfileiramos a ação para tentar novamente.
+            setOfflineQueue(prev => [...prev, {
+                type: 'DELETE_PRODUCT',
+                meta: { productId: idProduto, adminName }
+            }]);
         }
     };
 
@@ -835,7 +1036,7 @@ export const useEstoque = (currentUser) => {
                     reader.readAsDataURL(compressedFile);
                 } catch (error) {
                     console.error('Erro ao comprimir imagem:', error);
-                    toast.error('Falha ao processar a imagem. Tente uma imagem menor ou de outro formato.');
+                    console.error('Falha ao processar a imagem. Tente uma imagem menor ou de outro formato.');
                 }
             };
             compressAndSetImage();
@@ -872,45 +1073,65 @@ export const useEstoque = (currentUser) => {
     const handleAddServico = async (e, adminName) => {
         e.preventDefault();
         if (!newServico.servico || !newServico.fornecedor || !newServico.marca || !newServico.tipoReparo || !newServico.tecnico || !newServico.preco || !newServico.precoFinal) {
-            toast.error('Por favor, preencha todos os campos.');
+            console.error('Por favor, preencha todos os campos.');
             return;
         }
     
+        const tempId = `offline_service_${Date.now()}`;
+        const servicePayload = {
+            ...newServico,
+            preco: parseFloat(newServico.preco),
+            precoFinal: parseFloat(newServico.precoFinal),
+            tempoDeGarantia: parseInt(newServico.tempoDeGarantia, 10) || 0,
+        };
+
+        // --- Atualização Otimista ---
+        const optimisticServiceData = { ...servicePayload, id: tempId, historico: [] };
+        setServicos(prev => [optimisticServiceData, ...prev]);
+        logAdminActivity(adminName, 'Criação de Serviço (Otimista)', `Serviço "${optimisticServiceData.servico}" foi criado localmente.`);
+        handleCloseAddServicoModal();
+
+        // --- Enfileirar se offline ---
+        if (!navigator.onLine) {
+            console.log('App offline. Criação de serviço na fila para sincronização.');
+            setOfflineQueue(prev => [...prev, {
+                type: 'CREATE_SERVICE',
+                payload: servicePayload,
+                meta: { tempId, adminName }
+            }]);
+            return;
+        }
+    
+        // --- Tentar sincronizar se online ---
         try {
             const token = localStorage.getItem('boycell-token');
             const response = await fetch(`${API_URL}/api/services`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    ...newServico,
-                    preco: parseFloat(newServico.preco),
-                    precoFinal: parseFloat(newServico.precoFinal),
-                    tempoDeGarantia: parseInt(newServico.tempoDeGarantia, 10) || 0,
-                })
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(servicePayload)
             });
     
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Erro ao adicionar serviço.');
+            const finalServiceData = await response.json();
+            if (!response.ok) throw new Error(finalServiceData.message || 'Erro ao adicionar serviço.');
     
-            setServicos(prev => [...prev, data]);
-            logAdminActivity(adminName, 'Criação de Serviço', `Serviço "${data.servico}" foi criado.`);
-            toast.success('Serviço adicionado com sucesso!');
-            handleCloseAddServicoModal();
+            setServicos(prev => prev.map(s => s.id === tempId ? finalServiceData : s));
+            logAdminActivity(adminName, 'Criação de Serviço', `Serviço "${finalServiceData.servico}" foi criado e sincronizado.`);
+            console.log('Serviço adicionado e sincronizado com sucesso!');
         } catch (error) {
-            toast.error(error.message);
+            console.error(`Falha ao sincronizar criação de serviço: ${error.message}. A ação será enfileirada.`);
+            setOfflineQueue(prev => [...prev, {
+                type: 'CREATE_SERVICE',
+                payload: servicePayload,
+                meta: { tempId, adminName }
+            }]);
         }
     };
 
     const handleUpdateServico = async (e, adminName) => {
         e.preventDefault();
         if (!editingServico) return;
-    
         const oldServico = servicos.find(s => s.id === editingServico.id);
         if (!oldServico) return;
-    
         const newHistorico = [...(oldServico.historico || [])];
         const changes = [];
         const fieldsToCompare = {
@@ -918,7 +1139,6 @@ export const useEstoque = (currentUser) => {
             tipoReparo: 'Tipo de Reparo', tecnico: 'Técnico', tempoDeGarantia: 'Garantia (dias)',
             preco: 'Preço', precoFinal: 'Preço Final', destaque: 'Destaque',
         };
-    
         for (const key in fieldsToCompare) {
             const oldValue = oldServico[key];
             const newValue = editingServico[key];
@@ -928,36 +1148,71 @@ export const useEstoque = (currentUser) => {
                 changes.push(`${fieldsToCompare[key]} alterado de "${displayOld}" para "${displayNew}"`);
             }
         }
-    
         if (changes.length > 0) {
             newHistorico.push({ data: new Date(), acao: 'Serviço Atualizado', detalhes: changes.join('; ') });
-            logAdminActivity(adminName, 'Atualização de Serviço', `Serviço "${oldServico.servico}" atualizado: ${changes.join('; ')}.`);
+            logAdminActivity(adminName, 'Atualização de Serviço (Otimista)', `Serviço "${oldServico.servico}" atualizado: ${changes.join('; ')}.`);
         }
     
-        const serviceToUpdate = {
+        const servicePayload = {
             ...editingServico,
             tempoDeGarantia: parseInt(editingServico.tempoDeGarantia, 10) || 0,
             preco: parseFloat(editingServico.preco),
             precoFinal: parseFloat(editingServico.precoFinal),
             historico: newHistorico,
         };
+
+        // --- Atualização Otimista ---
+        setServicos(currentServicos => currentServicos.map(s => (s.id === editingServico.id ? servicePayload : s)));
+        handleCloseEditServicoModal();
+
+        // --- Lógica Offline ---
+        if (String(editingServico.id).startsWith('offline_')) {
+            console.log("Editando um serviço criado offline. A atualização será mesclada.");
+            setOfflineQueue(prevQueue => {
+                const newQueue = [...prevQueue];
+                const createActionIndex = newQueue.findIndex(action => action.type === 'CREATE_SERVICE' && action.meta.tempId === editingServico.id);
+                if (createActionIndex > -1) {
+                    newQueue[createActionIndex].payload = servicePayload;
+                } else {
+                    console.error(`Não foi possível encontrar a ação de criação original para o serviço com ID temporário ${editingServico.id}.`);
+                }
+                return newQueue;
+            });
+            return;
+        }
+
+        if (!navigator.onLine) {
+            console.log('App offline. Edição de serviço na fila para sincronização.');
+            setOfflineQueue(prev => [...prev, {
+                type: 'UPDATE_SERVICE',
+                payload: servicePayload,
+                meta: { serviceId: editingServico.id, adminName }
+            }]);
+            return;
+        }
     
+        // --- Tentar sincronizar se online ---
         try {
             const token = localStorage.getItem('boycell-token');
             const response = await fetch(`${API_URL}/api/services/${editingServico.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(serviceToUpdate)
+                body: JSON.stringify(servicePayload)
             });
     
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Erro ao atualizar serviço.');
+            const finalServiceData = await response.json();
+            if (!response.ok) throw new Error(finalServiceData.message || 'Erro ao atualizar serviço.');
     
-            setServicos(currentServicos => currentServicos.map(s => (s.id === editingServico.id ? data : s)));
-            toast.success('Serviço atualizado com sucesso!');
-            handleCloseEditServicoModal();
+            setServicos(currentServicos => currentServicos.map(s => (s.id === editingServico.id ? finalServiceData : s)));
+            logAdminActivity(adminName, 'Atualização de Serviço', `Serviço "${finalServiceData.servico}" foi atualizado e sincronizado.`);
+            console.log('Serviço atualizado e sincronizado com sucesso!');
         } catch (error) {
-            toast.error(error.message);
+            console.error(`Falha ao sincronizar atualização de serviço: ${error.message}. A ação será enfileirada.`);
+            setOfflineQueue(prev => [...prev, {
+                type: 'UPDATE_SERVICE',
+                payload: servicePayload,
+                meta: { serviceId: editingServico.id, adminName }
+            }]);
         }
     };
 
@@ -965,23 +1220,50 @@ export const useEstoque = (currentUser) => {
         const serviceToDelete = servicos.find(s => s.id === id);
         if (!serviceToDelete) return;
 
-        if (window.confirm('Tem certeza que deseja excluir este serviço?')) {
-            try {
-                const token = localStorage.getItem('boycell-token');
-                const response = await fetch(`${API_URL}/api/services/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+        if (!window.confirm('Tem certeza que deseja excluir este serviço?')) {
+            return;
+        }
+
+        // --- Atualização Otimista ---
+        setServicos(currentServicos => currentServicos.filter(s => s.id !== id));
+        logAdminActivity(adminName, 'Exclusão de Serviço (Otimista)', `Serviço "${serviceToDelete.servico}" (ID: ${id}) foi removido localmente.`);
+
+        // --- Lógica Offline ---
+        if (String(id).startsWith('offline_')) {
+            console.log("Excluindo um serviço criado offline. Removendo da fila de sincronização.");
+            setOfflineQueue(prevQueue => prevQueue.filter(action => 
+                !(action.type === 'CREATE_SERVICE' && action.meta.tempId === id)
+            ));
+            return;
+        }
+
+        if (!navigator.onLine) {
+            console.log('App offline. Exclusão de serviço na fila para sincronização.');
+            setOfflineQueue(prev => [...prev, {
+                type: 'DELETE_SERVICE',
+                meta: { serviceId: id, adminName }
+            }]);
+            return;
+        }
     
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.message || 'Erro ao excluir serviço.');
+        // --- Tentar sincronizar se online ---
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/services/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
     
-                setServicos(currentServicos => currentServicos.filter(s => s.id !== id));
-                logAdminActivity(adminName, 'Exclusão de Serviço', `Serviço "${serviceToDelete.servico}" (ID: ${id}) foi excluído.`);
-                toast.success(data.message);
-            } catch (error) {
-                toast.error(error.message);
-            }
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao excluir serviço.');
+    
+            console.log(`Exclusão do serviço "${serviceToDelete.servico}" sincronizada com sucesso.`);
+        } catch (error) {
+            console.error(`Falha ao sincronizar exclusão de serviço: ${error.message}. A ação será enfileirada.`);
+            setOfflineQueue(prev => [...prev, {
+                type: 'DELETE_SERVICE',
+                meta: { serviceId: id, adminName }
+            }]);
         }
     };
 
@@ -1160,7 +1442,7 @@ export const useEstoque = (currentUser) => {
         });
     
         if (!navigator.onLine) {
-            toast('App offline. Venda na fila para sincronização.', { icon: '⏳' });
+            console.log('App offline. Venda na fila para sincronização.');
             setOfflineQueue(prev => [...prev, {
                 type: 'CREATE_SALE',
                 payload: saleDetails,
@@ -1194,10 +1476,10 @@ export const useEstoque = (currentUser) => {
                 }
             });
     
-            toast.success('Venda sincronizada com sucesso!');
+            console.log('Venda sincronizada com sucesso!');
             return finalSaleData;
         } catch (error) {
-            toast.error(`Falha ao sincronizar venda: ${error.message}. Desfazendo...`);
+            console.error(`Falha ao sincronizar venda: ${error.message}. Desfazendo...`);
             // Reverte as alterações otimistas
             setSalesHistory(prev => prev.filter(s => s.id !== tempId));
             setEstoque(currentEstoque => {
@@ -1218,7 +1500,7 @@ export const useEstoque = (currentUser) => {
         try {
             const token = localStorage.getItem('boycell-token');
             if (!token) {
-                toast.error('Não autorizado. Faça login novamente.');
+                console.error('Não autorizado. Faça login novamente.');
                 return false;
             }
 
@@ -1239,10 +1521,10 @@ export const useEstoque = (currentUser) => {
 
             setUsers(prevUsers => [...prevUsers, data]);
             logAdminActivity(adminName, 'Criação de Usuário', `Vendedor "${data.name}" (${data.email}) foi criado.`);
-            toast.success('Vendedor adicionado com sucesso!');
+            console.log('Vendedor adicionado com sucesso!');
             return true;
         } catch (error) {
-            toast.error(error.message);
+            console.error(error.message);
             return false;
         }
     };
@@ -1253,11 +1535,11 @@ export const useEstoque = (currentUser) => {
 
         // Frontend validation for quick feedback
         if (userToDelete.role === 'root') {
-            toast.error('O usuário root não pode ser excluído.');
+            console.error('O usuário root não pode ser excluído.');
             return;
         }
         if (userToDelete.role === 'admin' && currentUser.role !== 'root') {
-            toast.error('Apenas o usuário root pode excluir um administrador.');
+            console.error('Apenas o usuário root pode excluir um administrador.');
             return;
         }
 
@@ -1274,9 +1556,9 @@ export const useEstoque = (currentUser) => {
 
                 setUsers(currentUsers => currentUsers.filter(user => user.id !== userId));
                 logAdminActivity(adminName, 'Exclusão de Usuário', `Usuário "${userToDelete.name}" (${userToDelete.email}) foi excluído.`);
-                toast.success(data.message);
+                console.log(data.message);
             } catch (error) {
-                toast.error(error.message);
+                console.error(error.message);
             }
         }
     };
@@ -1314,10 +1596,10 @@ export const useEstoque = (currentUser) => {
                 logAdminActivity(adminName, 'Atualização de Usuário', `Dados do usuário "${oldUser.name}" atualizados: ${changes.join('; ')}.`);
             }
 
-            toast.success("Usuário atualizado com sucesso!");
+            console.log("Usuário atualizado com sucesso!");
             return true;
         } catch (error) {
-            toast.error(error.message);
+            console.error(error.message);
             return false;
         }
     };
@@ -1342,10 +1624,10 @@ export const useEstoque = (currentUser) => {
             );
 
             logAdminActivity(adminName, 'Atualização de Cliente', `Dados do cliente "${data.name}" foram atualizados.`);
-            toast.success("Cliente atualizado com sucesso!");
+            console.log("Cliente atualizado com sucesso!");
             return true;
         } catch (error) {
-            toast.error(error.message);
+            console.error(error.message);
             return false;
         }
     };
@@ -1373,9 +1655,9 @@ export const useEstoque = (currentUser) => {
                     );
                 }
                 logAdminActivity(adminName, 'Exclusão de Cliente', `Cliente "${clienteToDelete.name}" (CPF: ${clienteToDelete.cpf}) foi excluído.`);
-                toast.success(data.message);
+                console.log(data.message);
             } catch (error) {
-                toast.error(error.message);
+                console.error(error.message);
             }
         }
     };
@@ -1406,10 +1688,10 @@ export const useEstoque = (currentUser) => {
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
-            toast.success('Backup realizado com sucesso!');
+            console.log('Backup realizado com sucesso!');
         } catch (error) {
             console.error("Erro ao criar backup:", error);
-            toast.error('Ocorreu um erro ao criar o backup.');
+            console.error('Ocorreu um erro ao criar o backup.');
         }
     };
 
@@ -1423,31 +1705,31 @@ export const useEstoque = (currentUser) => {
                 localStorage.setItem(`boycell-${key}`, JSON.stringify(restoredData[key]));
             });
 
-            toast.success('Dados restaurados localmente! A aplicação será recarregada.');
+            console.log('Dados restaurados localmente! A aplicação será recarregada.');
             setTimeout(() => {
                 window.location.reload();
             }, 2000);
 
         } catch (error) {
             console.error("Erro ao restaurar backup:", error);
-            toast.error('Arquivo de backup inválido ou corrompido.');
+            console.error('Arquivo de backup inválido ou corrompido.');
         }
     };
 
     const handleResetUserPassword = async (userId, adminName, currentUser) => {
         const userToReset = users.find(user => user.id === userId);
         if (!userToReset) {
-            toast.error('Usuário não encontrado.');
+            console.error('Usuário não encontrado.');
             return;
         }
 
         // Validações no frontend para feedback rápido
         if (userToReset.role === 'root') {
-            toast.error('Não é possível resetar a senha do usuário root.');
+            console.error('Não é possível resetar a senha do usuário root.');
             return;
         }
         if (userToReset.role === 'admin' && currentUser.role !== 'root') {
-            toast.error('Apenas o usuário root pode resetar a senha de um administrador.');
+            console.error('Apenas o usuário root pode resetar a senha de um administrador.');
             return;
         }
 
@@ -1464,11 +1746,9 @@ export const useEstoque = (currentUser) => {
 
                 const { newPassword } = data;
                 logAdminActivity(adminName, 'Reset de Senha', `A senha do usuário "${userToReset.name}" foi resetada.`);
-                toast.success(`Senha de ${userToReset.name} resetada para: "${newPassword}"`, {
-                    duration: 10000,
-                });
+                console.log(`Senha de ${userToReset.name} resetada para: "${newPassword}"`);
             } catch (error) {
-                toast.error(error.message);
+                console.error(error.message);
             }
         }
     };
@@ -1484,10 +1764,10 @@ export const useEstoque = (currentUser) => {
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Erro ao solicitar recuperação.');
 
-            toast.success(data.message);
+            console.log(data.message);
             return true;
         } catch (error) {
-            toast.error(error.message);
+            console.error(error.message);
             return false;
         }
     };
@@ -1504,10 +1784,10 @@ export const useEstoque = (currentUser) => {
             if (!response.ok) throw new Error(data.message || 'Erro ao adicionar banner.');
             setBanners(prev => [...prev, data].sort((a, b) => a.sort_order - b.sort_order));
             logAdminActivity(adminName, 'Criação de Banner', `Banner "${data.title || 'Novo'}" foi criado.`);
-            toast.success('Banner adicionado com sucesso!');
+            console.log('Banner adicionado com sucesso!');
             return true;
         } catch (error) {
-            toast.error(error.message);
+            console.error(error.message);
             return false;
         }
     };
@@ -1524,10 +1804,10 @@ export const useEstoque = (currentUser) => {
             if (!response.ok) throw new Error(data.message || 'Erro ao atualizar banner.');
             setBanners(prev => prev.map(b => b.id === bannerId ? data : b).sort((a, b) => a.sort_order - b.sort_order));
             logAdminActivity(adminName, 'Atualização de Banner', `Banner "${data.title || 'ID: '+bannerId}" foi atualizado.`);
-            toast.success('Banner atualizado com sucesso!');
+            console.log('Banner atualizado com sucesso!');
             return true;
         } catch (error) {
-            toast.error(error.message);
+            console.error(error.message);
             return false;
         }
     };
@@ -1544,9 +1824,9 @@ export const useEstoque = (currentUser) => {
             if (!response.ok) throw new Error(data.message || 'Erro ao excluir banner.');
             setBanners(prev => prev.filter(b => b.id !== bannerId));
             logAdminActivity(adminName, 'Exclusão de Banner', `Banner com ID ${bannerId} foi excluído.`);
-            toast.success(data.message);
+            console.log(data.message);
         } catch (error) {
-            toast.error(error.message);
+            console.error(error.message);
         }
     };
 
