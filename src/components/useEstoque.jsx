@@ -1423,11 +1423,12 @@ export const useEstoque = (currentUser) => {
         .sort((a, b) => (a.nome || '').localeCompare(b.nome || ''))
     , [estoque]);
 
-    const handleSale = async (saleDetails) => {
+const handleSale = async (saleDetails) => {
         const tempId = `offline_${Date.now()}`;
         const receiptCode = generateReceiptCode();
     
         // --- Atualização Otimista ---
+        // A UI é atualizada imediatamente com dados temporários.
         const optimisticSaleData = { id: tempId, receiptCode, date: new Date().toISOString(), ...saleDetails };
         setSalesHistory(prev => [optimisticSaleData, ...prev]);
         setEstoque(currentEstoque => {
@@ -1443,6 +1444,7 @@ export const useEstoque = (currentUser) => {
     
         // --- Tenta Sincronizar, Enfileira em Caso de Falha ---
         try {
+            // Tenta enviar a venda para o servidor
             const token = localStorage.getItem('boycell-token');
             const response = await fetch(`${API_URL}/api/sales`, {
                 method: 'POST',
@@ -1457,6 +1459,7 @@ export const useEstoque = (currentUser) => {
             }
     
             // --- Sucesso na Sincronização ---
+            // Se a venda for sincronizada com sucesso, atualiza os dados locais com a resposta final do servidor
             console.log('Venda sincronizada com sucesso!');
             setSalesHistory(prev => prev.map(s => s.id === tempId ? finalSaleData : s));
             setClientes(currentClientes => {
@@ -1468,12 +1471,18 @@ export const useEstoque = (currentUser) => {
                     return [...currentClientes, clientData];
                 }
             });
+            // Retorna os dados finais para a UI
             return finalSaleData;
         } catch (error) {
-            // --- Falha na Sincronização ---
+            // --- Falha na Sincronização (Offline ou Erro de Rede) ---
+            // Se a tentativa de sincronização falhar, a venda é adicionada à fila offline.
             console.warn(`Falha ao sincronizar venda: ${error.message}. Ação foi enfileirada.`);
             setOfflineQueue(prev => [...prev, { type: 'CREATE_SALE', payload: saleDetails, meta: { tempId } }]);
-            // Retorna os dados otimistas para que a UI continue o fluxo.
+            
+            // **PONTO CHAVE DA CORREÇÃO:**
+            // Retorna os dados otimistas (temporários) para a UI.
+            // Isso garante que a função `handleFinalizarVenda` em VendasPage.jsx receba os dados
+            // e possa abrir o modal do recibo, mesmo que a venda ainda não tenha sido enviada ao servidor.
             return optimisticSaleData;
         }
     };
