@@ -7,7 +7,6 @@ import BrandText from './components/BrandText.jsx';
 import Button from './components/Button.jsx';
 import ProductCard from './components/ProductCard.jsx';
 import WhatsAppButton from './components/WhatsAppButton.jsx';
-import toast from 'react-hot-toast';
 import LocationMap from './LocationMap.jsx';
 import BannerCarousel from './components/BannerCarousel.jsx';
 import Modal from './components/Modal.jsx';
@@ -60,7 +59,7 @@ const HomePage = ({ onLoginClick }) => {
             loadFromCache();
 
             if (!navigator.onLine) {
-                toast('App offline. Exibindo conteúdo salvo.', { icon: '📶' });
+                console.log('App offline. Exibindo conteúdo salvo.');
                 setLoading(false);
                 return;
             }
@@ -99,7 +98,7 @@ const HomePage = ({ onLoginClick }) => {
                 }
             } catch (error) {
                 console.error("Erro ao carregar dados da página inicial:", error);
-                toast.error('Falha ao carregar novos dados. Exibindo conteúdo salvo.');
+                console.warn('Falha ao carregar novos dados. Exibindo conteúdo salvo.');
             } finally {
                 setLoading(false);
             }
