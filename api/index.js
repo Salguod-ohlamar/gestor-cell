@@ -1011,12 +1011,28 @@ app.post('/api/sales', protect, async (req, res) => {
 
         await client.query('COMMIT');
 
+        // Otimização: Cria uma versão "enxuta" dos itens para a resposta da API.
+        // Remove campos grandes e desnecessários para o recibo (como imagem e histórico),
+        // o que torna a resposta muito mais rápida e leve.
+        const leanItems = items.map(({ imagem, historico, ...item }) => item);
+
         res.status(201).json({
             id: saleId,
             receiptCode,
             clienteId: clientId,
             date: saleDate,
-            ...req.body
+            // Re-constrói o corpo da resposta com os dados essenciais
+            items: leanItems, // Usa a versão enxuta dos itens
+            subtotal,
+            discountPercentage,
+            discountValue,
+            total,
+            customer,
+            customerCpf,
+            customerPhone,
+            customerEmail,
+            paymentMethod,
+            vendedor
         });
 
     } catch (err) {
