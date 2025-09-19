@@ -714,233 +714,219 @@ export const useEstoque = (currentUser) => {
     // ===================================================================
     // CRUD handlers
     const handleAddProduct = async (e, adminName) => {
-        e.preventDefault();
-        if (!newProduct.nome || !newProduct.categoria || !newProduct.marca || !newProduct.fornecedor || !newProduct.emEstoque || !newProduct.qtdaMinima || !newProduct.preco || !newProduct.precoFinal) {
-            console.error('Por favor, preencha todos os campos obrigatórios.');
-            return;
-        }
-    
-        const emEstoqueNum = parseInt(newProduct.emEstoque, 10);
-        const qtdaMinimaNum = parseInt(newProduct.qtdaMinima, 10);
-        if (emEstoqueNum < qtdaMinimaNum) {
-            console.error('O estoque não pode ser menor que a quantidade mínima.');
-            return;
-        }
-
-        const tempId = `offline_product_${Date.now()}`;
-        const productPayload = {
-            ...newProduct,
-            emEstoque: emEstoqueNum,
-            qtdaMinima: qtdaMinimaNum,
-            preco: parseFloat(newProduct.preco),
-            precoFinal: parseFloat(newProduct.precoFinal),
-            tempoDeGarantia: parseInt(newProduct.tempoDeGarantia, 10) || 0,
-        };
-
-        // --- Atualização Otimista ---
-        const optimisticProductData = { ...productPayload, id: tempId, historico: [] };
-        setEstoque(prev => [optimisticProductData, ...prev]);
-        logAdminActivity(adminName, 'Criação de Produto (Otimista)', `Produto "${optimisticProductData.nome}" foi criado localmente.`);
-        handleCloseAddModal();
-
-        // --- Enfileirar se offline ---
-        if (!navigator.onLine) {
-            console.log('App offline. Criação de produto na fila para sincronização.');
-            setOfflineQueue(prev => [...prev, {
-                type: 'CREATE_PRODUCT',
-                payload: productPayload,
-                meta: { tempId, adminName }
-            }]);
-            return;
-        }
-    
-        // --- Tentar sincronizar se online ---
-        try {
-            const token = localStorage.getItem('boycell-token');
-            const response = await fetch(`${API_URL}/api/products`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(productPayload)
-            });
-    
-            const finalProductData = await response.json();
-            if (!response.ok) throw new Error(finalProductData.message || 'Erro ao adicionar produto.');
-    
-            // Sucesso: substitui os dados otimistas pelos dados finais do servidor
-            setEstoque(prevEstoque => prevEstoque.map(p => p.id === tempId ? finalProductData : p));
-            logAdminActivity(adminName, 'Criação de Produto', `Produto "${finalProductData.nome}" foi criado e sincronizado.`);
-            console.log('Produto adicionado e sincronizado com sucesso!');
-        } catch (error) {
-            console.error(`Falha ao sincronizar criação de produto: ${error.message}. A ação será tentada novamente mais tarde.`);
-            // A atualização otimista já aconteceu. Agora, apenas enfileiramos a ação para a próxima sincronização.
-            setOfflineQueue(prev => [...prev, {
-                type: 'CREATE_PRODUCT',
-                payload: productPayload,
-                meta: { tempId, adminName }
-            }]);
-        }
+      e.preventDefault();
+      if (!newProduct.nome || !newProduct.categoria || !newProduct.marca || !newProduct.fornecedor || !newProduct.emEstoque || !newProduct.qtdaMinima || !newProduct.preco || !newProduct.precoFinal) {
+          console.error('Por favor, preencha todos os campos obrigatórios.');
+          return;
+      }
+      const emEstoqueNum = parseInt(newProduct.emEstoque, 10);
+      const qtdaMinimaNum = parseInt(newProduct.qtdaMinima, 10);
+      if (emEstoqueNum < qtdaMinimaNum) {
+          console.error('O estoque não pode ser menor que a quantidade mínima.');
+          return;
+      }
+  
+      const tempId = `offline_product_${Date.now()}`;
+      const productPayload = {
+          ...newProduct,
+          emEstoque: emEstoqueNum,
+          qtdaMinima: qtdaMinimaNum,
+          preco: parseFloat(newProduct.preco),
+          precoFinal: parseFloat(newProduct.precoFinal),
+          tempoDeGarantia: parseInt(newProduct.tempoDeGarantia, 10) || 0,
+      };
+  
+      // --- Atualização Otimista ---
+      const optimisticProductData = { ...productPayload, id: tempId, historico: [] };
+      setEstoque(prev => [optimisticProductData, ...prev]);
+      logAdminActivity(adminName, 'Criação de Produto (Otimista)', `Produto "${optimisticProductData.nome}" foi criado localmente.`);
+      handleCloseAddModal();
+  
+      // --- Tentar sincronizar, enfileirar em caso de falha ---
+      try {
+          const token = localStorage.getItem('boycell-token');
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 7000);
+  
+          const response = await fetch(`${API_URL}/api/products`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify(productPayload),
+              signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+  
+          const finalProductData = await response.json();
+          if (!response.ok) throw new Error(finalProductData.message || 'Erro ao adicionar produto.');
+  
+          // Sucesso: substitui os dados otimistas pelos dados finais do servidor
+          setEstoque(prevEstoque => prevEstoque.map(p => p.id === tempId ? finalProductData : p));
+          logAdminActivity(adminName, 'Criação de Produto', `Produto "${finalProductData.nome}" foi criado e sincronizado.`);
+          console.log('Produto adicionado e sincronizado com sucesso!');
+      } catch (error) {
+          if (error.name === 'AbortError') {
+              console.warn(`A sincronização de 'Criação de Produto' demorou muito (timeout). Ação foi enfileirada.`);
+          } else {
+              console.warn(`Falha ao sincronizar 'Criação de Produto': ${error.message}. Ação foi enfileirada.`);
+          }
+          // A atualização otimista já aconteceu. Agora, enfileiramos a ação.
+          setOfflineQueue(prev => [...prev, {
+              type: 'CREATE_PRODUCT',
+              payload: productPayload,
+              meta: { tempId, adminName }
+          }]);
+      }
     };
 
     const handleUpdateProduct = async (e, adminName) => {
-        e.preventDefault();
-        if (!editingProduct) return;
-        const oldItem = estoque.find(item => item.id === editingProduct.id);
-        if (!oldItem) return;
-
-        const emEstoqueNum = parseInt(editingProduct.emEstoque, 10);
-        const qtdaMinimaNum = parseInt(editingProduct.qtdaMinima, 10);
-        if (emEstoqueNum < qtdaMinimaNum) {
-            console.error('O estoque não pode ser menor que a quantidade mínima.');
-            return;
-        }
-
-        const newHistorico = [...(oldItem.historico || [])];
-        const changes = [];
-        const fieldsToCompare = {
-            nome: 'Nome', marca: 'Marca', categoria: 'Categoria', destaque: 'Destaque na Home',
-            fornecedor: 'Fornecedor', emEstoque: 'Estoque', qtdaMinima: 'Qtda. Mínima',
-            preco: 'Preço', tempoDeGarantia: 'Garantia (dias)', precoFinal: 'Preço Final',
-        };
-
-        for (const key in fieldsToCompare) {
-            const oldValue = oldItem[key];
-            const newValue = editingProduct[key];
-            if (String(oldValue ?? '') !== String(newValue ?? '')) {
-                const displayOld = key === 'destaque' ? (!!oldValue ? 'Sim' : 'Não') : (oldValue ?? 'N/A');
-                const displayNew = key === 'destaque' ? (!!newValue ? 'Sim' : 'Não') : (newValue ?? 'N/A');
-                changes.push(`${fieldsToCompare[key]} alterado de "${displayOld}" para "${displayNew}"`);
-            }
-        }
-
-        if (changes.length > 0) {
-            newHistorico.push({ data: new Date(), acao: 'Produto Atualizado', detalhes: changes.join('; ') });
-            logAdminActivity(adminName, 'Atualização de Produto (Otimista)', `Produto "${oldItem.nome}" atualizado: ${changes.join('; ')}.`);
-        }
-
-        const productPayload = {
-            ...editingProduct,
-            emEstoque: emEstoqueNum,
-            qtdaMinima: qtdaMinimaNum,
-            preco: parseFloat(editingProduct.preco),
-            precoFinal: parseFloat(editingProduct.precoFinal),
-            tempoDeGarantia: parseInt(editingProduct.tempoDeGarantia, 10) || 0,
-            historico: newHistorico,
-        };
-
-        // --- Atualização Otimista ---
-        setEstoque(currentEstoque => currentEstoque.map(item => (item.id === editingProduct.id ? productPayload : item)));
-        handleCloseEditModal();
-
-        // --- Lógica Offline ---
-        // Se o produto foi criado offline e ainda não foi sincronizado,
-        // atualizamos a ação de criação na fila em vez de criar uma nova ação de atualização.
-        if (String(editingProduct.id).startsWith('offline_')) {
-            console.log("Editando um produto criado offline. A atualização será mesclada na ação de criação.");
-            setOfflineQueue(prevQueue => {
-                const newQueue = [...prevQueue];
-                const createActionIndex = newQueue.findIndex(action => action.type === 'CREATE_PRODUCT' && action.meta.tempId === editingProduct.id);
-                if (createActionIndex > -1) {
-                    // Atualiza o payload da ação de criação com os novos dados.
-                    newQueue[createActionIndex].payload = productPayload;
-                } else {
-                    console.error(`Não foi possível encontrar a ação de criação original para o produto com ID temporário ${editingProduct.id}. A edição pode não ser salva.`);
-                }
-                return newQueue;
-            });
-            return;
-        }
-
-        if (!navigator.onLine) {
-            console.log('App offline. Edição de produto na fila para sincronização.');
-            setOfflineQueue(prev => [...prev, {
-                type: 'UPDATE_PRODUCT',
-                payload: productPayload,
-                meta: { productId: editingProduct.id, adminName }
-            }]);
-            return;
-        }
-
-        // --- Tentar sincronizar se online ---
-        try {
-            const token = localStorage.getItem('boycell-token');
-            const response = await fetch(`${API_URL}/api/products/${editingProduct.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(productPayload)
-            });
-    
-            const finalProductData = await response.json();
-            if (!response.ok) throw new Error(finalProductData.message || 'Erro ao atualizar produto.');
-    
-            // Sucesso: a UI já foi atualizada otimisticamente, mas agora atualizamos com os dados finais do servidor
-            setEstoque(currentEstoque => currentEstoque.map(item => (item.id === editingProduct.id ? finalProductData : item)));
-            logAdminActivity(adminName, 'Atualização de Produto', `Produto "${finalProductData.nome}" foi atualizado e sincronizado.`);
-            console.log('Produto atualizado e sincronizado com sucesso!');
-        } catch (error) {
-            console.error(`Falha ao sincronizar atualização de produto: ${error.message}. A ação será enfileirada.`);
-            // A atualização otimista já aconteceu. Agora, enfileiramos a ação.
-            setOfflineQueue(prev => [...prev, {
-                type: 'UPDATE_PRODUCT',
-                payload: productPayload,
-                meta: { productId: editingProduct.id, adminName }
-            }]);
-        }
+      e.preventDefault();
+      if (!editingProduct) return;
+      const oldItem = estoque.find(item => item.id === editingProduct.id);
+      if (!oldItem) return;
+  
+      const emEstoqueNum = parseInt(editingProduct.emEstoque, 10);
+      const qtdaMinimaNum = parseInt(editingProduct.qtdaMinima, 10);
+      if (emEstoqueNum < qtdaMinimaNum) {
+          console.error('O estoque não pode ser menor que a quantidade mínima.');
+          return;
+      }
+  
+      const newHistorico = [...(oldItem.historico || [])];
+      const changes = [];
+      const fieldsToCompare = {
+          nome: 'Nome', marca: 'Marca', categoria: 'Categoria', destaque: 'Destaque na Home',
+          fornecedor: 'Fornecedor', emEstoque: 'Estoque', qtdaMinima: 'Qtda. Mínima',
+          preco: 'Preço', tempoDeGarantia: 'Garantia (dias)', precoFinal: 'Preço Final',
+      };
+  
+      for (const key in fieldsToCompare) {
+          const oldValue = oldItem[key];
+          const newValue = editingProduct[key];
+          if (String(oldValue ?? '') !== String(newValue ?? '')) {
+              const displayOld = key === 'destaque' ? (!!oldValue ? 'Sim' : 'Não') : (oldValue ?? 'N/A');
+              const displayNew = key === 'destaque' ? (!!newValue ? 'Sim' : 'Não') : (newValue ?? 'N/A');
+              changes.push(`${fieldsToCompare[key]} alterado de "${displayOld}" para "${displayNew}"`);
+          }
+      }
+  
+      if (changes.length > 0) {
+          newHistorico.push({ data: new Date(), acao: 'Produto Atualizado', detalhes: changes.join('; ') });
+          logAdminActivity(adminName, 'Atualização de Produto (Otimista)', `Produto "${oldItem.nome}" atualizado: ${changes.join('; ')}.`);
+      }
+  
+      const productPayload = {
+          ...editingProduct,
+          emEstoque: emEstoqueNum,
+          qtdaMinima: qtdaMinimaNum,
+          preco: parseFloat(editingProduct.preco),
+          precoFinal: parseFloat(editingProduct.precoFinal),
+          tempoDeGarantia: parseInt(editingProduct.tempoDeGarantia, 10) || 0,
+          historico: newHistorico,
+      };
+  
+      // --- Atualização Otimista ---
+      setEstoque(currentEstoque => currentEstoque.map(item => (item.id === editingProduct.id ? productPayload : item)));
+      handleCloseEditModal();
+  
+      // --- Lógica Offline ---
+      if (String(editingProduct.id).startsWith('offline_')) {
+          console.log("Editando um produto criado offline. A atualização será mesclada na ação de criação.");
+          setOfflineQueue(prevQueue => {
+              const newQueue = [...prevQueue];
+              const createActionIndex = newQueue.findIndex(action => action.type === 'CREATE_PRODUCT' && action.meta.tempId === editingProduct.id);
+              if (createActionIndex > -1) {
+                  newQueue[createActionIndex].payload = productPayload;
+              } else {
+                  console.error(`Não foi possível encontrar a ação de criação original para o produto com ID temporário ${editingProduct.id}. A edição pode não ser salva.`);
+              }
+              return newQueue;
+          });
+          return;
+      }
+  
+      // --- Tentar sincronizar, enfileirar em caso de falha ---
+      try {
+          const token = localStorage.getItem('boycell-token');
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 7000);
+  
+          const response = await fetch(`${API_URL}/api/products/${editingProduct.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify(productPayload),
+              signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+  
+          const finalProductData = await response.json();
+          if (!response.ok) throw new Error(finalProductData.message || 'Erro ao atualizar produto.');
+  
+          setEstoque(currentEstoque => currentEstoque.map(item => (item.id === editingProduct.id ? finalProductData : item)));
+          logAdminActivity(adminName, 'Atualização de Produto', `Produto "${finalProductData.nome}" foi atualizado e sincronizado.`);
+          console.log('Produto atualizado e sincronizado com sucesso!');
+      } catch (error) {
+          if (error.name === 'AbortError') {
+              console.warn(`A sincronização de 'Atualização de Produto' demorou muito (timeout). Ação foi enfileirada.`);
+          } else {
+              console.warn(`Falha ao sincronizar 'Atualização de Produto': ${error.message}. Ação foi enfileirada.`);
+          }
+          setOfflineQueue(prev => [...prev, {
+              type: 'UPDATE_PRODUCT',
+              payload: productPayload,
+              meta: { productId: editingProduct.id, adminName }
+          }]);
+      }
     };
 
     const handleExcluirProduto = async (idProduto, adminName) => {
-        const productToDelete = estoque.find(item => item.id === idProduto);
-        if (!productToDelete) return;
-
-        if (!window.confirm('Tem certeza que deseja excluir este produto?')) {
-            return;
-        }
-
-        // --- Atualização Otimista ---
-        setEstoque(currentEstoque => currentEstoque.filter(item => item.id !== idProduto));
-        logAdminActivity(adminName, 'Exclusão de Produto (Otimista)', `Produto "${productToDelete.nome}" (ID: ${idProduto}) foi removido localmente.`);
-
-        // --- Lógica Offline ---
-        // Caso 1: O produto foi criado offline e ainda não foi sincronizado.
-        // Apenas removemos a ação de criação da fila.
-        if (String(idProduto).startsWith('offline_')) {
-            console.log("Excluindo um produto criado offline. Removendo da fila de sincronização.");
-            setOfflineQueue(prevQueue => prevQueue.filter(action => 
-                !(action.type === 'CREATE_PRODUCT' && action.meta.tempId === idProduto)
-            ));
-            return;
-        }
-
-        // Caso 2: O app está offline. Adicionamos a exclusão à fila.
-        if (!navigator.onLine) {
-            console.log('App offline. Exclusão de produto na fila para sincronização.');
-            setOfflineQueue(prev => [...prev, {
-                type: 'DELETE_PRODUCT',
-                meta: { productId: idProduto, adminName }
-            }]);
-            return;
-        }
-
-        // --- Tentar sincronizar se online ---
-        try {
-            const token = localStorage.getItem('boycell-token');
-            const response = await fetch(`${API_URL}/api/products/${idProduto}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Erro ao excluir produto.');
-
-            console.log(`Exclusão do produto "${productToDelete.nome}" sincronizada com sucesso.`);
-            // A UI já foi atualizada, então não precisamos fazer mais nada.
-        } catch (error) {
-            console.error(`Falha ao sincronizar exclusão de produto: ${error.message}. A ação será enfileirada.`);
-            // A UI já foi atualizada otimisticamente. Apenas enfileiramos a ação para tentar novamente.
-            setOfflineQueue(prev => [...prev, {
-                type: 'DELETE_PRODUCT',
-                meta: { productId: idProduto, adminName }
-            }]);
-        }
+      const productToDelete = estoque.find(item => item.id === idProduto);
+      if (!productToDelete) return;
+  
+      if (!window.confirm('Tem certeza que deseja excluir este produto?')) {
+          return;
+      }
+  
+      // --- Atualização Otimista ---
+      setEstoque(currentEstoque => currentEstoque.filter(item => item.id !== idProduto));
+      logAdminActivity(adminName, 'Exclusão de Produto (Otimista)', `Produto "${productToDelete.nome}" (ID: ${idProduto}) foi removido localmente.`);
+  
+      // --- Lógica Offline ---
+      if (String(idProduto).startsWith('offline_')) {
+          console.log("Excluindo um produto criado offline. Removendo da fila de sincronização.");
+          setOfflineQueue(prevQueue => prevQueue.filter(action => 
+              !(action.type === 'CREATE_PRODUCT' && action.meta.tempId === idProduto)
+          ));
+          return;
+      }
+  
+      // --- Tentar sincronizar, enfileirar em caso de falha ---
+      try {
+          const token = localStorage.getItem('boycell-token');
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 7000);
+  
+          const response = await fetch(`${API_URL}/api/products/${idProduto}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${token}` },
+              signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+  
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || 'Erro ao excluir produto.');
+  
+          console.log(`Exclusão do produto "${productToDelete.nome}" sincronizada com sucesso.`);
+      } catch (error) {
+          if (error.name === 'AbortError') {
+              console.warn(`A sincronização de 'Exclusão de Produto' demorou muito (timeout). Ação foi enfileirada.`);
+          } else {
+              console.warn(`Falha ao sincronizar 'Exclusão de Produto': ${error.message}. Ação foi enfileirada.`);
+          }
+          setOfflineQueue(prev => [...prev, {
+              type: 'DELETE_PRODUCT',
+              meta: { productId: idProduto, adminName }
+          }]);
+      }
     };
 
     // ===================================================================
