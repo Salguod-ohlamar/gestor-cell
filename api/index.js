@@ -931,14 +931,27 @@ app.post('/api/sales', protect, async (req, res) => {
         await client.query('BEGIN'); // Start transaction
 
         let clientId;
-        const { rows: existingClients } = await client.query('SELECT id FROM clients WHERE cpf = $1', [customerCpf]);
-        if (existingClients.length > 0) {
-            clientId = existingClients[0].id;
-            await client.query('UPDATE clients SET last_purchase = NOW(), phone = $1, email = $2, name = $3 WHERE id = $4', [customerPhone, customerEmail, customer, clientId]);
-        } else {
+        const finalCustomerName = (customer && customer.trim()) ? customer.trim() : 'Consumidor Final';
+        const sanitizedCpf = (customerCpf && customerCpf.trim()) ? customerCpf.trim() : null;
+
+        // Apenas busca por um cliente se um CPF válido foi fornecido.
+        if (sanitizedCpf) {
+            const { rows: existingClients } = await client.query('SELECT id FROM clients WHERE cpf = $1', [sanitizedCpf]);
+            if (existingClients.length > 0) {
+                clientId = existingClients[0].id;
+                // Atualiza as informações do cliente encontrado
+                await client.query(
+                    'UPDATE clients SET last_purchase = NOW(), phone = $1, email = $2, name = $3 WHERE id = $4', 
+                    [customerPhone, customerEmail, finalCustomerName, clientId]
+                );
+            }
+        }
+
+        // Se nenhum cliente foi encontrado (seja por não ter CPF ou o CPF não existir), cria um novo.
+        if (!clientId) {
             const { rows: newClient } = await client.query(
                 'INSERT INTO clients (name, cpf, phone, email, last_purchase) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
-                [customer, customerCpf, customerPhone, customerEmail]
+                [finalCustomerName, sanitizedCpf, customerPhone, customerEmail]
             );
             clientId = newClient[0].id;
         }

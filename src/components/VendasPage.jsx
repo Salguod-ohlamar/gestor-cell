@@ -254,23 +254,12 @@ const VendasPage = ({ onLogout, currentUser }) => {
                 toast.error("O carrinho está vazio.");
                 return;
             }
-            
-            if (!customerName || !customerPhone) {
-                toast.error("Por favor, preencha os dados do cliente: Nome e Telefone.");
-                return;
-            }
 
             // Valida o CPF apenas se ele for preenchido
             if (customerCpf && !validateCPF(customerCpf)) {
                  toast.error("CPF/CNPJ inválido. Por favor, verifique.");
                  setIsCpfValid(false);
                  return;
-            }
-
-            if (!validatePhone(customerPhone)) {
-                toast.error("Telefone inválido. Por favor, verifique. Use o formato (XX) 9XXXX-XXXX.");
-                setIsPhoneValid(false);
-                return;
             }
 
             const saleDetails = {
@@ -533,7 +522,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                             </div>
                             <div className="mt-6 border-t border-gray-700 pt-4">
                                 <div className="mb-4">
-                                    <label htmlFor="customerName" className="block text-sm font-medium text-gray-300 mb-1">Nome do Cliente <span className="text-red-500">*</span></label>
+                                    <label htmlFor="customerName" className="block text-sm font-medium text-gray-300 mb-1">Nome do Cliente (Opcional)</label>
                                     <input
                                         type="text"
                                         id="customerName"
@@ -541,7 +530,6 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                         onChange={(e) => setCustomerName(e.target.value)}
                                         placeholder="Insira o nome do cliente"
                                         className="w-full p-2 bg-gray-800 border border-gray-700 rounded-lg"
-                                        required
                                     />
                                 </div>
                                 <div className="mb-4">
@@ -558,7 +546,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                     {!isCpfValid && <p className="text-red-500 text-xs mt-1">CPF/CNPJ inválido.</p>}
                                 </div>
                                 <div className="mb-4">
-                                    <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-300 mb-1">Telefone <span className="text-red-500">*</span></label>
+                                    <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-300 mb-1">Telefone (Opcional)</label>
                                     <input
                                         type="text"
                                         id="customerPhone"
@@ -566,7 +554,6 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                         onChange={handlePhoneChange}
                                         placeholder="Insira o telefone para contato"
                                         className={`w-full p-2 bg-gray-800 border rounded-lg transition-colors ${isPhoneValid ? 'border-gray-700 focus:ring-green-500' : 'border-red-500 focus:ring-red-500'}`}
-                                        required
                                     />
                                     {!isPhoneValid && <p className="text-red-500 text-xs mt-1">Telefone inválido.</p>}
                                 </div>
