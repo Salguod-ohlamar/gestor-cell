@@ -736,9 +736,8 @@ app.delete('/api/users/:id', protect, hasPermission('manageUsers'), async (req, 
 
 // Rota para buscar todos os clientes
 app.get('/api/clients', protect, async (req, res) => {
-    const { includeInactive = 'false' } = req.query;
     try {
-        const query = includeInactive === 'true' ? 'SELECT * FROM clients ORDER BY name ASC' : 'SELECT * FROM clients WHERE is_active = TRUE ORDER BY name ASC';
+        const query = 'SELECT * FROM clients ORDER BY name ASC';
         const { rows } = await db.query(query);
         res.json(rows);
     } catch (err) {

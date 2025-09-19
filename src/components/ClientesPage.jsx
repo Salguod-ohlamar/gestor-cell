@@ -34,7 +34,11 @@ const ClientesPage = ({ onLogout, currentUser }) => {
             (cliente.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
             (cliente.cpf?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
             (cliente.phone?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-        ).sort((a, b) => new Date(b.lastPurchase) - new Date(a.lastPurchase));
+        ).sort((a, b) => {
+            const dateA = a.lastPurchase ? new Date(a.lastPurchase).getTime() : 0;
+            const dateB = b.lastPurchase ? new Date(b.lastPurchase).getTime() : 0;
+            return dateB - dateA;
+        });
     }, [clientes, searchTerm]);
 
     const totalPages = Math.ceil(filteredClientes.length / itemsPerPage);
