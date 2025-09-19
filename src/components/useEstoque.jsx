@@ -1479,10 +1479,10 @@ const handleSale = async (saleDetails) => {
             console.warn(`Falha ao sincronizar venda: ${error.message}. Ação foi enfileirada.`);
             setOfflineQueue(prev => [...prev, { type: 'CREATE_SALE', payload: saleDetails, meta: { tempId } }]);
             
-            // **PONTO CHAVE DA CORREÇÃO:**
-            // Retorna os dados otimistas (temporários) para a UI.
-            // Isso garante que a função `handleFinalizarVenda` em VendasPage.jsx receba os dados
-            // e possa abrir o modal do recibo, mesmo que a venda ainda não tenha sido enviada ao servidor.
+            // PONTO CRÍTICO PARA MODO OFFLINE:
+            // Retornamos os dados otimistas (temporários) para a interface do usuário.
+            // Isso garante que `handleFinalizarVenda` em VendasPage.jsx receba os detalhes da venda
+            // e possa abrir o modal do recibo, mesmo sem conexão com o servidor.
             return optimisticSaleData;
         }
     };
