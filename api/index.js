@@ -976,7 +976,16 @@ app.post('/api/sales', protect, async (req, res) => {
         const saleId = newSale[0].id;
         const saleDate = newSale[0].sale_date;
 
-        for (const item of items) {
+        // Ordena os itens pelo ID para garantir uma ordem de bloqueio consistente no banco de dados.
+        // Isso previne deadlocks quando múltiplas vendas com os mesmos produtos são processadas simultaneamente.
+        const sortedItems = [...items].sort((a, b) => {
+            // Garante que a ordenação funcione para IDs numéricos e strings (offline_...)
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idA.localeCompare(idB);
+        });
+
+        for (const item of sortedItems) {
             const saleItemQuery = `
                 INSERT INTO sale_items (sale_id, product_id, service_id, item_type, quantity, item_name, unit_price)
                 VALUES ($1, $2, $3, $4, $5, $6, $7);
