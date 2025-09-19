@@ -288,9 +288,12 @@ const VendasPage = ({ onLogout, currentUser }) => {
                 vendedor: currentUser.name,
             };
 
+            console.log("PDV: Chamando handleSale...");
             const completeSaleDetails = await handleSale(saleDetails);
+            console.log("PDV: Retorno de handleSale:", completeSaleDetails);
 
             if (completeSaleDetails) {
+                console.log("PDV: Dados da venda recebidos. Abrindo modal do recibo.");
                 setLastSaleDetails(completeSaleDetails);
                 toast.success(`Venda de ${totalCarrinho.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} finalizada!`);
                 setCarrinho([]);
@@ -303,6 +306,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
 
                 setIsReciboModalOpen(true);
             } else {
+                console.error("PDV: Retorno de handleSale foi nulo ou indefinido. O recibo não será exibido.");
                 toast.error("Ocorreu um erro inesperado e a venda não pôde ser processada.");
             }
         } catch (error) {

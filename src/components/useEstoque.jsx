@@ -1424,68 +1424,62 @@ export const useEstoque = (currentUser) => {
     , [estoque]);
 
 const handleSale = async (saleDetails) => {
-        const tempId = `offline_${Date.now()}`;
-        const receiptCode = generateReceiptCode();
+    console.log("PDV: 1. Iniciando handleSale");
+    const tempId = `offline_${Date.now()}`;
+    const receiptCode = generateReceiptCode();
+
+    // --- Atualização Otimista ---
+    const optimisticSaleData = { id: tempId, receiptCode, date: new Date().toISOString(), ...saleDetails };
+    console.log("PDV: 2. Dados otimistas criados:", optimisticSaleData);
     
-        // --- Atualização Otimista ---
-        // A UI é atualizada imediatamente com dados temporários.
-        const optimisticSaleData = { id: tempId, receiptCode, date: new Date().toISOString(), ...saleDetails };
-        setSalesHistory(prev => [optimisticSaleData, ...prev]);
-        setEstoque(currentEstoque => {
-            const newEstoque = [...currentEstoque];
-            saleDetails.items.forEach(cartItem => {
-                if (cartItem.type === 'produto') {
-                    const idx = newEstoque.findIndex(p => p.id === cartItem.id);
-                    if (idx > -1) newEstoque[idx].emEstoque -= cartItem.quantity;
-                }
-            });
-            return newEstoque;
-        });
-    
-        // --- Tenta Sincronizar, Enfileira em Caso de Falha ---
-        try {
-            // Tenta enviar a venda para o servidor
-            const token = localStorage.getItem('boycell-token');
-            const response = await fetch(`${API_URL}/api/sales`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(saleDetails)
-            });
-    
-            const finalSaleData = await response.json();
-            if (!response.ok) {
-                // Lança um erro para ser pego pelo catch, que vai enfileirar a ação.
-                throw new Error(finalSaleData.message || 'Erro do servidor ao finalizar a venda.');
+    setSalesHistory(prev => [optimisticSaleData, ...prev]);
+    setEstoque(currentEstoque => {
+        const newEstoque = [...currentEstoque];
+        saleDetails.items.forEach(cartItem => {
+            if (cartItem.type === 'produto') {
+                const idx = newEstoque.findIndex(p => p.id === cartItem.id);
+                if (idx > -1) newEstoque[idx].emEstoque -= cartItem.quantity;
             }
-    
-            // --- Sucesso na Sincronização ---
-            // Se a venda for sincronizada com sucesso, atualiza os dados locais com a resposta final do servidor
-            console.log('Venda sincronizada com sucesso!');
-            setSalesHistory(prev => prev.map(s => s.id === tempId ? finalSaleData : s));
-            setClientes(currentClientes => {
-                const clientExists = currentClientes.some(c => c.id === finalSaleData.clienteId);
-                const clientData = { id: finalSaleData.clienteId, name: finalSaleData.customer, cpf: finalSaleData.customerCpf, phone: finalSaleData.customerPhone, email: finalSaleData.customerEmail, lastPurchase: finalSaleData.date };
-                if (clientExists) {
-                    return currentClientes.map(c => c.id === finalSaleData.clienteId ? { ...c, ...clientData } : c);
-                } else {
-                    return [...currentClientes, clientData];
-                }
-            });
-            // Retorna os dados finais para a UI
-            return finalSaleData;
-        } catch (error) {
-            // --- Falha na Sincronização (Offline ou Erro de Rede) ---
-            // Se a tentativa de sincronização falhar, a venda é adicionada à fila offline.
-            console.warn(`Falha ao sincronizar venda: ${error.message}. Ação foi enfileirada.`);
-            setOfflineQueue(prev => [...prev, { type: 'CREATE_SALE', payload: saleDetails, meta: { tempId } }]);
-            
-            // PONTO CRÍTICO PARA MODO OFFLINE:
-            // Retornamos os dados otimistas (temporários) para a interface do usuário.
-            // Isso garante que `handleFinalizarVenda` em VendasPage.jsx receba os detalhes da venda
-            // e possa abrir o modal do recibo, mesmo sem conexão com o servidor.
-            return optimisticSaleData;
+        });
+        return newEstoque;
+    });
+
+    // --- Tenta Sincronizar, Enfileira em Caso de Falha ---
+    try {
+        console.log("PDV: 3. Tentando sincronizar com o servidor...");
+        const token = localStorage.getItem('boycell-token');
+        const response = await fetch(`${API_URL}/api/sales`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(saleDetails)
+        });
+
+        const finalSaleData = await response.json();
+        if (!response.ok) {
+            throw new Error(finalSaleData.message || 'Erro do servidor ao finalizar a venda.');
         }
-    };
+
+        console.log("PDV: 4a. Sincronização ONLINE bem-sucedida. Retornando dados do servidor.", finalSaleData);
+        setSalesHistory(prev => prev.map(s => s.id === tempId ? finalSaleData : s));
+        setClientes(currentClientes => {
+            const clientExists = currentClientes.some(c => c.id === finalSaleData.clienteId);
+            const clientData = { id: finalSaleData.clienteId, name: finalSaleData.customer, cpf: finalSaleData.customerCpf, phone: finalSaleData.customerPhone, email: finalSaleData.customerEmail, lastPurchase: finalSaleData.date };
+            if (clientExists) {
+                return currentClientes.map(c => c.id === finalSaleData.clienteId ? { ...c, ...clientData } : c);
+            } else {
+                return [...currentClientes, clientData];
+            }
+        });
+        return finalSaleData;
+
+    } catch (error) {
+        console.warn(`PDV: 4b. Falha na sincronização (OFFLINE ou erro). ${error.message}. Ação foi enfileirada.`);
+        setOfflineQueue(prev => [...prev, { type: 'CREATE_SALE', payload: saleDetails, meta: { tempId } }]);
+        
+        console.log("PDV: 5. Retornando dados otimistas para a UI exibir o recibo.", optimisticSaleData);
+        return optimisticSaleData;
+    }
+};
 
     const handleAddUser = async (newUser, adminName) => {
         try {
