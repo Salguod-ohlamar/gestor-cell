@@ -311,6 +311,8 @@ export const useEstoque = (currentUser) => {
                 if (!response.ok) {
                     const errorText = await response.text();
                     throw new Error(errorText || 'Falha ao buscar clientes.');
+                    const errorData = await response.json().catch(() => ({ message: `Falha ao buscar clientes. Status: ${response.status}` }));
+                    throw new Error(errorData.message || 'Falha ao buscar clientes.');
                 }
                 const data = await response.json();
                 setClientes(data);
@@ -1409,77 +1411,81 @@ export const useEstoque = (currentUser) => {
         .sort((a, b) => (a.nome || '').localeCompare(b.nome || ''))
     , [estoque]);
 
-const handleSale = async (saleDetails) => {
-  console.log("PDV: 1. Iniciando handleSale");
-  const tempId = `offline_${Date.now()}`;
-  const receiptCode = generateReceiptCode();
+    const handleSale = async (saleDetails) => {
+        console.log("PDV: 1. Iniciando handleSale");
+        const tempId = `offline_${Date.now()}`;
+        const receiptCode = generateReceiptCode();
 
-  // --- Atualização Otimista ---
-  const optimisticSaleData = { id: tempId, receiptCode, date: new Date().toISOString(), ...saleDetails };
-  console.log("PDV: 2. Dados otimistas criados:", optimisticSaleData);
+        // --- Atualização Otimista (acontece sempre) ---
+        const optimisticSaleData = { id: tempId, receiptCode, date: new Date().toISOString(), ...saleDetails };
+        console.log("PDV: 2. Dados otimistas criados:", optimisticSaleData);
 
-  setSalesHistory(prev => [optimisticSaleData, ...prev]);
-  setEstoque(currentEstoque => {
-    const newEstoque = [...currentEstoque];
-    saleDetails.items.forEach(cartItem => {
-      if (cartItem.type === 'produto') {
-        const idx = newEstoque.findIndex(p => p.id === cartItem.id);
-        if (idx > -1) newEstoque[idx].emEstoque -= cartItem.quantity;
-      }
-    });
-    return newEstoque;
-  });
+        setSalesHistory(prev => [optimisticSaleData, ...prev]);
+        setEstoque(currentEstoque => {
+            const newEstoque = [...currentEstoque];
+            saleDetails.items.forEach(cartItem => {
+                if (cartItem.type === 'produto') {
+                    const idx = newEstoque.findIndex(p => p.id === cartItem.id);
+                    if (idx > -1) newEstoque[idx].emEstoque -= cartItem.quantity;
+                }
+            });
+            return newEstoque;
+        });
 
-  // --- Tenta Sincronizar, Enfileira em Caso de Falha ---
-  try {
-    console.log("PDV: 3. Tentando sincronizar com o servidor...");
-    const token = localStorage.getItem('boycell-token');
+        // Verifica se a venda contém itens que foram criados offline e ainda não foram sincronizados.
+        const hasOfflineItems = saleDetails.items.some(item => String(item.id).startsWith('offline_'));
 
-    // Adiciona um AbortController para timeout, crucial para desconexões reais de rede.
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 7000); // Timeout de 7 segundos
-
-    const response = await fetch(`${API_URL}/api/sales`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify(saleDetails),
-      signal: controller.signal // Associa o controller ao fetch
-    });
-
-    clearTimeout(timeoutId); // Limpa o timeout se a resposta chegar a tempo
-
-    const finalSaleData = await response.json();
-    if (!response.ok) {
-      throw new Error(finalSaleData.message || 'Erro do servidor ao finalizar a venda.');
-    }
-
-    console.log("PDV: 4a. Sincronização ONLINE bem-sucedida. Retornando dados do servidor.", finalSaleData);
-    setSalesHistory(prev => prev.map(s => s.id === tempId ? finalSaleData : s));
-    // Atualiza a lista de clientes com o novo cliente ou a data da última compra
-    setClientes(currentClientes => {
-        const clientExists = currentClientes.some(c => c.id === finalSaleData.clienteId);
-        const clientData = { id: finalSaleData.clienteId, name: finalSaleData.customer, cpf: finalSaleData.customerCpf, phone: finalSaleData.customerPhone, email: finalSaleData.customerEmail, lastPurchase: finalSaleData.date };
-        if (clientExists) {
-            return currentClientes.map(c => c.id === finalSaleData.clienteId ? { ...c, ...clientData } : c);
-        } else if (finalSaleData.clienteId) { // Adiciona novo cliente apenas se um ID foi retornado
-            return [...currentClientes, clientData];
+        if (hasOfflineItems) {
+            // Se houver itens offline, não tenta sincronizar agora. Apenas enfileira.
+            console.warn("PDV: 3b. Venda contém itens offline. Enfileirando para sincronização posterior.");
+            setOfflineQueue(prev => [...prev, { type: 'CREATE_SALE', payload: saleDetails, meta: { tempId } }]);
+            return optimisticSaleData; // Retorna os dados otimistas para a UI.
         }
-        return currentClientes;
-    });
-    return finalSaleData;
 
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      console.warn(`PDV: 4b. A sincronização demorou muito (timeout). Ação foi enfileirada.`);
-    } else {
-      console.warn(`PDV: 4b. Falha na sincronização (OFFLINE ou erro de rede). ${error.message}. Ação foi enfileirada.`);
-    }
-    setOfflineQueue(prev => [...prev, { type: 'CREATE_SALE', payload: saleDetails, meta: { tempId } }]);
+        // --- Tenta Sincronizar, Enfileira em Caso de Falha (apenas para vendas com itens já sincronizados) ---
+        try {
+            console.log("PDV: 3a. Tentando sincronizar com o servidor...");
+            const token = localStorage.getItem('boycell-token');
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 7000);
 
-    console.log("PDV: 5. Retornando dados otimistas para a UI exibir o recibo.", optimisticSaleData);
-    return optimisticSaleData;
-  }
-};
+            const response = await fetch(`${API_URL}/api/sales`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(saleDetails),
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            const finalSaleData = await response.json();
+            if (!response.ok) {
+                throw new Error(finalSaleData.message || 'Erro do servidor ao finalizar a venda.');
+            }
+
+            console.log("PDV: 4a. Sincronização ONLINE bem-sucedida. Retornando dados do servidor.", finalSaleData);
+            setSalesHistory(prev => prev.map(s => s.id === tempId ? finalSaleData : s));
+            setClientes(currentClientes => {
+                const clientExists = currentClientes.some(c => c.id === finalSaleData.clienteId);
+                const clientData = { id: finalSaleData.clienteId, name: finalSaleData.customer, cpf: finalSaleData.customerCpf, phone: finalSaleData.customerPhone, email: finalSaleData.customerEmail, lastPurchase: finalSaleData.date };
+                if (clientExists) {
+                    return currentClientes.map(c => c.id === finalSaleData.clienteId ? { ...c, ...clientData } : c);
+                } else if (finalSaleData.clienteId) {
+                    return [...currentClientes, clientData];
+                }
+                return currentClientes;
+            });
+            return finalSaleData;
+
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                console.warn(`PDV: 4b. A sincronização demorou muito (timeout). Ação foi enfileirada.`);
+            } else {
+                console.warn(`PDV: 4b. Falha na sincronização (OFFLINE ou erro de rede). ${error.message}. Ação foi enfileirada.`);
+            }
+            setOfflineQueue(prev => [...prev, { type: 'CREATE_SALE', payload: saleDetails, meta: { tempId } }]);
+            return optimisticSaleData;
+        }
+    };
 
     const handleAddUser = async (newUser, adminName) => {
         try {

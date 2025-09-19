@@ -870,7 +870,28 @@ app.get('/api/clients/search', protect, async (req, res) => {
 // Rota para buscar o histórico de vendas
 app.get('/api/sales', protect, async (req, res) => {
     try {
+        // Esta query foi otimizada para ser mais performática.
+        // 1. Primeiro, agregamos os itens de venda em um JSON por cada ID de venda (usando um CTE).
+        // 2. Depois, juntamos a tabela de vendas principal com os itens já agregados.
+        // Isso evita que o banco de dados precise processar a agregação JSON em um join gigante, melhorando a velocidade.
         const query = `
+            WITH aggregated_items AS (
+                SELECT
+                    si.sale_id,
+                    json_agg(json_build_object(
+                        'id', COALESCE(si.product_id, si.service_id),
+                        'type', si.item_type,
+                        'nome', si.item_name,
+                        'servico', si.item_name,
+                        'quantity', si.quantity,
+                        'precoFinal', si.unit_price,
+                        'tempoDeGarantia', COALESCE(p.tempo_de_garantia, sv.tempo_de_garantia, 0)
+                    )) AS items
+                FROM sale_items si
+                LEFT JOIN products p ON si.product_id = p.id AND si.item_type = 'produto'
+                LEFT JOIN services sv ON si.service_id = sv.id AND si.item_type = 'servico'
+                GROUP BY si.sale_id
+            )
             SELECT
                 s.id,
                 s.receipt_code AS "receiptCode",
@@ -887,21 +908,10 @@ app.get('/api/sales', protect, async (req, res) => {
                 s.total,
                 s.payment_method AS "paymentMethod",
                 s.sale_date AS "date",
-                json_agg(json_build_object(
-                    'id', COALESCE(si.product_id, si.service_id),
-                    'type', si.item_type,
-                    'nome', si.item_name,
-                    'servico', si.item_name,
-                    'quantity', si.quantity,
-                    'precoFinal', si.unit_price,
-                    'tempoDeGarantia', COALESCE(p.tempo_de_garantia, sv.tempo_de_garantia, 0)
-                )) AS items
+                ai.items
             FROM sales s
-            JOIN sale_items si ON s.id = si.sale_id
             LEFT JOIN clients c ON s.client_id = c.id
-            LEFT JOIN products p ON si.product_id = p.id
-            LEFT JOIN services sv ON si.service_id = sv.id
-            GROUP BY s.id, c.id
+            JOIN aggregated_items ai ON s.id = ai.sale_id
             ORDER BY s.sale_date DESC;
         `;
         const { rows } = await db.query(query);
