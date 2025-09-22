@@ -440,14 +440,15 @@ export const useEstoque = (currentUser) => {
                             });
                             
                             if (!response.ok) {
-                                let errorMsg = 'Erro no servidor ao sincronizar venda.';
+                                const errorText = await response.text();
+                                let errorMsg;
                                 try {
-                                    const errorData = await response.json();
-                                    errorMsg = errorData.message || JSON.stringify(errorData);
+                                    const errorData = JSON.parse(errorText);
+                                    errorMsg = errorData.message || errorText;
                                 } catch (e) {
-                                    errorMsg = await response.text();
+                                    errorMsg = errorText;
                                 }
-                                throw new Error(errorMsg);
+                                throw new Error(errorMsg || 'Erro no servidor ao sincronizar venda.');
                             }
                             const finalSaleData = await response.json();
                             // Sucesso: atualiza o estado local com os dados finais do servidor
@@ -484,14 +485,15 @@ export const useEstoque = (currentUser) => {
                                 body: JSON.stringify(action.payload)
                             });
                             if (!response.ok) {
-                                let errorMsg = 'Erro no servidor ao sincronizar produto.';
+                                const errorText = await response.text();
+                                let errorMsg;
                                 try {
-                                    const errorData = await response.json();
-                                    errorMsg = errorData.message || JSON.stringify(errorData);
+                                    const errorData = JSON.parse(errorText);
+                                    errorMsg = errorData.message || errorText;
                                 } catch (e) {
-                                    errorMsg = await response.text();
+                                    errorMsg = errorText;
                                 }
-                                throw new Error(errorMsg);
+                                throw new Error(errorMsg || 'Erro no servidor ao sincronizar produto.');
                             }
                             const finalProductData = await response.json();
                             // Sucesso: atualiza o estado local com os dados finais do servidor
@@ -507,14 +509,15 @@ export const useEstoque = (currentUser) => {
                                 body: JSON.stringify(action.payload)
                             });
                             if (!response.ok) {
-                                let errorMsg = 'Erro no servidor ao atualizar produto.';
+                                const errorText = await response.text();
+                                let errorMsg;
                                 try {
-                                    const errorData = await response.json();
-                                    errorMsg = errorData.message || JSON.stringify(errorData);
+                                    const errorData = JSON.parse(errorText);
+                                    errorMsg = errorData.message || errorText;
                                 } catch (e) {
-                                    errorMsg = await response.text();
+                                    errorMsg = errorText;
                                 }
-                                throw new Error(errorMsg);
+                                throw new Error(errorMsg || 'Erro no servidor ao atualizar produto.');
                             }
                             const finalProductData = await response.json();
                             // The UI is already updated, this just confirms the sync.
@@ -528,14 +531,15 @@ export const useEstoque = (currentUser) => {
                                 headers: { 'Authorization': `Bearer ${token}` }
                             });
                             if (!response.ok) {
-                                let errorMsg = 'Erro no servidor ao excluir produto.';
+                                const errorText = await response.text();
+                                let errorMsg;
                                 try {
-                                    const errorData = await response.json();
-                                    errorMsg = errorData.message || JSON.stringify(errorData);
+                                    const errorData = JSON.parse(errorText);
+                                    errorMsg = errorData.message || errorText;
                                 } catch (e) {
-                                    errorMsg = await response.text();
+                                    errorMsg = errorText;
                                 }
-                                throw new Error(errorMsg);
+                                throw new Error(errorMsg || 'Erro no servidor ao excluir produto.');
                             }
                             logAdminActivity(action.meta.adminName, 'Exclusão de Produto', `Exclusão do produto com ID ${action.meta.productId} foi sincronizada.`);
                             success = true;
@@ -548,14 +552,15 @@ export const useEstoque = (currentUser) => {
                                 body: JSON.stringify(action.payload)
                             });
                             if (!response.ok) {
-                                let errorMsg = 'Erro no servidor ao criar serviço.';
+                                const errorText = await response.text();
+                                let errorMsg;
                                 try {
-                                    const errorData = await response.json();
-                                    errorMsg = errorData.message || JSON.stringify(errorData);
+                                    const errorData = JSON.parse(errorText);
+                                    errorMsg = errorData.message || errorText;
                                 } catch (e) {
-                                    errorMsg = await response.text();
+                                    errorMsg = errorText;
                                 }
-                                throw new Error(errorMsg);
+                                throw new Error(errorMsg || 'Erro no servidor ao criar serviço.');
                             }
                             const finalServiceData = await response.json();
                             setServicos(prev => prev.map(s => s.id === action.meta.tempId ? finalServiceData : s));
@@ -570,14 +575,15 @@ export const useEstoque = (currentUser) => {
                                 body: JSON.stringify(action.payload)
                             });
                             if (!response.ok) {
-                                let errorMsg = 'Erro no servidor ao atualizar serviço.';
+                                const errorText = await response.text();
+                                let errorMsg;
                                 try {
-                                    const errorData = await response.json();
-                                    errorMsg = errorData.message || JSON.stringify(errorData);
+                                    const errorData = JSON.parse(errorText);
+                                    errorMsg = errorData.message || errorText;
                                 } catch (e) {
-                                    errorMsg = await response.text();
+                                    errorMsg = errorText;
                                 }
-                                throw new Error(errorMsg);
+                                throw new Error(errorMsg || 'Erro no servidor ao atualizar serviço.');
                             }
                             const finalServiceData = await response.json();
                             logAdminActivity(action.meta.adminName, 'Atualização de Serviço', `Serviço "${finalServiceData.servico}" foi sincronizado.`);
@@ -590,14 +596,15 @@ export const useEstoque = (currentUser) => {
                                 headers: { 'Authorization': `Bearer ${token}` }
                             });
                             if (!response.ok) {
-                                let errorMsg = 'Erro no servidor ao excluir serviço.';
+                                const errorText = await response.text();
+                                let errorMsg;
                                 try {
-                                    const errorData = await response.json();
-                                    errorMsg = errorData.message || JSON.stringify(errorData);
+                                    const errorData = JSON.parse(errorText);
+                                    errorMsg = errorData.message || errorText;
                                 } catch (e) {
-                                    errorMsg = await response.text();
+                                    errorMsg = errorText;
                                 }
-                                throw new Error(errorMsg);
+                                throw new Error(errorMsg || 'Erro no servidor ao excluir serviço.');
                             }
                             logAdminActivity(action.meta.adminName, 'Exclusão de Serviço', `Exclusão do serviço com ID ${action.meta.serviceId} foi sincronizada.`);
                             success = true;
@@ -1535,15 +1542,15 @@ export const useEstoque = (currentUser) => {
             clearTimeout(timeoutId);
 
             if (!response.ok) {
-                let errorMsg = 'Erro do servidor ao finalizar a venda.';
+                const errorText = await response.text();
+                let errorMsg;
                 try {
-                    const errorData = await response.json();
-                    errorMsg = errorData.message || JSON.stringify(errorData);
+                    const errorData = JSON.parse(errorText);
+                    errorMsg = errorData.message || errorText;
                 } catch (e) {
-                    // If the error response is not JSON, read it as text.
-                    errorMsg = await response.text();
+                    errorMsg = errorText;
                 }
-                throw new Error(errorMsg);
+                throw new Error(errorMsg || 'Erro do servidor ao finalizar a venda.');
             }
 
             const finalSaleData = await response.json();
