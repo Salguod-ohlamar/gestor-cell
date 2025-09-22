@@ -855,8 +855,20 @@ app.post('/api/appointments', protect, hasPermission('manageAppointments'), asyn
             VALUES ($1, $2, $3, $4, $5)
             RETURNING *;
         `;
-        const values = [clientId, serviceId, userId || null, scheduledFor, notes];
+
+        // Garante que os IDs sejam números inteiros antes de enviar para o banco.
+        const finalClientId = parseInt(clientId, 10);
+        const finalServiceId = parseInt(serviceId, 10);
+        const finalUserId = userId ? parseInt(userId, 10) : null;
+
+        // Validação extra para garantir que a conversão funcionou
+        if (isNaN(finalClientId) || isNaN(finalServiceId) || (userId && isNaN(finalUserId))) {
+            return res.status(400).json({ message: 'IDs de cliente, serviço ou técnico inválidos.' });
+        }
+
+        const values = [finalClientId, finalServiceId, finalUserId, scheduledFor, notes];
         const { rows } = await db.query(query, values);
+
         // Para retornar um objeto formatado, precisamos fazer um join ou uma nova query.
         // Fazer uma nova query é mais simples aqui.
         const newAppointmentResult = await db.query(`
@@ -894,13 +906,19 @@ app.put('/api/appointments/:id', protect, hasPermission('manageAppointments'), a
             finalCompletedAt = null;
         }
 
+        // Garante que o ID do técnico seja um número ou nulo
+        const finalUserId = userId ? parseInt(userId, 10) : null;
+        if (userId && isNaN(finalUserId)) {
+            return res.status(400).json({ message: 'ID de técnico inválido.' });
+        }
+
         const query = `
             UPDATE appointments SET
                 user_id = $1, scheduled_for = $2, status = $3, notes = $4, completed_at = $5
             WHERE id = $6
             RETURNING *;
         `;
-        const values = [userId || null, scheduledFor, status, notes, finalCompletedAt, id];
+        const values = [finalUserId, scheduledFor, status, notes, finalCompletedAt, id];
         const { rows } = await db.query(query, values);
 
         if (rows.length === 0) return res.status(404).json({ message: 'Agendamento não encontrado.' });

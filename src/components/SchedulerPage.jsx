@@ -120,10 +120,14 @@ const SchedulerPage = ({ currentUser }) => {
             finalClientId = createdClient.id;
         }
 
+        // Construção explícita do objeto de dados para garantir os tipos corretos
         const data = {
-            ...newAppointment,
-            clientId: finalClientId,
+            clientId: parseInt(finalClientId, 10),
+            serviceId: parseInt(newAppointment.serviceId, 10),
+            userId: newAppointment.userId ? parseInt(newAppointment.userId, 10) : null,
             scheduledFor: new Date(newAppointment.scheduledFor).toISOString(),
+            notes: newAppointment.notes,
+            status: newAppointment.status,
         };
 
         let success;
