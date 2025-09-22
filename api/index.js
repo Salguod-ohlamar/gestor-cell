@@ -855,7 +855,7 @@ app.post('/api/appointments', protect, hasPermission('manageAppointments'), asyn
             VALUES ($1, $2, $3, $4, $5)
             RETURNING *;
         `;
-        const values = [clientId, serviceId, userId, scheduledFor, notes];
+        const values = [clientId, serviceId, userId || null, scheduledFor, notes];
         const { rows } = await db.query(query, values);
         // Para retornar um objeto formatado, precisamos fazer um join ou uma nova query.
         // Fazer uma nova query é mais simples aqui.
@@ -882,7 +882,7 @@ app.post('/api/appointments', protect, hasPermission('manageAppointments'), asyn
 // Rota para atualizar um agendamento
 app.put('/api/appointments/:id', protect, hasPermission('manageAppointments'), async (req, res) => {
     const { id } = req.params;
-    const { userId, scheduledFor, status, notes, completedAt } = req.body;
+    let { userId, scheduledFor, status, notes, completedAt } = req.body;
 
     try {
         // Se o status for 'completed' e não houver data de conclusão, define para agora.
@@ -900,7 +900,7 @@ app.put('/api/appointments/:id', protect, hasPermission('manageAppointments'), a
             WHERE id = $6
             RETURNING *;
         `;
-        const values = [userId, scheduledFor, status, notes, finalCompletedAt, id];
+        const values = [userId || null, scheduledFor, status, notes, finalCompletedAt, id];
         const { rows } = await db.query(query, values);
 
         if (rows.length === 0) return res.status(404).json({ message: 'Agendamento não encontrado.' });
