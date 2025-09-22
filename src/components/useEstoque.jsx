@@ -467,6 +467,28 @@ export const useEstoque = (currentUser) => {
 
                             // Sucesso: atualiza o estado local com os dados finais do servidor
                             setSalesHistory(prev => prev.map(s => s.id === action.meta.tempId ? finalSaleData : s));
+
+                            // CORREÇÃO: Adiciona a lógica para atualizar/criar o cliente no estado local.
+                            // Isso garante que um novo cliente, criado em uma venda offline, apareça
+                            // na lista de clientes após a sincronização.
+                            setClientes(currentClientes => {
+                                const clientExists = currentClientes.some(c => c.id === finalSaleData.clienteId);
+                                const clientData = { 
+                                    id: finalSaleData.clienteId, 
+                                    name: finalSaleData.customer, 
+                                    cpf: finalSaleData.customerCpf, 
+                                    phone: finalSaleData.customerPhone, 
+                                    email: finalSaleData.customerEmail, 
+                                    lastPurchase: finalSaleData.date 
+                                };
+
+                                if (clientExists) {
+                                    return currentClientes.map(c => c.id === finalSaleData.clienteId ? { ...c, ...clientData } : c);
+                                } else if (finalSaleData.clienteId) {
+                                    return [...currentClientes, clientData];
+                                }
+                                return currentClientes;
+                            });
                             success = true;
                         }
                         else if (action.type === 'CREATE_PRODUCT') {

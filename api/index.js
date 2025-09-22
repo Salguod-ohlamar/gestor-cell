@@ -498,6 +498,36 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// Rota para verificar o token e retornar os dados do usuário atualizado
+app.get('/api/auth/me', protect, async (req, res) => {
+    try {
+        // req.user é populado pelo middleware 'protect' com os dados do token
+        const { rows } = await db.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+        const user = rows[0];
+
+        if (!user) {
+            return res.status(404).json({ message: 'Usuário não encontrado.' });
+        }
+
+        // Re-calcula as permissões para garantir que estão sempre atualizadas
+        const defaultPerms = getDefaultPermissions(user.role);
+        const finalPermissions = { ...defaultPerms, ...(user.permissions || {}) };
+
+        if (user.role === 'root') {
+            Object.keys(finalPermissions).forEach(key => {
+                finalPermissions[key] = true;
+            });
+        }
+
+        const { password_hash, ...userWithoutPassword } = user;
+        // Retorna o objeto do usuário com as permissões mais recentes
+        res.json({ ...userWithoutPassword, permissions: finalPermissions });
+
+    } catch (err) {
+        handleRouteError(res, err, 'ao buscar dados do usuário');
+    }
+});
+
 // Rota para recuperação de senha (simulada)
 app.post('/api/auth/recover', async (req, res) => {
     const { email, name } = req.body;

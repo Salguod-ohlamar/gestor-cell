@@ -1,4 +1,4 @@
-import React, { useState, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { usePersistedState } from './components/usePersistedState';
@@ -19,7 +19,33 @@ const SchedulerPage = lazy(() => import('./components/SchedulerPage.jsx'));
 const AppContent = () => {
     const [currentUser, setCurrentUser] = usePersistedState('boycell-currentUser', null);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+    const [isAuthLoading, setIsAuthLoading] = useState(true);
     const navigate = useNavigate();
+    const API_URL = import.meta.env.VITE_API_URL || '';
+
+    useEffect(() => {
+        const verifyToken = async () => {
+            const token = localStorage.getItem('boycell-token');
+            if (token) {
+                try {
+                    const response = await fetch(`${API_URL}/api/auth/me`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (response.ok) {
+                        const freshUser = await response.json();
+                        setCurrentUser(freshUser);
+                    } else {
+                        handleLogout(); // Token inválido ou expirado
+                    }
+                } catch (error) {
+                    console.error("Falha ao verificar a sessão, limpando...", error);
+                    handleLogout(); // Erro de rede, etc.
+                }
+            }
+            setIsAuthLoading(false);
+        };
+        verifyToken();
+    }, []); // Executa apenas na montagem inicial do componente
 
     const handleLogin = ({ user, token }) => {
         localStorage.setItem('boycell-token', token); // Salva o token
@@ -34,16 +60,22 @@ const AppContent = () => {
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('boycell-token'); // Remove o token
+        // Limpa o token e o usuário do estado e do localStorage
+        localStorage.removeItem('boycell-token');
         setCurrentUser(null);
         navigate('/');
     };
 
     const LoadingFallback = () => (
         <div className="flex justify-center items-center h-screen bg-white dark:bg-gray-950 text-gray-800 dark:text-white text-xl">
-          Carregando...
+          Verificando sessão...
         </div>
     );
+
+    // Mostra a tela de carregamento enquanto a sessão está sendo verificada
+    if (isAuthLoading) {
+        return <LoadingFallback />;
+    }
 
     return (
         <>
