@@ -14,6 +14,7 @@ const StockControl = lazy(() => import('./components/StockControl.jsx'));
 const VendasPage = lazy(() => import('./components/VendasPage.jsx'));
 const ClientesPage = lazy(() => import('./components/ClientesPage.jsx'));
 const AdminPage = lazy(() => import('./AdminPage.jsx'));
+const SchedulerPage = lazy(() => import('./components/SchedulerPage.jsx'));
 
 const AppContent = () => {
     const [currentUser, setCurrentUser] = usePersistedState('boycell-currentUser', null);
@@ -59,6 +60,11 @@ const AppContent = () => {
                             <Route path="/vendas" element={
                                 <VendasPage
                                     onLogout={handleLogout}
+                                    currentUser={currentUser}
+                                />
+                            } />
+                            <Route path="/agendamentos" element={
+                                <SchedulerPage
                                     currentUser={currentUser}
                                 />
                             } />
