@@ -1,0 +1,23 @@
+# Dependencies
+/node_modules
+/api/node_modules
+
+# Vite build output
+/dist
+
+# Dotenv environment variables file
+# NUNCA envie seus segredos para o repositório!
+.env
+.env.*
+api/.env
+api/.env.*
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDEs and editors
+.idea
+.vscode

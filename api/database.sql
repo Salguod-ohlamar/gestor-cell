@@ -110,3 +110,19 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER set_timestamp BEFORE UPDATE ON products FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
 CREATE TRIGGER set_timestamp BEFORE UPDATE ON services FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
 CREATE TRIGGER set_timestamp BEFORE UPDATE ON clients FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
+
+-- Tabela de Agendamentos
+CREATE TABLE appointments (
+    id SERIAL PRIMARY KEY,
+    client_id INT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    service_id INT NOT NULL REFERENCES services(id) ON DELETE RESTRICT,
+    user_id INT REFERENCES users(id) ON DELETE SET NULL, -- ID do técnico/usuário responsável
+    scheduled_for TIMESTAMPTZ NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'scheduled', -- ex: scheduled, completed, canceled, no-show
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Trigger para a tabela de agendamentos
+CREATE TRIGGER set_timestamp BEFORE UPDATE ON appointments FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
