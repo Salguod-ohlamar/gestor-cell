@@ -7,8 +7,8 @@ import Phone2DViewer from './Phone2DViewer'; // Importando o visualizador 2D
 const SchedulerPage = ({ currentUser }) => {
     const {
         appointments,
-        clients,
-        services,
+        clientes,
+        servicos,
         users,
         handleAddAppointment,
         handleUpdateAppointment,
@@ -26,7 +26,7 @@ const SchedulerPage = ({ currentUser }) => {
     });
 
     const technicians = useMemo(() => users.filter(u => u.role === 'vendedor' || u.role === 'admin' || u.role === 'root'), [users]);
-    const selectedService = useMemo(() => services.find(s => s.id === parseInt(newAppointment.serviceId)), [services, newAppointment.serviceId]);
+    const selectedService = useMemo(() => servicos.find(s => s.id === parseInt(newAppointment.serviceId)), [servicos, newAppointment.serviceId]);
 
     const handleOpenModal = (appointment = null) => {
         if (appointment) {
@@ -150,7 +150,7 @@ const SchedulerPage = ({ currentUser }) => {
                                 className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
                             >
                                 <option value="">Selecione um cliente</option>
-                                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                {clientes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         </div>
                         <div>
@@ -165,7 +165,7 @@ const SchedulerPage = ({ currentUser }) => {
                                 className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
                             >
                                 <option value="">Selecione um serviço</option>
-                                {services.map(s => <option key={s.id} value={s.id}>{s.servico}</option>)}
+                                {servicos.map(s => <option key={s.id} value={s.id}>{s.servico}</option>)}
                             </select>
                         </div>
                         <div>
