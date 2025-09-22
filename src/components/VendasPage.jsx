@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, X, Edit, LogOut, ShoppingCart, Mail, Printer, Send, Banknote, CreditCard, QrCode, DollarSign, ShoppingBag, Calendar, Eye, EyeOff, Sun, Moon, Wrench } from 'lucide-react';
+import { Search, X, Edit, LogOut, ShoppingCart, Mail, Printer, Send, Banknote, CreditCard, QrCode, DollarSign, ShoppingBag, Calendar, Eye, EyeOff, Sun, Moon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import ReciboVenda from './ReciboVenda';
@@ -82,9 +82,6 @@ const VendasPage = ({ onLogout, currentUser }) => {
     const [showVendidoHoje, setShowVendidoHoje] = useState(false);
     const [showVendidoMes, setShowVendidoMes] = useState(false);
     const [isSearchingClient, setIsSearchingClient] = useState(false);
-    const [appointmentSearchTerm, setAppointmentSearchTerm] = useState('');
-    const [appointmentResults, setAppointmentResults] = useState([]);
-    const [isSearchingAppointments, setIsSearchingAppointments] = useState(false);
 
     const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -179,36 +176,6 @@ const VendasPage = ({ onLogout, currentUser }) => {
     }, [salesHistory, currentUser]
     );
 
-    useEffect(() => {
-        if (appointmentSearchTerm.trim().length < 3) {
-            setAppointmentResults([]);
-            return;
-        }
-    
-        const searchAppointments = async () => {
-            setIsSearchingAppointments(true);
-            try {
-                const token = localStorage.getItem('boycell-token');
-                const response = await fetch(`${API_URL}/api/appointments/payable?search=${appointmentSearchTerm}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (!response.ok) throw new Error('Erro ao buscar agendamentos.');
-                const data = await response.json();
-                setAppointmentResults(data);
-            } catch (error) {
-                toast.error(error.message);
-            } finally {
-                setIsSearchingAppointments(false);
-            }
-        };
-    
-        const debounceSearch = setTimeout(() => {
-            searchAppointments();
-        }, 500);
-    
-        return () => clearTimeout(debounceSearch);
-    }, [appointmentSearchTerm, API_URL]);
-
     const addToCart = (item, type) => {
         const existingItem = carrinho.find(cartItem => cartItem.id === item.id && cartItem.type === type);
         if (existingItem) {
@@ -228,15 +195,6 @@ const VendasPage = ({ onLogout, currentUser }) => {
                 return;
             }
             setCarrinho([...carrinho, { ...item, quantity: 1, type }]);
-        }
-
-        // Se o item adicionado veio de um agendamento e os campos do cliente estão vazios, preenche-os.
-        if (item.client && !customerName && !customerCpf && !customerPhone) {
-            setCustomerName(item.client.name);
-            setCustomerCpf(item.client.cpf || '');
-            setCustomerPhone(item.client.phone || '');
-            setCustomerEmail(item.client.email || '');
-            toast.success(`Cliente ${item.client.name} selecionado automaticamente.`);
         }
     };
 
@@ -668,11 +626,6 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                 >
                                     Serviços
                                 </button>
-                                <button 
-                                    onClick={() => setActiveTab('agendamentos')} 
-                                    className={`px-4 py-2 font-semibold transition-colors ${activeTab === 'agendamentos' ? 'text-yellow-400 border-b-2 border-yellow-400' : 'text-gray-400 hover:text-white'}`}>
-                                    <Wrench size={16} className="inline-block mr-1" /> Pagamentos
-                                </button>
                             </div>
 
                             <div>
@@ -725,37 +678,6 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                                         <p className="text-sm text-gray-400">{s.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                                                     </div>
                                                     <button onClick={() => addToCart(s, 'servico')} className="px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-semibold hover:bg-blue-700 flex-shrink-0">
-                                                        Adicionar
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                                {activeTab === 'agendamentos' && (
-                                    <div>
-                                        <div className="relative mb-4">
-                                            <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                                            <input 
-                                                type="text" 
-                                                placeholder="Buscar por cliente (nome, CPF, telefone)..." 
-                                                value={appointmentSearchTerm}
-                                                onChange={e => setAppointmentSearchTerm(e.target.value)}
-                                                className="w-full p-2 pl-10 bg-gray-800 border border-gray-700 rounded-lg"
-                                            />
-                                        </div>
-                                        <div className="space-y-2 overflow-y-auto max-h-[65vh] pr-2">
-                                            {isSearchingAppointments && <p className="text-center text-gray-400 py-4">Buscando...</p>}
-                                            {!isSearchingAppointments && appointmentResults.length === 0 && appointmentSearchTerm.length >= 3 && <p className="text-center text-gray-400 py-4">Nenhum serviço concluído pendente de pagamento encontrado.</p>}
-                                            {appointmentResults.map(item => (
-                                                <div key={`app-${item.appointmentId}`} className="flex items-center gap-4 p-3 bg-gray-800 rounded-lg hover:bg-gray-700/50">
-                                                    <img src={item.imagem} alt={item.servico} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
-                                                    <div className="flex-grow min-w-0">
-                                                        <p className="font-semibold truncate">{item.servico}</p>
-                                                        <p className="text-sm text-gray-400">Cliente: {item.client.name}</p>
-                                                        <p className="text-sm text-yellow-400">{item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                                                    </div>
-                                                    <button onClick={() => addToCart(item, 'servico')} className="px-3 py-1 bg-yellow-600 text-white rounded-full text-sm font-semibold hover:bg-yellow-700 flex-shrink-0">
                                                         Adicionar
                                                     </button>
                                                 </div>

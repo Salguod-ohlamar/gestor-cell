@@ -68,28 +68,6 @@ const formatClientForAPI = (c) => ({
     isActive: c.is_active,
 });
 
-// Converte um objeto de agendamento do formato do banco de dados para o formato da API
-const formatAppointmentForAPI = (a) => ({
-    id: a.id,
-    clientId: a.client_id,
-    // O campo client_name já vem tratado do banco com COALESCE
-    clientName: a.client_name,
-    tempClientName: a.temp_client_name,
-    tempClientPhone: a.temp_client_phone,
-    tempClientCpf: a.temp_client_cpf,
-    tempClientEmail: a.temp_client_email,
-    serviceId: a.service_id,
-    serviceName: a.service_name,
-    userId: a.user_id,
-    userName: a.user_name,
-    scheduledFor: a.scheduled_for,
-    status: a.status,
-    completedAt: a.completed_at,
-    notes: a.notes,
-    createdAt: a.created_at,
-    updatedAt: a.updated_at,
-});
-
 // Centraliza o tratamento de erros para as rotas
 const handleRouteError = (res, err, contextMessage) => {
     console.error(`Erro ao ${contextMessage}:`, err);
@@ -794,10 +772,10 @@ app.put('/api/clients/:id', protect, hasPermission('manageClients'), async (req,
 // Rota para excluir um cliente
 app.delete('/api/clients/:id', protect, hasPermission('manageClients'), async (req, res) => {
     const { id } = req.params;
-    let dbClient; // Declarado fora para ser acessível no finally
+    let dbClient; // Declare outside to be accessible in finally
 
     try {
-        dbClient = await db.getClient(); // Conexão dentro do try
+        dbClient = await db.getClient(); // Connect inside the try block
         await dbClient.query('BEGIN');
 
         // Get client name for the response message
@@ -818,10 +796,10 @@ app.delete('/api/clients/:id', protect, hasPermission('manageClients'), async (r
         res.status(200).json({ message: `Cliente "${clientName}" e todo o seu histórico foram excluídos com sucesso.` });
 
     } catch (err) {
-        if (dbClient) await dbClient.query('ROLLBACK'); // Verifica se o client existe antes de usar
+        if (dbClient) await dbClient.query('ROLLBACK'); // Check if client exists before using
         handleRouteError(res, err, 'excluir o cliente e seu histórico');
     } finally {
-        if (dbClient) dbClient.release(); // Verifica se o client existe antes de usar
+        if (dbClient) dbClient.release(); // Check if client exists before using
     }
 });
 
@@ -839,220 +817,6 @@ app.get('/api/clients/search', protect, async (req, res) => {
         res.json(formatClientForAPI(rows[0]));
     } catch (err) {
         handleRouteError(res, err, 'buscar cliente');
-    }
-});
-
-// ==================
-// APPOINTMENT MANAGEMENT ROUTES
-// ==================
-
-// Rota para buscar agendamentos
-app.get('/api/appointments', protect, hasPermission('viewOwnAppointments'), async (req, res) => {
-    const { role, id: userId } = req.user;
-    try {
-        let query = `
-            SELECT
-                a.id, a.client_id,
-                -- Usa o nome do cliente da tabela `clients` se existir, senão usa o nome temporário
-                a.temp_client_name, a.temp_client_phone, a.temp_client_cpf, a.temp_client_email,
-                COALESCE(c.name, a.temp_client_name) as client_name,
-                a.service_id, s.servico as service_name,
-                a.user_id, u.name as user_name,
-                a.scheduled_for, a.status, a.notes,
-                a.completed_at, a.created_at, a.updated_at
-            FROM appointments a
-            -- LEFT JOIN com clients, pois client_id pode ser nulo
-            LEFT JOIN clients c ON a.client_id = c.id
-            JOIN services s ON a.service_id = s.id
-            LEFT JOIN users u ON a.user_id = u.id
-        `;
-        const params = [];
-
-        // Vendedores só podem ver seus próprios agendamentos
-        if (role === 'vendedor') {
-            query += ' WHERE a.user_id = $1';
-            params.push(userId);
-        }
-
-        query += ' ORDER BY a.scheduled_for DESC';
-
-        const { rows } = await db.query(query, params);
-        res.json(rows.map(formatAppointmentForAPI));
-    } catch (err) {
-        handleRouteError(res, err, 'buscar agendamentos');
-    }
-});
-
-// Rota para criar um novo agendamento
-app.post('/api/appointments', protect, hasPermission('manageAppointments'), async (req, res) => {
-    const { clientId, clientForm, serviceId, userId, scheduledFor, notes, status } = req.body;
-
-    if ((!clientId && !clientForm) || !serviceId || !scheduledFor) {
-        return res.status(400).json({ message: 'Dados do cliente, serviço e data do agendamento são obrigatórios.' });
-    }
-
-    try {
-        let query;
-        let values;
-        const finalUserId = (userId === '' || userId === null || userId === undefined) ? null : parseInt(userId, 10);
-        const finalServiceId = parseInt(serviceId, 10);
-
-        if (clientId) {
-            // Cliente existente
-            query = `
-                INSERT INTO appointments (client_id, service_id, user_id, scheduled_for, notes, status)
-                VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;
-            `;
-            values = [parseInt(clientId, 10), finalServiceId, finalUserId, scheduledFor, notes, status || 'scheduled'];
-        } else {
-            // Cliente temporário
-            query = `
-                INSERT INTO appointments (temp_client_name, temp_client_phone, temp_client_cpf, temp_client_email, service_id, user_id, scheduled_for, notes, status)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id;
-            `;
-            values = [clientForm.name, clientForm.phone, clientForm.cpf, clientForm.email, finalServiceId, finalUserId, scheduledFor, notes, status || 'scheduled'];
-        }
-
-        const { rows } = await db.query(query, values);
-
-        // Para retornar um objeto formatado, precisamos fazer um join ou uma nova query.
-        // Fazer uma nova query é mais simples aqui.
-        const newAppointmentResult = await db.query(`
-            SELECT
-                a.id, a.client_id, 
-                a.temp_client_name, a.temp_client_phone, a.temp_client_cpf, a.temp_client_email,
-                COALESCE(c.name, a.temp_client_name) as client_name,
-                a.service_id, s.servico as service_name,
-                a.user_id, u.name as user_name,
-                a.scheduled_for, a.status, a.notes,
-                a.completed_at, a.created_at, a.updated_at
-            FROM appointments a
-            LEFT JOIN clients c ON a.client_id = c.id
-            JOIN services s ON a.service_id = s.id
-            LEFT JOIN users u ON a.user_id = u.id
-            WHERE a.id = $1
-        `, [rows[0].id]);
-
-        res.status(201).json(formatAppointmentForAPI(newAppointmentResult.rows[0]));
-    } catch (err) {
-        handleRouteError(res, err, 'criar agendamento');
-    }
-});
-
-// Rota para atualizar um agendamento
-app.put('/api/appointments/:id', protect, hasPermission('manageAppointments'), async (req, res) => {
-    const { id } = req.params;
-    let { userId, scheduledFor, status, notes, completedAt } = req.body;
-
-    try {
-        // Se o status for 'completed' e não houver data de conclusão, define para agora.
-        // Se o status for alterado para algo diferente de 'completed', limpa a data de conclusão.
-        let finalCompletedAt = completedAt;
-        if (status === 'completed' && !completedAt) {
-            finalCompletedAt = new Date();
-        } else if (status !== 'completed') {
-            finalCompletedAt = null;
-        }
-
-        // Garante que o ID do técnico seja um número ou nulo
-        const finalUserId = (userId === '' || userId === null || userId === undefined) ? null : parseInt(userId, 10);
-        if (finalUserId !== null && isNaN(finalUserId)) {
-            return res.status(400).json({ message: 'ID de técnico inválido.' });
-        }
-
-        const query = `
-            UPDATE appointments SET
-                user_id = $1, scheduled_for = $2, status = $3, notes = $4, completed_at = $5
-            WHERE id = $6
-            RETURNING *;
-        `;
-        const values = [finalUserId, scheduledFor, status, notes, finalCompletedAt, id];
-        const { rows } = await db.query(query, values);
-
-        if (rows.length === 0) return res.status(404).json({ message: 'Agendamento não encontrado.' });
-        
-        // CORREÇÃO: A query abaixo usava INNER JOIN e não tratava clientes temporários.
-        // Foi alterada para LEFT JOIN e COALESCE para funcionar corretamente em todos os casos.
-        const updatedAppointmentResult = await db.query(`
-            SELECT
-                a.id, a.client_id,
-                -- Usa o nome do cliente da tabela `clients` se existir, senão usa o nome temporário
-                a.temp_client_name, a.temp_client_phone, a.temp_client_cpf, a.temp_client_email,
-                COALESCE(c.name, a.temp_client_name) as client_name,
-                a.service_id, s.servico as service_name,
-                a.user_id, u.name as user_name,
-                a.scheduled_for, a.status, a.notes,
-                a.completed_at, a.created_at, a.updated_at
-            FROM appointments a
-            -- LEFT JOIN é crucial aqui, pois client_id pode ser nulo para clientes temporários
-            LEFT JOIN clients c ON a.client_id = c.id 
-            JOIN services s ON a.service_id = s.id
-            LEFT JOIN users u ON a.user_id = u.id
-            WHERE a.id = $1
-        `, [rows[0].id]);
-
-        res.json(formatAppointmentForAPI(updatedAppointmentResult.rows[0]));
-    } catch (err) {
-        handleRouteError(res, err, 'atualizar agendamento');
-    }
-});
-
-// Rota para excluir um agendamento
-app.delete('/api/appointments/:id', protect, hasPermission('manageAppointments'), async (req, res) => {
-    const { id } = req.params;
-    try {
-        const result = await db.query('DELETE FROM appointments WHERE id = $1', [id]);
-        if (result.rowCount === 0) {
-            return res.status(404).json({ message: 'Agendamento não encontrado.' });
-        }
-        res.status(200).json({ message: 'Agendamento excluído com sucesso.' });
-    } catch (err) {
-        handleRouteError(res, err, 'excluir agendamento');
-    }
-});
-
-// Rota para buscar agendamentos concluídos e pendentes de pagamento
-app.get('/api/appointments/payable', protect, async (req, res) => {
-    const { search } = req.query;
-    if (!search || search.trim().length < 3) {
-        return res.json([]);
-    }
-
-    try {
-        const query = `
-            SELECT
-                a.id as appointment_id,
-                a.notes,
-                -- Usa o ID do cliente permanente se existir, senão, usa os dados temporários
-                a.client_id,
-                COALESCE(c.name, a.temp_client_name) as client_name,
-                COALESCE(c.cpf, a.temp_client_cpf) as client_cpf,
-                COALESCE(c.phone, a.temp_client_phone) as client_phone,
-                COALESCE(c.email, a.temp_client_email) as client_email,
-                s.id as service_id,
-                s.servico,
-                s.preco_final,
-                s.imagem,
-                s.tempo_de_garantia
-            FROM appointments a
-            LEFT JOIN clients c ON a.client_id = c.id
-            JOIN services s ON a.service_id = s.id
-            WHERE a.status = 'completed'
-              AND a.sale_id IS NULL
-              AND (COALESCE(c.name, a.temp_client_name) ILIKE $1 OR COALESCE(c.phone, a.temp_client_phone) ILIKE $1 OR COALESCE(c.cpf, a.temp_client_cpf) ILIKE $1)
-            ORDER BY a.completed_at DESC;
-        `;
-        const { rows } = await db.query(query, [`%${search}%`]);
-        
-        const results = rows.map(row => ({
-            id: row.service_id, appointmentId: row.appointment_id, nome: row.servico, servico: row.servico,
-            precoFinal: parseFloat(row.preco_final), imagem: row.imagem, tempoDeGarantia: row.tempo_de_garantia,
-            type: 'servico',
-            client: { id: row.client_id, name: row.client_name, cpf: row.client_cpf, phone: row.client_phone, email: row.client_email } // id será nulo para clientes temporários
-        }));
-        res.json(results);
-    } catch (err) {
-        handleRouteError(res, err, 'buscar agendamentos concluídos');
     }
 });
 
@@ -1129,10 +893,10 @@ app.post('/api/sales', protect, async (req, res) => {
         return res.status(400).json({ message: 'O carrinho não pode estar vazio.' });
     }
 
-    let client; // Declarado fora para ser acessível no finally
+    let client; // Declare outside to be accessible in finally
 
     try {
-        client = await db.connect(); // Conexão dentro do try
+        client = await db.connect(); // Connect inside the try block
         await client.query('BEGIN');
 
         const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
@@ -1150,40 +914,19 @@ app.post('/api/sales', protect, async (req, res) => {
         const saleDate = newSale[0].sale_date;
 
         let clientId;
-        const appointmentItem = items.find(item => item.appointmentId);
-
-        if (appointmentItem) {
-            // A venda veio de um agendamento. O cliente é definido pelo agendamento.
-            const { rows: appRows } = await client.query(
-                'SELECT client_id, temp_client_name, temp_client_cpf, temp_client_phone, temp_client_email FROM appointments WHERE id = $1 FOR UPDATE',
-                [appointmentItem.appointmentId]
-            );
-            const appointment = appRows[0];
-
-            if (appointment.client_id) {
-                clientId = appointment.client_id;
-            } else if (appointment.temp_client_name) {
-                // Cliente temporário. Precisa ser criado na tabela `clients`.
-                const { rows: newClientRows } = await client.query(
-                    'INSERT INTO clients (name, cpf, phone, email, last_purchase) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
-                    [appointment.temp_client_name, appointment.temp_client_cpf, appointment.temp_client_phone, appointment.temp_client_email]
-                );
-                clientId = newClientRows[0].id;
-                // Atualiza o agendamento com o ID do cliente permanente.
-                await client.query('UPDATE appointments SET client_id = $1 WHERE id = $2', [clientId, appointmentItem.appointmentId]);
+        
+        // Lógica de criar/encontrar cliente para a venda.
+        const finalCustomerName = (customer && customer.trim()) ? customer.trim() : 'Consumidor Final';
+        const sanitizedCpf = (customerCpf && customerCpf.trim()) ? customerCpf.trim() : null;
+        if (sanitizedCpf) {
+            const { rows: existingClients } = await client.query('SELECT id FROM clients WHERE cpf = $1', [sanitizedCpf]);
+            if (existingClients.length > 0) {
+                clientId = existingClients[0].id;
             }
-        } else {
-            // Venda direta, sem agendamento. Usa a lógica antiga de criar/encontrar cliente.
-            const finalCustomerName = (customer && customer.trim()) ? customer.trim() : 'Consumidor Final';
-            const sanitizedCpf = (customerCpf && customerCpf.trim()) ? customerCpf.trim() : null;
-            if (sanitizedCpf) {
-                const { rows: existingClients } = await client.query('SELECT id FROM clients WHERE cpf = $1', [sanitizedCpf]);
-                if (existingClients.length > 0) clientId = existingClients[0].id;
-            }
-            if (!clientId) {
-                const { rows: newClient } = await client.query('INSERT INTO clients (name, cpf, phone, email, last_purchase) VALUES ($1, $2, $3, $4, NOW()) RETURNING id', [finalCustomerName, sanitizedCpf, customerPhone, customerEmail]);
-                clientId = newClient[0].id;
-            }
+        }
+        if (!clientId) {
+            const { rows: newClient } = await client.query('INSERT INTO clients (name, cpf, phone, email, last_purchase) VALUES ($1, $2, $3, $4, NOW()) RETURNING id', [finalCustomerName, sanitizedCpf, customerPhone, customerEmail]);
+            clientId = newClient[0].id;
         }
 
         // Se um cliente foi identificado ou criado, atualiza o registro da venda.
@@ -1231,14 +974,6 @@ app.post('/api/sales', protect, async (req, res) => {
                 };
                 await client.query(updateStockQuery, [item.quantity, JSON.stringify(historyEntry), item.id]);
             }
-
-            // Se o item veio de um agendamento, atualiza o agendamento com o ID da venda
-            if (item.appointmentId) {
-                await client.query(
-                    'UPDATE appointments SET sale_id = $1 WHERE id = $2',
-                    [saleId, item.appointmentId]
-                );
-            }
         }
 
         await client.query('COMMIT');
@@ -1268,11 +1003,11 @@ app.post('/api/sales', protect, async (req, res) => {
         });
 
     } catch (err) {
-        if (client) await client.query('ROLLBACK'); // Verifica se o client existe antes de usar
+        if (client) await client.query('ROLLBACK'); // Check if client exists before using
         console.error('Sale creation error:', err);
         res.status(500).json({ message: err.message || 'Erro no servidor ao finalizar a venda.' });
     } finally {
-        if (client) client.release(); // Verifica se o client existe antes de usar
+        if (client) client.release(); // Check if client exists before using
     }
 });
 

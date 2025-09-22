@@ -98,27 +98,6 @@ CREATE TABLE activity_log (
     "timestamp" TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Tabela de Agendamentos de Serviço
-CREATE TABLE appointments (
-    id SERIAL PRIMARY KEY,
-    -- client_id pode ser nulo para clientes que ainda não foram efetivados através de uma venda
-    client_id INT REFERENCES clients(id) ON DELETE SET NULL,
-    -- Campos para clientes temporários
-    temp_client_name VARCHAR(255),
-    temp_client_phone VARCHAR(20),
-    temp_client_cpf VARCHAR(20),
-    temp_client_email VARCHAR(255),
-    service_id INT NOT NULL REFERENCES services(id) ON DELETE RESTRICT, -- Não deletar serviço se houver agendamento
-    user_id INT REFERENCES users(id) ON DELETE SET NULL, -- Técnico responsável
-    scheduled_for TIMESTAMPTZ NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'scheduled', -- ex: scheduled, in_progress, completed, canceled
-    sale_id INT REFERENCES sales(id) ON DELETE SET NULL, -- Link para a venda, se já foi pago
-    completed_at TIMESTAMPTZ, -- Data de conclusão/saída
-    notes TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
 -- Função e Triggers para atualizar o campo 'updated_at' automaticamente
 CREATE OR REPLACE FUNCTION trigger_set_timestamp()
 RETURNS TRIGGER AS $$
@@ -131,4 +110,3 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER set_timestamp BEFORE UPDATE ON products FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
 CREATE TRIGGER set_timestamp BEFORE UPDATE ON services FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
 CREATE TRIGGER set_timestamp BEFORE UPDATE ON clients FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
-CREATE TRIGGER set_timestamp BEFORE UPDATE ON appointments FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();

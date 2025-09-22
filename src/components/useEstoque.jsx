@@ -386,30 +386,6 @@ export const useEstoque = (currentUser) => {
     }, [currentUser]);
 
     // ===================================================================
-    // APPOINTMENTS STATE
-    // ===================================================================
-    const [appointments, setAppointments] = useState([]);
-
-    useEffect(() => {
-        const fetchAppointments = async () => {
-            if (currentUser && (currentUser.permissions?.viewOwnAppointments)) {
-                try {
-                    const token = localStorage.getItem('boycell-token');
-                    const response = await fetch(`${API_URL}/api/appointments`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    if (!response.ok) throw new Error('Falha ao buscar agendamentos.');
-                    const data = await response.json();
-                    setAppointments(data);
-                } catch (error) {
-                    console.error("Erro ao buscar agendamentos:", error);
-                }
-            }
-        };
-        fetchAppointments();
-    }, [currentUser]);
-
-    // ===================================================================
     // EFFECTS
     // ===================================================================
     // Effect to update stock value history
@@ -1891,61 +1867,6 @@ export const useEstoque = (currentUser) => {
         }
     };
 
-    const handleAddAppointment = async (appointmentData, adminName) => {
-        try {
-            const token = localStorage.getItem('boycell-token');
-            const response = await fetch(`${API_URL}/api/appointments`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(appointmentData)
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Erro ao criar agendamento.');
-            setAppointments(prev => [...prev, data].sort((a, b) => new Date(b.scheduledFor) - new Date(a.scheduledFor)));
-            logAdminActivity(adminName, 'Criação de Agendamento', `Agendamento para o cliente ID ${data.clientId} criado.`);
-            return true;
-        } catch (error) {
-            console.error(error.message);
-            return false;
-        }
-    };
-
-    const handleUpdateAppointment = async (appointmentId, appointmentData, adminName) => {
-        try {
-            const token = localStorage.getItem('boycell-token');
-            const response = await fetch(`${API_URL}/api/appointments/${appointmentId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(appointmentData)
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Erro ao atualizar agendamento.');
-            setAppointments(prev => prev.map(a => a.id === appointmentId ? data : a));
-            logAdminActivity(adminName, 'Atualização de Agendamento', `Agendamento ID ${appointmentId} atualizado.`);
-            return true;
-        } catch (error) {
-            console.error(error.message);
-            return false;
-        }
-    };
-
-    const handleDeleteAppointment = async (appointmentId, adminName) => {
-        if (!window.confirm('Tem certeza que deseja excluir este agendamento?')) return;
-        try {
-            const token = localStorage.getItem('boycell-token');
-            const response = await fetch(`${API_URL}/api/appointments/${appointmentId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Erro ao excluir agendamento.');
-            setAppointments(prev => prev.filter(a => a.id !== appointmentId));
-            logAdminActivity(adminName, 'Exclusão de Agendamento', `Agendamento ID ${appointmentId} foi excluído.`);
-        } catch (error) {
-            console.error(error.message);
-        }
-    };
-
     return {
         estoque,
         servicos,
@@ -2020,10 +1941,5 @@ export const useEstoque = (currentUser) => {
         handleAddBanner,
         handleUpdateBanner,
         handleDeleteBanner,
-        // Appointments
-        appointments,
-        handleAddAppointment,
-        handleUpdateAppointment,
-        handleDeleteAppointment,
     };
 };
