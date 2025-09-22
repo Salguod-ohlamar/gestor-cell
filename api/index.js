@@ -71,7 +71,7 @@ const formatClientForAPI = (c) => ({
 // Centraliza o tratamento de erros para as rotas
 const handleRouteError = (res, err, contextMessage) => {
     console.error(`Erro ao ${contextMessage}:`, err);
-    res.status(500).send(`Erro no servidor ao ${contextMessage}.`);
+    res.status(500).json({ message: `Erro no servidor ao ${contextMessage}.`, error: err.message });
 };
 
 // Rota de teste

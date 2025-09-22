@@ -438,9 +438,18 @@ export const useEstoque = (currentUser) => {
                                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                 body: JSON.stringify(action.payload)
                             });
+                            
+                            if (!response.ok) {
+                                let errorMsg = 'Erro no servidor ao sincronizar venda.';
+                                try {
+                                    const errorData = await response.json();
+                                    errorMsg = errorData.message || JSON.stringify(errorData);
+                                } catch (e) {
+                                    errorMsg = await response.text();
+                                }
+                                throw new Error(errorMsg);
+                            }
                             const finalSaleData = await response.json();
-                            if (!response.ok) throw new Error(finalSaleData.message || 'Erro no servidor');
-
                             // Sucesso: atualiza o estado local com os dados finais do servidor
                             setSalesHistory(prev => prev.map(s => s.id === action.meta.tempId ? finalSaleData : s));
 
@@ -474,9 +483,17 @@ export const useEstoque = (currentUser) => {
                                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                 body: JSON.stringify(action.payload)
                             });
+                            if (!response.ok) {
+                                let errorMsg = 'Erro no servidor ao sincronizar produto.';
+                                try {
+                                    const errorData = await response.json();
+                                    errorMsg = errorData.message || JSON.stringify(errorData);
+                                } catch (e) {
+                                    errorMsg = await response.text();
+                                }
+                                throw new Error(errorMsg);
+                            }
                             const finalProductData = await response.json();
-                            if (!response.ok) throw new Error(finalProductData.message || 'Erro no servidor');
-
                             // Sucesso: atualiza o estado local com os dados finais do servidor
                             setEstoque(prev => prev.map(p => p.id === action.meta.tempId ? finalProductData : p));
                             logAdminActivity(action.meta.adminName, 'Criação de Produto', `Produto "${finalProductData.nome}" foi sincronizado.`);
@@ -489,9 +506,17 @@ export const useEstoque = (currentUser) => {
                                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                 body: JSON.stringify(action.payload)
                             });
+                            if (!response.ok) {
+                                let errorMsg = 'Erro no servidor ao atualizar produto.';
+                                try {
+                                    const errorData = await response.json();
+                                    errorMsg = errorData.message || JSON.stringify(errorData);
+                                } catch (e) {
+                                    errorMsg = await response.text();
+                                }
+                                throw new Error(errorMsg);
+                            }
                             const finalProductData = await response.json();
-                            if (!response.ok) throw new Error(finalProductData.message || 'Erro no servidor');
-
                             // The UI is already updated, this just confirms the sync.
                             logAdminActivity(action.meta.adminName, 'Atualização de Produto', `Produto "${finalProductData.nome}" foi sincronizado.`);
                             success = true;
@@ -502,9 +527,16 @@ export const useEstoque = (currentUser) => {
                                 method: 'DELETE',
                                 headers: { 'Authorization': `Bearer ${token}` }
                             });
-                            const data = await response.json();
-                            if (!response.ok) throw new Error(data.message || 'Erro no servidor');
-
+                            if (!response.ok) {
+                                let errorMsg = 'Erro no servidor ao excluir produto.';
+                                try {
+                                    const errorData = await response.json();
+                                    errorMsg = errorData.message || JSON.stringify(errorData);
+                                } catch (e) {
+                                    errorMsg = await response.text();
+                                }
+                                throw new Error(errorMsg);
+                            }
                             logAdminActivity(action.meta.adminName, 'Exclusão de Produto', `Exclusão do produto com ID ${action.meta.productId} foi sincronizada.`);
                             success = true;
                         }
@@ -515,9 +547,17 @@ export const useEstoque = (currentUser) => {
                                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                 body: JSON.stringify(action.payload)
                             });
+                            if (!response.ok) {
+                                let errorMsg = 'Erro no servidor ao criar serviço.';
+                                try {
+                                    const errorData = await response.json();
+                                    errorMsg = errorData.message || JSON.stringify(errorData);
+                                } catch (e) {
+                                    errorMsg = await response.text();
+                                }
+                                throw new Error(errorMsg);
+                            }
                             const finalServiceData = await response.json();
-                            if (!response.ok) throw new Error(finalServiceData.message || 'Erro no servidor');
-
                             setServicos(prev => prev.map(s => s.id === action.meta.tempId ? finalServiceData : s));
                             logAdminActivity(action.meta.adminName, 'Criação de Serviço', `Serviço "${finalServiceData.servico}" foi sincronizado.`);
                             success = true;
@@ -529,9 +569,17 @@ export const useEstoque = (currentUser) => {
                                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                 body: JSON.stringify(action.payload)
                             });
+                            if (!response.ok) {
+                                let errorMsg = 'Erro no servidor ao atualizar serviço.';
+                                try {
+                                    const errorData = await response.json();
+                                    errorMsg = errorData.message || JSON.stringify(errorData);
+                                } catch (e) {
+                                    errorMsg = await response.text();
+                                }
+                                throw new Error(errorMsg);
+                            }
                             const finalServiceData = await response.json();
-                            if (!response.ok) throw new Error(finalServiceData.message || 'Erro no servidor');
-
                             logAdminActivity(action.meta.adminName, 'Atualização de Serviço', `Serviço "${finalServiceData.servico}" foi sincronizado.`);
                             success = true;
                         }
@@ -541,9 +589,16 @@ export const useEstoque = (currentUser) => {
                                 method: 'DELETE',
                                 headers: { 'Authorization': `Bearer ${token}` }
                             });
-                            const data = await response.json();
-                            if (!response.ok) throw new Error(data.message || 'Erro no servidor');
-
+                            if (!response.ok) {
+                                let errorMsg = 'Erro no servidor ao excluir serviço.';
+                                try {
+                                    const errorData = await response.json();
+                                    errorMsg = errorData.message || JSON.stringify(errorData);
+                                } catch (e) {
+                                    errorMsg = await response.text();
+                                }
+                                throw new Error(errorMsg);
+                            }
                             logAdminActivity(action.meta.adminName, 'Exclusão de Serviço', `Exclusão do serviço com ID ${action.meta.serviceId} foi sincronizada.`);
                             success = true;
                         }
@@ -1479,11 +1534,19 @@ export const useEstoque = (currentUser) => {
             });
             clearTimeout(timeoutId);
 
-            const finalSaleData = await response.json();
             if (!response.ok) {
-                throw new Error(finalSaleData.message || 'Erro do servidor ao finalizar a venda.');
+                let errorMsg = 'Erro do servidor ao finalizar a venda.';
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.message || JSON.stringify(errorData);
+                } catch (e) {
+                    // If the error response is not JSON, read it as text.
+                    errorMsg = await response.text();
+                }
+                throw new Error(errorMsg);
             }
 
+            const finalSaleData = await response.json();
             console.log("PDV: 4a. Sincronização ONLINE bem-sucedida. Retornando dados do servidor.", finalSaleData);
             setSalesHistory(prev => prev.map(s => s.id === tempId ? finalSaleData : s));
             setClientes(currentClientes => {
