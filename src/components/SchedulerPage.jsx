@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Edit, Trash2, Calendar, User, Tool, Clock } from 'lucide-react';
+import { Plus, Edit, Trash2, Calendar, User, Wrench, Clock } from 'lucide-react';
 import { useEstoqueContext } from './EstoqueContext';
 import Modal from './Modal';
 import Phone2DViewer from './Phone2DViewer'; // Importando o visualizador 2D
@@ -105,7 +105,7 @@ const SchedulerPage = ({ currentUser }) => {
                                         <p className="font-bold text-lg">{app.serviceName}</p>
                                         <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2"><User size={14} /> {app.clientName}</p>
                                         <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2"><Clock size={14} /> {new Date(app.scheduledFor).toLocaleString('pt-BR')}</p>
-                                        <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2"><Tool size={14} /> Técnico: {app.userName || 'Não definido'}</p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2"><Wrench size={14} /> Técnico: {app.userName || 'Não definido'}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <span className={`px-3 py-1 text-xs font-semibold rounded-full ${app.status === 'completed' ? 'bg-green-200 text-green-800' : 'bg-yellow-200 text-yellow-800'}`}>
