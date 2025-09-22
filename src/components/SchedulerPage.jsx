@@ -104,32 +104,16 @@ const SchedulerPage = ({ currentUser }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        let finalClientId = clientForm.id;
-
-        // Se não temos um ID de cliente, significa que é um novo cliente
-        if (!finalClientId) {
-            if (!clientForm.name || !clientForm.phone) {
-                alert('Nome e Telefone são obrigatórios para o novo cliente.');
-                return;
-            }
-            const createdClient = await handleAddClient(clientForm, currentUser.name);
-            if (!createdClient) {
-                alert('Falha ao criar o novo cliente. Verifique se o CPF já existe e tente novamente.');
-                return;
-            }
-            finalClientId = createdClient.id;
-        }
-
         if (editingAppointment) {
             // Lógica para ATUALIZAR um agendamento
-            const updateData = {
-                userId: newAppointment.userId ? parseInt(newAppointment.userId, 10) : null,
-                scheduledFor: new Date(newAppointment.scheduledFor).toISOString(),
-                status: newAppointment.status,
-                notes: newAppointment.notes,
-                completedAt: newAppointment.completedAt ? new Date(newAppointment.completedAt).toISOString() : null,
-            };
-            const success = await handleUpdateAppointment(editingAppointment.id, updateData, currentUser.name);
+            // (A lógica de atualização permanece a mesma, pois ela lida com agendamentos existentes)
+            const success = await handleUpdateAppointment(editingAppointment.id, {
+                 userId: newAppointment.userId ? parseInt(newAppointment.userId, 10) : null,
+                 scheduledFor: new Date(newAppointment.scheduledFor).toISOString(),
+                 status: newAppointment.status,
+                 notes: newAppointment.notes,
+                 completedAt: newAppointment.completedAt ? new Date(newAppointment.completedAt).toISOString() : null,
+            }, currentUser.name);
             if (success) {
                 handleCloseModal();
             } else {
@@ -137,8 +121,16 @@ const SchedulerPage = ({ currentUser }) => {
             }
         } else {
             // Lógica para CRIAR um novo agendamento
-            const createData = {
-                clientId: parseInt(finalClientId, 10),
+            const dataPayload = {
+                // Se um cliente existente foi encontrado/selecionado, `clientForm.id` terá um valor.
+                clientId: clientForm.id ? parseInt(clientForm.id, 10) : null,
+                // Se for um novo cliente, `clientForm.id` será nulo, então passamos os dados do formulário.
+                clientForm: !clientForm.id ? {
+                    name: clientForm.name,
+                    phone: clientForm.phone,
+                    cpf: clientForm.cpf,
+                    email: clientForm.email,
+                } : null,
                 serviceId: parseInt(newAppointment.serviceId, 10),
                 userId: newAppointment.userId ? parseInt(newAppointment.userId, 10) : null,
                 scheduledFor: new Date(newAppointment.scheduledFor).toISOString(),
@@ -146,7 +138,13 @@ const SchedulerPage = ({ currentUser }) => {
                 status: newAppointment.status,
             };
 
-            const success = await handleAddAppointment(createData, currentUser.name);
+            // Validação para novo cliente temporário
+            if (!dataPayload.clientId && (!dataPayload.clientForm.name || !dataPayload.clientForm.phone)) {
+                alert('Nome e Telefone são obrigatórios para o novo cliente.');
+                return;
+            }
+
+            const success = await handleAddAppointment(dataPayload, currentUser.name);
             if (success) {
                 handleCloseModal();
             } else {

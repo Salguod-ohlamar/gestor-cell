@@ -70,6 +70,7 @@ const formatClientForAPI = (c) => ({
 const formatAppointmentForAPI = (a) => ({
     id: a.id,
     clientId: a.client_id,
+    // O campo client_name já vem tratado do banco com COALESCE
     clientName: a.client_name,
     serviceId: a.service_id,
     serviceName: a.service_name,
@@ -814,13 +815,16 @@ app.get('/api/appointments', protect, hasPermission('viewOwnAppointments'), asyn
     try {
         let query = `
             SELECT
-                a.id, a.client_id, c.name as client_name,
+                a.id, a.client_id,
+                -- Usa o nome do cliente da tabela `clients` se existir, senão usa o nome temporário
+                COALESCE(c.name, a.temp_client_name) as client_name,
                 a.service_id, s.servico as service_name,
                 a.user_id, u.name as user_name,
                 a.scheduled_for, a.status, a.notes,
                 a.completed_at, a.created_at, a.updated_at
             FROM appointments a
-            JOIN clients c ON a.client_id = c.id
+            -- LEFT JOIN com clients, pois client_id pode ser nulo
+            LEFT JOIN clients c ON a.client_id = c.id
             JOIN services s ON a.service_id = s.id
             LEFT JOIN users u ON a.user_id = u.id
         `;
@@ -843,43 +847,48 @@ app.get('/api/appointments', protect, hasPermission('viewOwnAppointments'), asyn
 
 // Rota para criar um novo agendamento
 app.post('/api/appointments', protect, hasPermission('manageAppointments'), async (req, res) => {
-    const { clientId, serviceId, userId, scheduledFor, notes, status } = req.body;
+    const { clientId, clientForm, serviceId, userId, scheduledFor, notes, status } = req.body;
 
-    if (!clientId || !serviceId || !scheduledFor) {
-        return res.status(400).json({ message: 'Cliente, serviço e data do agendamento são obrigatórios.' });
+    if ((!clientId && !clientForm) || !serviceId || !scheduledFor) {
+        return res.status(400).json({ message: 'Dados do cliente, serviço e data do agendamento são obrigatórios.' });
     }
 
     try {
-        const query = `
-            INSERT INTO appointments (client_id, service_id, user_id, scheduled_for, notes, status)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING *;
-        `;
-
-        // Garante que os IDs sejam números inteiros antes de enviar para o banco.
-        const finalClientId = parseInt(clientId, 10);
-        const finalServiceId = parseInt(serviceId, 10);
+        let query;
+        let values;
         const finalUserId = (userId === '' || userId === null || userId === undefined) ? null : parseInt(userId, 10);
+        const finalServiceId = parseInt(serviceId, 10);
 
-        // Validação extra para garantir que a conversão funcionou
-        if (isNaN(finalClientId) || isNaN(finalServiceId) || (finalUserId !== null && isNaN(finalUserId))) {
-            return res.status(400).json({ message: 'IDs de cliente, serviço ou técnico inválidos.' });
+        if (clientId) {
+            // Cliente existente
+            query = `
+                INSERT INTO appointments (client_id, service_id, user_id, scheduled_for, notes, status)
+                VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;
+            `;
+            values = [parseInt(clientId, 10), finalServiceId, finalUserId, scheduledFor, notes, status || 'scheduled'];
+        } else {
+            // Cliente temporário
+            query = `
+                INSERT INTO appointments (temp_client_name, temp_client_phone, temp_client_cpf, temp_client_email, service_id, user_id, scheduled_for, notes, status)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id;
+            `;
+            values = [clientForm.name, clientForm.phone, clientForm.cpf, clientForm.email, finalServiceId, finalUserId, scheduledFor, notes, status || 'scheduled'];
         }
 
-        const values = [finalClientId, finalServiceId, finalUserId, scheduledFor, notes, status || 'scheduled'];
         const { rows } = await db.query(query, values);
 
         // Para retornar um objeto formatado, precisamos fazer um join ou uma nova query.
         // Fazer uma nova query é mais simples aqui.
         const newAppointmentResult = await db.query(`
             SELECT
-                a.id, a.client_id, c.name as client_name,
+                a.id, a.client_id, 
+                COALESCE(c.name, a.temp_client_name) as client_name,
                 a.service_id, s.servico as service_name,
                 a.user_id, u.name as user_name,
                 a.scheduled_for, a.status, a.notes,
                 a.completed_at, a.created_at, a.updated_at
             FROM appointments a
-            JOIN clients c ON a.client_id = c.id
+            LEFT JOIN clients c ON a.client_id = c.id
             JOIN services s ON a.service_id = s.id
             LEFT JOIN users u ON a.user_id = u.id
             WHERE a.id = $1
@@ -969,22 +978,23 @@ app.get('/api/appointments/payable', protect, async (req, res) => {
             SELECT
                 a.id as appointment_id,
                 a.notes,
-                c.id as client_id,
-                c.name as client_name,
-                c.cpf as client_cpf,
-                c.phone as client_phone,
-                c.email as client_email,
+                -- Usa o ID do cliente permanente se existir, senão, usa os dados temporários
+                a.client_id,
+                COALESCE(c.name, a.temp_client_name) as client_name,
+                COALESCE(c.cpf, a.temp_client_cpf) as client_cpf,
+                COALESCE(c.phone, a.temp_client_phone) as client_phone,
+                COALESCE(c.email, a.temp_client_email) as client_email,
                 s.id as service_id,
                 s.servico,
                 s.preco_final,
                 s.imagem,
                 s.tempo_de_garantia
             FROM appointments a
-            JOIN clients c ON a.client_id = c.id
+            LEFT JOIN clients c ON a.client_id = c.id
             JOIN services s ON a.service_id = s.id
             WHERE a.status = 'completed'
               AND a.sale_id IS NULL
-              AND (c.name ILIKE $1 OR c.phone ILIKE $1 OR c.cpf ILIKE $1)
+              AND (COALESCE(c.name, a.temp_client_name) ILIKE $1 OR COALESCE(c.phone, a.temp_client_phone) ILIKE $1 OR COALESCE(c.cpf, a.temp_client_cpf) ILIKE $1)
             ORDER BY a.completed_at DESC;
         `;
         const { rows } = await db.query(query, [`%${search}%`]);
@@ -993,7 +1003,7 @@ app.get('/api/appointments/payable', protect, async (req, res) => {
             id: row.service_id, appointmentId: row.appointment_id, nome: row.servico, servico: row.servico,
             precoFinal: parseFloat(row.preco_final), imagem: row.imagem, tempoDeGarantia: row.tempo_de_garantia,
             type: 'servico',
-            client: { id: row.client_id, name: row.client_name, cpf: row.client_cpf, phone: row.client_phone, email: row.client_email }
+            client: { id: row.client_id, name: row.client_name, cpf: row.client_cpf, phone: row.client_phone, email: row.client_email } // id será nulo para clientes temporários
         }));
         res.json(results);
     } catch (err) {
@@ -1079,42 +1089,59 @@ app.post('/api/sales', protect, async (req, res) => {
     try {
         await client.query('BEGIN'); // Start transaction
 
-        let clientId;
-        const finalCustomerName = (customer && customer.trim()) ? customer.trim() : 'Consumidor Final';
-        const sanitizedCpf = (customerCpf && customerCpf.trim()) ? customerCpf.trim() : null;
-
-        // Apenas busca por um cliente se um CPF válido foi fornecido.
-        if (sanitizedCpf) {
-            const { rows: existingClients } = await client.query('SELECT id FROM clients WHERE cpf = $1', [sanitizedCpf]);
-            if (existingClients.length > 0) {
-                clientId = existingClients[0].id;
-                // Atualiza as informações do cliente encontrado
-                await client.query(
-                    'UPDATE clients SET last_purchase = NOW(), phone = $1, email = $2, name = $3 WHERE id = $4', 
-                    [customerPhone, customerEmail, finalCustomerName, clientId]
-                );
-            }
-        }
-
-        // Se nenhum cliente foi encontrado (seja por não ter CPF ou o CPF não existir), cria um novo.
-        if (!clientId) {
-            const { rows: newClient } = await client.query(
-                'INSERT INTO clients (name, cpf, phone, email, last_purchase) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
-                [finalCustomerName, sanitizedCpf, customerPhone, customerEmail]
-            );
-            clientId = newClient[0].id;
-        }
-
         const receiptCode = `BC-${new Date().getFullYear()}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${new Date().getDate().toString().padStart(2, '0')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
         const saleQuery = `
             INSERT INTO sales (receipt_code, client_id, user_id, vendedor_name, subtotal, discount_percentage, discount_value, total, payment_method)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING id, sale_date;
         `;
-        const saleValues = [receiptCode, clientId, userId, vendedor, subtotal, discountPercentage, discountValue, total, paymentMethod];
+        // Insere a venda inicialmente sem client_id, que será atualizado depois.
+        const saleValues = [receiptCode, null, userId, vendedor, subtotal, discountPercentage, discountValue, total, paymentMethod];
         const { rows: newSale } = await client.query(saleQuery, saleValues);
         const saleId = newSale[0].id;
         const saleDate = newSale[0].sale_date;
+
+        let clientId;
+        const appointmentItem = items.find(item => item.appointmentId);
+
+        if (appointmentItem) {
+            // A venda veio de um agendamento. O cliente é definido pelo agendamento.
+            const { rows: appRows } = await client.query(
+                'SELECT client_id, temp_client_name, temp_client_cpf, temp_client_phone, temp_client_email FROM appointments WHERE id = $1 FOR UPDATE',
+                [appointmentItem.appointmentId]
+            );
+            const appointment = appRows[0];
+
+            if (appointment.client_id) {
+                clientId = appointment.client_id;
+            } else if (appointment.temp_client_name) {
+                // Cliente temporário. Precisa ser criado na tabela `clients`.
+                const { rows: newClientRows } = await client.query(
+                    'INSERT INTO clients (name, cpf, phone, email, last_purchase) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
+                    [appointment.temp_client_name, appointment.temp_client_cpf, appointment.temp_client_phone, appointment.temp_client_email]
+                );
+                clientId = newClientRows[0].id;
+                // Atualiza o agendamento com o ID do cliente permanente.
+                await client.query('UPDATE appointments SET client_id = $1 WHERE id = $2', [clientId, appointmentItem.appointmentId]);
+            }
+        } else {
+            // Venda direta, sem agendamento. Usa a lógica antiga de criar/encontrar cliente.
+            const finalCustomerName = (customer && customer.trim()) ? customer.trim() : 'Consumidor Final';
+            const sanitizedCpf = (customerCpf && customerCpf.trim()) ? customerCpf.trim() : null;
+            if (sanitizedCpf) {
+                const { rows: existingClients } = await client.query('SELECT id FROM clients WHERE cpf = $1', [sanitizedCpf]);
+                if (existingClients.length > 0) clientId = existingClients[0].id;
+            }
+            if (!clientId) {
+                const { rows: newClient } = await client.query('INSERT INTO clients (name, cpf, phone, email, last_purchase) VALUES ($1, $2, $3, $4, NOW()) RETURNING id', [finalCustomerName, sanitizedCpf, customerPhone, customerEmail]);
+                clientId = newClient[0].id;
+            }
+        }
+
+        // Se um cliente foi identificado ou criado, atualiza o registro da venda.
+        if (clientId) {
+            await client.query('UPDATE sales SET client_id = $1 WHERE id = $2', [clientId, saleId]);
+        }
 
         // Ordena os itens pelo ID para garantir uma ordem de bloqueio consistente no banco de dados.
         // Isso previne deadlocks quando múltiplas vendas com os mesmos produtos são processadas simultaneamente.

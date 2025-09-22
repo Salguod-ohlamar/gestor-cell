@@ -101,7 +101,13 @@ CREATE TABLE activity_log (
 -- Tabela de Agendamentos de Serviço
 CREATE TABLE appointments (
     id SERIAL PRIMARY KEY,
-    client_id INT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    -- client_id pode ser nulo para clientes que ainda não foram efetivados através de uma venda
+    client_id INT REFERENCES clients(id) ON DELETE SET NULL,
+    -- Campos para clientes temporários
+    temp_client_name VARCHAR(255),
+    temp_client_phone VARCHAR(20),
+    temp_client_cpf VARCHAR(20),
+    temp_client_email VARCHAR(255),
     service_id INT NOT NULL REFERENCES services(id) ON DELETE RESTRICT, -- Não deletar serviço se houver agendamento
     user_id INT REFERENCES users(id) ON DELETE SET NULL, -- Técnico responsável
     scheduled_for TIMESTAMPTZ NOT NULL,
