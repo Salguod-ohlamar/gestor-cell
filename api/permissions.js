@@ -33,6 +33,13 @@ const PERMISSION_GROUPS = {
             manageClients: { roles: ['root', 'admin'] },
         }
     },
+    scheduling: {
+        title: 'Agendamentos',
+        permissions: {
+            manageAppointments: { roles: ['root', 'admin'] },
+            viewOwnAppointments: { roles: ['root', 'admin', 'vendedor'] },
+        }
+    },
     root: {
         title: 'Super Admin (Root)',
         permissions: {

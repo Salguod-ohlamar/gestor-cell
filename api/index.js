@@ -16,6 +16,78 @@ const PORT = process.env.PORT || 3001;
 app.use(cors()); // Permite requisições do nosso frontend React
 app.use(express.json()); // Permite que o Express entenda JSON
 
+// ==================
+// HELPER FUNCTIONS
+// ==================
+
+// Converte um objeto de produto do formato do banco de dados para o formato da API (camelCase)
+const formatProductForAPI = (p) => ({
+    id: p.id,
+    nome: p.nome,
+    categoria: p.categoria,
+    marca: p.marca,
+    fornecedor: p.fornecedor,
+    emEstoque: p.em_estoque,
+    qtdaMinima: p.qtda_minima,
+    preco: parseFloat(p.preco),
+    precoFinal: parseFloat(p.preco_final),
+    markup: p.markup,
+    imagem: p.imagem,
+    destaque: !!p.destaque,
+    tempoDeGarantia: p.tempo_de_garantia,
+    historico: p.historico,
+});
+
+// Converte um objeto de serviço do formato do banco de dados para o formato da API (camelCase)
+const formatServiceForAPI = (s) => ({
+    id: s.id,
+    servico: s.servico,
+    fornecedor: s.fornecedor,
+    marca: s.marca,
+    tipoReparo: s.tipo_reparo,
+    tecnico: s.tecnico,
+    preco: parseFloat(s.preco),
+    precoFinal: parseFloat(s.preco_final),
+    markup: s.markup,
+    imagem: s.imagem,
+    destaque: !!s.destaque,
+    tempoDeGarantia: s.tempo_de_garantia,
+    historico: s.historico,
+});
+
+// Converte um objeto de cliente do formato do banco de dados para o formato da API (camelCase)
+const formatClientForAPI = (c) => ({
+    id: c.id,
+    name: c.name,
+    cpf: c.cpf,
+    phone: c.phone,
+    email: c.email,
+    lastPurchase: c.last_purchase,
+    isActive: c.is_active,
+});
+
+// Converte um objeto de agendamento do formato do banco de dados para o formato da API
+const formatAppointmentForAPI = (a) => ({
+    id: a.id,
+    clientId: a.client_id,
+    clientName: a.client_name,
+    serviceId: a.service_id,
+    serviceName: a.service_name,
+    userId: a.user_id,
+    userName: a.user_name,
+    scheduledFor: a.scheduled_for,
+    status: a.status,
+    notes: a.notes,
+    createdAt: a.created_at,
+    updatedAt: a.updated_at,
+});
+
+// Centraliza o tratamento de erros para as rotas
+const handleRouteError = (res, err, contextMessage) => {
+    console.error(`Erro ao ${contextMessage}:`, err);
+    res.status(500).send(`Erro no servidor ao ${contextMessage}.`);
+};
+
 // Rota de teste
 app.get('/', (req, res) => {
   res.send('API Boycell está no ar!');
@@ -25,27 +97,9 @@ app.get('/', (req, res) => {
 app.get('/api/products', async (req, res) => {
   try {
     const { rows } = await db.query('SELECT * FROM products ORDER BY nome ASC');
-    // Converte o padrão snake_case do DB para camelCase do JS
-    const products = rows.map(p => ({
-        id: p.id,
-        nome: p.nome,
-        categoria: p.categoria,
-        marca: p.marca,
-        fornecedor: p.fornecedor,
-        emEstoque: p.em_estoque,
-        qtdaMinima: p.qtda_minima,
-        preco: parseFloat(p.preco),
-        precoFinal: parseFloat(p.preco_final),
-        markup: p.markup,
-        imagem: p.imagem,
-        destaque: !!p.destaque,
-        tempoDeGarantia: p.tempo_de_garantia,
-        historico: p.historico,
-    }));
-    res.json(products);
+    res.json(rows.map(formatProductForAPI));
   } catch (err) {
-    console.error('Erro ao buscar produtos:', err);
-    res.status(500).send('Erro no servidor ao buscar produtos.');
+    handleRouteError(res, err, 'buscar produtos');
   }
 });
 
@@ -65,17 +119,9 @@ app.get('/api/products/search', protect, async (req, res) => {
         `;
         const { rows } = await db.query(queryText, [`%${q}%`]);
         
-        const products = rows.map(p => ({
-            id: p.id, nome: p.nome, categoria: p.categoria, marca: p.marca,
-            fornecedor: p.fornecedor, emEstoque: p.em_estoque, qtdaMinima: p.qtda_minima,
-            preco: parseFloat(p.preco), precoFinal: parseFloat(p.preco_final),
-            markup: p.markup, imagem: p.imagem, destaque: !!p.destaque,
-            tempoDeGarantia: p.tempo_de_garantia, historico: p.historico,
-        }));
-        res.json(products);
+        res.json(rows.map(formatProductForAPI));
     } catch (err) {
-        console.error('Product search error:', err);
-        res.status(500).send('Erro no servidor ao buscar produtos.');
+        handleRouteError(res, err, 'buscar produtos');
     }
 });
 
@@ -117,26 +163,9 @@ app.post('/api/services', protect, hasPermission('addService'), async (req, res)
         const { rows } = await db.query(query, values);
         const newService = rows[0];
         
-        // Converte de volta para camelCase para a resposta
-        res.status(201).json({
-            id: newService.id,
-            servico: newService.servico,
-            fornecedor: newService.fornecedor,
-            marca: newService.marca,
-            tipoReparo: newService.tipo_reparo,
-            tecnico: newService.tecnico,
-            preco: parseFloat(newService.preco),
-            precoFinal: parseFloat(newService.preco_final),
-            markup: newService.markup,
-            imagem: newService.imagem,
-            destaque: !!newService.destaque,
-            tempoDeGarantia: newService.tempo_de_garantia,
-            historico: newService.historico,
-        });
-
+        res.status(201).json(formatServiceForAPI(newService));
     } catch (err) {
-        console.error('Create service error:', err);
-        res.status(500).send('Erro no servidor ao criar serviço.');
+        handleRouteError(res, err, 'criar serviço');
     }
 });
 
@@ -169,17 +198,9 @@ app.put('/api/services/:id', protect, hasPermission('editService'), async (req, 
         if (rows.length === 0) return res.status(404).json({ message: 'Serviço não encontrado.' });
         
         const updatedService = rows[0];
-        res.json({
-            id: updatedService.id, servico: updatedService.servico, fornecedor: updatedService.fornecedor,
-            marca: updatedService.marca, tipoReparo: updatedService.tipo_reparo, tecnico: updatedService.tecnico,
-            preco: parseFloat(updatedService.preco), precoFinal: parseFloat(updatedService.preco_final),
-            markup: updatedService.markup, imagem: updatedService.imagem, destaque: !!updatedService.destaque,
-            tempoDeGarantia: updatedService.tempo_de_garantia, historico: updatedService.historico,
-        });
-
+        res.json(formatServiceForAPI(updatedService));
     } catch (err) {
-        console.error('Update service error:', err);
-        res.status(500).send('Erro no servidor ao atualizar serviço.');
+        handleRouteError(res, err, 'atualizar serviço');
     }
 });
 
@@ -202,8 +223,7 @@ app.delete('/api/services/:id', protect, hasPermission('deleteService'), async (
         res.status(200).json({ message: `Serviço "${result.rows[0].servico}" excluído com sucesso.` });
 
     } catch (err) {
-        console.error('Delete service error:', err);
-        res.status(500).send('Erro no servidor ao excluir serviço.');
+        handleRouteError(res, err, 'excluir serviço');
     }
 });
 
@@ -211,25 +231,9 @@ app.delete('/api/services/:id', protect, hasPermission('deleteService'), async (
 app.get('/api/services', async (req, res) => {
   try {
     const { rows } = await db.query('SELECT * FROM services ORDER BY servico ASC');
-    const services = rows.map(s => ({
-        id: s.id,
-        servico: s.servico,
-        fornecedor: s.fornecedor,
-        marca: s.marca,
-        tipoReparo: s.tipo_reparo,
-        tecnico: s.tecnico,
-        preco: parseFloat(s.preco),
-        precoFinal: parseFloat(s.preco_final),
-        markup: s.markup,
-        imagem: s.imagem,
-        destaque: s.destaque,
-        tempoDeGarantia: s.tempo_de_garantia,
-        historico: s.historico,
-    }));
-    res.json(services);
+    res.json(rows.map(formatServiceForAPI));
   } catch (err) {
-    console.error('Erro ao buscar serviços:', err);
-    res.status(500).send('Erro no servidor ao buscar serviços.');
+    handleRouteError(res, err, 'buscar serviços');
   }
 });
 
@@ -242,16 +246,9 @@ app.get('/api/services/search', protect, async (req, res) => {
     try {
         const queryText = `SELECT * FROM services WHERE servico ILIKE $1 ORDER BY servico ASC LIMIT 20;`;
         const { rows } = await db.query(queryText, [`%${q}%`]);
-        const services = rows.map(s => ({
-            id: s.id, servico: s.servico, fornecedor: s.fornecedor, marca: s.marca,
-            tipoReparo: s.tipo_reparo, tecnico: s.tecnico, preco: parseFloat(s.preco),
-            precoFinal: parseFloat(s.preco_final), markup: s.markup, imagem: s.imagem,
-            destaque: !!s.destaque, tempoDeGarantia: s.tempo_de_garantia, historico: s.historico,
-        }));
-        res.json(services);
+        res.json(rows.map(formatServiceForAPI));
     } catch (err) {
-        console.error('Service search error:', err);
-        res.status(500).send('Erro no servidor ao buscar serviços.');
+        handleRouteError(res, err, 'buscar serviços');
     }
 });
 
@@ -265,8 +262,7 @@ app.get('/api/banners', async (req, res) => {
     const { rows } = await db.query('SELECT * FROM banners WHERE is_active = TRUE ORDER BY sort_order ASC, created_at DESC');
     res.json(rows);
   } catch (err) {
-    console.error('Erro ao buscar banners:', err);
-    res.status(500).send('Erro no servidor ao buscar banners.');
+    handleRouteError(res, err, 'buscar banners');
   }
 });
 
@@ -276,8 +272,7 @@ app.get('/api/banners/all', protect, hasPermission('manageBanners'), async (req,
     const { rows } = await db.query('SELECT * FROM banners ORDER BY sort_order ASC, created_at DESC');
     res.json(rows);
   } catch (err) {
-    console.error('Erro ao buscar todos os banners:', err);
-    res.status(500).send('Erro no servidor ao buscar banners.');
+    handleRouteError(res, err, 'buscar todos os banners');
   }
 });
 
@@ -299,8 +294,7 @@ app.post('/api/banners', protect, hasPermission('manageBanners'), async (req, re
         const { rows } = await db.query(query, values);
         res.status(201).json(rows[0]);
     } catch (err) {
-        console.error('Create banner error:', err);
-        res.status(500).send('Erro no servidor ao criar banner.');
+        handleRouteError(res, err, 'criar banner');
     }
 });
 
@@ -327,8 +321,7 @@ app.put('/api/banners/:id', protect, hasPermission('manageBanners'), async (req,
         
         res.json(rows[0]);
     } catch (err) {
-        console.error('Update banner error:', err);
-        res.status(500).send('Erro no servidor ao atualizar banner.');
+        handleRouteError(res, err, 'atualizar banner');
     }
 });
 
@@ -342,8 +335,7 @@ app.delete('/api/banners/:id', protect, hasPermission('manageBanners'), async (r
         }
         res.status(200).json({ message: 'Banner excluído com sucesso.' });
     } catch (err) {
-        console.error('Delete banner error:', err);
-        res.status(500).send('Erro no servidor ao excluir banner.');
+        handleRouteError(res, err, 'excluir banner');
     }
 });
 
@@ -381,27 +373,9 @@ app.post('/api/products', protect, hasPermission('addProduct'), async (req, res)
         const { rows } = await db.query(query, values);
         const newProduct = rows[0];
         
-        // Converte de volta para camelCase para a resposta
-        res.status(201).json({
-            id: newProduct.id,
-            nome: newProduct.nome,
-            categoria: newProduct.categoria,
-            marca: newProduct.marca,
-            fornecedor: newProduct.fornecedor,
-            emEstoque: newProduct.em_estoque,
-            qtdaMinima: newProduct.qtda_minima,
-            preco: parseFloat(newProduct.preco),
-            precoFinal: parseFloat(newProduct.preco_final),
-            markup: newProduct.markup,
-            imagem: newProduct.imagem,
-            destaque: newProduct.destaque,
-            tempoDeGarantia: newProduct.tempo_de_garantia,
-            historico: newProduct.historico,
-        });
-
+        res.status(201).json(formatProductForAPI(newProduct));
     } catch (err) {
-        console.error('Create product error:', err);
-        res.status(500).send('Erro no servidor ao criar produto.');
+        handleRouteError(res, err, 'criar produto');
     }
 });
 
@@ -434,26 +408,9 @@ app.put('/api/products/:id', protect, hasPermission('editProduct'), async (req, 
         if (rows.length === 0) return res.status(404).json({ message: 'Produto não encontrado.' });
         
         const updatedProduct = rows[0];
-        res.json({
-            id: updatedProduct.id,
-            nome: updatedProduct.nome,
-            categoria: updatedProduct.categoria,
-            marca: updatedProduct.marca,
-            fornecedor: updatedProduct.fornecedor,
-            emEstoque: updatedProduct.em_estoque,
-            qtdaMinima: updatedProduct.qtda_minima,
-            preco: parseFloat(updatedProduct.preco),
-            precoFinal: parseFloat(updatedProduct.preco_final),
-            markup: updatedProduct.markup,
-            imagem: updatedProduct.imagem,
-            destaque: !!updatedProduct.destaque,
-            tempoDeGarantia: updatedProduct.tempo_de_garantia,
-            historico: updatedProduct.historico,
-        });
-
+        res.json(formatProductForAPI(updatedProduct));
     } catch (err) {
-        console.error('Update product error:', err);
-        res.status(500).send('Erro no servidor ao atualizar produto.');
+        handleRouteError(res, err, 'atualizar produto');
     }
 });
 
@@ -476,8 +433,7 @@ app.delete('/api/products/:id', protect, hasPermission('deleteProduct'), async (
         res.status(200).json({ message: `Produto "${result.rows[0].nome}" excluído com sucesso.` });
 
     } catch (err) {
-        console.error('Delete product error:', err);
-        res.status(500).send('Erro no servidor ao excluir produto.');
+        handleRouteError(res, err, 'excluir produto');
     }
 });
 
@@ -530,8 +486,7 @@ app.post('/api/auth/login', async (req, res) => {
     // Retorna o token e as informações do usuário com as permissões atualizadas
     res.json({ token, user: { ...userWithoutPassword, permissions: finalPermissions } });
   } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).send('Erro no servidor durante o login.');
+    handleRouteError(res, err, 'durante o login');
   }
 });
 
@@ -557,8 +512,7 @@ app.post('/api/auth/recover', async (req, res) => {
         res.json({ message: `Se um usuário com esse email e nome existir, um link de recuperação foi enviado.` });
 
     } catch (err) {
-        console.error('Password recovery error:', err);
-        res.status(500).send('Erro no servidor durante a recuperação de senha.');
+        handleRouteError(res, err, 'durante a recuperação de senha');
     }
 });
 
@@ -597,8 +551,7 @@ app.post('/api/users/register', protect, hasPermission('manageUsers'), async (re
 
     res.status(201).json(rows[0]);
   } catch (err) {
-    console.error('Registration error:', err);
-    res.status(500).send('Erro no servidor ao registrar usuário.');
+    handleRouteError(res, err, 'registrar usuário');
   }
 });
 
@@ -626,8 +579,7 @@ app.post('/api/users/:id/reset-password', protect, hasPermission('resetUserPassw
         res.json({ message: `Senha de ${targetUser.name} resetada com sucesso.`, newPassword: newPassword });
 
     } catch (err) {
-        console.error('Reset password error:', err);
-        res.status(500).send('Erro no servidor ao resetar a senha.');
+        handleRouteError(res, err, 'resetar a senha');
     }
 });
 
@@ -648,8 +600,7 @@ app.get('/api/users', protect, hasPermission('manageUsers'), async (req, res) =>
     const { rows } = await db.query(queryText, queryParams);
     res.json(rows);
   } catch (err) {
-    console.error('Error fetching users:', err);
-    res.status(500).send('Erro no servidor ao buscar usuários.');
+    handleRouteError(res, err, 'buscar usuários');
   }
 });
 
@@ -703,8 +654,7 @@ app.put('/api/users/:id', protect, hasPermission('manageUsers'), async (req, res
         res.json(rows[0]);
 
     } catch (err) {
-        console.error('Update user error:', err);
-        res.status(500).send('Erro no servidor ao atualizar o usuário.');
+        handleRouteError(res, err, 'atualizar o usuário');
     }
 });
 
@@ -725,8 +675,7 @@ app.delete('/api/users/:id', protect, hasPermission('manageUsers'), async (req, 
         res.status(200).json({ message: `Usuário "${targetUser.name}" excluído com sucesso.` });
 
     } catch (err) {
-        console.error('Delete user error:', err);
-        res.status(500).send('Erro no servidor ao excluir o usuário.');
+        handleRouteError(res, err, 'excluir o usuário');
     }
 });
 
@@ -739,10 +688,9 @@ app.get('/api/clients', protect, async (req, res) => {
     try {
         const query = 'SELECT * FROM clients ORDER BY name ASC';
         const { rows } = await db.query(query);
-        res.json(rows);
+        res.json(rows.map(formatClientForAPI));
     } catch (err) {
-        console.error('Error fetching clients:', err);
-        res.status(500).send('Erro no servidor ao buscar clientes.');
+        handleRouteError(res, err, 'buscar clientes');
     }
 });
 
@@ -764,10 +712,9 @@ app.post('/api/clients', protect, hasPermission('manageClients'), async (req, re
             'INSERT INTO clients (name, cpf, phone, email) VALUES ($1, $2, $3, $4) RETURNING *',
             [name, cpf, phone, email]
         );
-        res.status(201).json(rows[0]);
+        res.status(201).json(formatClientForAPI(rows[0]));
     } catch (err) {
-        console.error('Create client error:', err);
-        res.status(500).send('Erro no servidor ao criar cliente.');
+        handleRouteError(res, err, 'criar cliente');
     }
 });
 
@@ -795,18 +742,9 @@ app.put('/api/clients/:id', protect, hasPermission('manageClients'), async (req,
         if (rows.length === 0) return res.status(404).json({ message: 'Cliente não encontrado.' });
 
         const updatedClient = rows[0];
-        res.json({
-            id: updatedClient.id,
-            name: updatedClient.name,
-            cpf: updatedClient.cpf,
-            phone: updatedClient.phone,
-            email: updatedClient.email,
-            lastPurchase: updatedClient.last_purchase,
-            // Não precisamos enviar created_at ou updated_at para a interface
-        });
+        res.json(formatClientForAPI(updatedClient));
     } catch (err) {
-        console.error('Update client error:', err);
-        res.status(500).send('Erro no servidor ao atualizar o cliente.');
+        handleRouteError(res, err, 'atualizar o cliente');
     }
 });
 
@@ -837,8 +775,7 @@ app.delete('/api/clients/:id', protect, hasPermission('manageClients'), async (r
 
     } catch (err) {
         await dbClient.query('ROLLBACK');
-        console.error('Hard delete client error:', err);
-        res.status(500).send('Erro no servidor ao excluir o cliente e seu histórico.');
+        handleRouteError(res, err, 'excluir o cliente e seu histórico');
     } finally {
         dbClient.release();
     }
@@ -855,10 +792,135 @@ app.get('/api/clients/search', protect, async (req, res) => {
         if (rows.length === 0) {
             return res.status(404).json({ message: 'Cliente não encontrado.' });
         }
-        res.json(rows[0]);
+        res.json(formatClientForAPI(rows[0]));
     } catch (err) {
-        console.error('Search client error:', err);
-        res.status(500).send('Erro no servidor ao buscar cliente.');
+        handleRouteError(res, err, 'buscar cliente');
+    }
+});
+
+// ==================
+// APPOINTMENT MANAGEMENT ROUTES
+// ==================
+
+// Rota para buscar agendamentos
+app.get('/api/appointments', protect, hasPermission('viewOwnAppointments'), async (req, res) => {
+    const { role, id: userId } = req.user;
+    try {
+        let query = `
+            SELECT
+                a.id, a.client_id, c.name as client_name,
+                a.service_id, s.servico as service_name,
+                a.user_id, u.name as user_name,
+                a.scheduled_for, a.status, a.notes,
+                a.created_at, a.updated_at
+            FROM appointments a
+            JOIN clients c ON a.client_id = c.id
+            JOIN services s ON a.service_id = s.id
+            LEFT JOIN users u ON a.user_id = u.id
+        `;
+        const params = [];
+
+        // Vendedores só podem ver seus próprios agendamentos
+        if (role === 'vendedor') {
+            query += ' WHERE a.user_id = $1';
+            params.push(userId);
+        }
+
+        query += ' ORDER BY a.scheduled_for DESC';
+
+        const { rows } = await db.query(query, params);
+        res.json(rows.map(formatAppointmentForAPI));
+    } catch (err) {
+        handleRouteError(res, err, 'buscar agendamentos');
+    }
+});
+
+// Rota para criar um novo agendamento
+app.post('/api/appointments', protect, hasPermission('manageAppointments'), async (req, res) => {
+    const { clientId, serviceId, userId, scheduledFor, notes } = req.body;
+
+    if (!clientId || !serviceId || !scheduledFor) {
+        return res.status(400).json({ message: 'Cliente, serviço e data do agendamento são obrigatórios.' });
+    }
+
+    try {
+        const query = `
+            INSERT INTO appointments (client_id, service_id, user_id, scheduled_for, notes)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING *;
+        `;
+        const values = [clientId, serviceId, userId, scheduledFor, notes];
+        const { rows } = await db.query(query, values);
+        // Para retornar um objeto formatado, precisamos fazer um join ou uma nova query.
+        // Fazer uma nova query é mais simples aqui.
+        const newAppointmentResult = await db.query(`
+            SELECT
+                a.id, a.client_id, c.name as client_name,
+                a.service_id, s.servico as service_name,
+                a.user_id, u.name as user_name,
+                a.scheduled_for, a.status, a.notes,
+                a.created_at, a.updated_at
+            FROM appointments a
+            JOIN clients c ON a.client_id = c.id
+            JOIN services s ON a.service_id = s.id
+            LEFT JOIN users u ON a.user_id = u.id
+            WHERE a.id = $1
+        `, [rows[0].id]);
+
+        res.status(201).json(formatAppointmentForAPI(newAppointmentResult.rows[0]));
+    } catch (err) {
+        handleRouteError(res, err, 'criar agendamento');
+    }
+});
+
+// Rota para atualizar um agendamento
+app.put('/api/appointments/:id', protect, hasPermission('manageAppointments'), async (req, res) => {
+    const { id } = req.params;
+    const { userId, scheduledFor, status, notes } = req.body;
+
+    try {
+        const query = `
+            UPDATE appointments SET
+                user_id = $1, scheduled_for = $2, status = $3, notes = $4
+            WHERE id = $5
+            RETURNING *;
+        `;
+        const values = [userId, scheduledFor, status, notes, id];
+        const { rows } = await db.query(query, values);
+
+        if (rows.length === 0) return res.status(404).json({ message: 'Agendamento não encontrado.' });
+
+        const updatedAppointmentResult = await db.query(`
+            SELECT
+                a.id, a.client_id, c.name as client_name,
+                a.service_id, s.servico as service_name,
+                a.user_id, u.name as user_name,
+                a.scheduled_for, a.status, a.notes,
+                a.created_at, a.updated_at
+            FROM appointments a
+            JOIN clients c ON a.client_id = c.id
+            JOIN services s ON a.service_id = s.id
+            LEFT JOIN users u ON a.user_id = u.id
+            WHERE a.id = $1
+        `, [rows[0].id]);
+
+        res.json(formatAppointmentForAPI(updatedAppointmentResult.rows[0]));
+    } catch (err) {
+        handleRouteError(res, err, 'atualizar agendamento');
+    }
+});
+
+// Rota para excluir um agendamento
+app.delete('/api/appointments/:id', protect, hasPermission('manageAppointments'), async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await db.query('DELETE FROM appointments WHERE id = $1', [id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Agendamento não encontrado.' });
+        }
+        res.status(200).json({ message: 'Agendamento excluído com sucesso.' });
+    } catch (err) {
+        handleRouteError(res, err, 'excluir agendamento');
     }
 });
 
@@ -916,8 +978,7 @@ app.get('/api/sales', protect, async (req, res) => {
         const { rows } = await db.query(query);
         res.json(rows);
     } catch (err) {
-        console.error('Error fetching sales history:', err);
-        res.status(500).send('Erro no servidor ao buscar histórico de vendas.');
+        handleRouteError(res, err, 'buscar histórico de vendas');
     }
 });
 
@@ -1105,8 +1166,7 @@ app.get('/api/reports/sales-by-user', protect, hasPermission('viewUserSalesRepor
         });
 
     } catch (err) {
-        console.error('Sales by user report error:', err);
-        res.status(500).send('Erro no servidor ao gerar o relatório de vendas por vendedor.');
+        handleRouteError(res, err, 'gerar o relatório de vendas por vendedor');
     }
 });
 
@@ -1158,8 +1218,7 @@ app.get('/api/reports/dre', protect, hasPermission('viewDreReport'), async (req,
         });
 
     } catch (err) {
-        console.error('DRE report error:', err);
-        res.status(500).send('Erro no servidor ao gerar o DRE.');
+        handleRouteError(res, err, 'gerar o DRE');
     }
 });
 
