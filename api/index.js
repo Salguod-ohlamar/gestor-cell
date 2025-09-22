@@ -77,6 +77,7 @@ const formatAppointmentForAPI = (a) => ({
     userName: a.user_name,
     scheduledFor: a.scheduled_for,
     status: a.status,
+    completedAt: a.completed_at,
     notes: a.notes,
     createdAt: a.created_at,
     updatedAt: a.updated_at,
@@ -812,7 +813,7 @@ app.get('/api/appointments', protect, hasPermission('viewOwnAppointments'), asyn
                 a.service_id, s.servico as service_name,
                 a.user_id, u.name as user_name,
                 a.scheduled_for, a.status, a.notes,
-                a.created_at, a.updated_at
+                a.completed_at, a.created_at, a.updated_at
             FROM appointments a
             JOIN clients c ON a.client_id = c.id
             JOIN services s ON a.service_id = s.id
@@ -859,7 +860,7 @@ app.post('/api/appointments', protect, hasPermission('manageAppointments'), asyn
                 a.service_id, s.servico as service_name,
                 a.user_id, u.name as user_name,
                 a.scheduled_for, a.status, a.notes,
-                a.created_at, a.updated_at
+                a.completed_at, a.created_at, a.updated_at
             FROM appointments a
             JOIN clients c ON a.client_id = c.id
             JOIN services s ON a.service_id = s.id
@@ -876,16 +877,25 @@ app.post('/api/appointments', protect, hasPermission('manageAppointments'), asyn
 // Rota para atualizar um agendamento
 app.put('/api/appointments/:id', protect, hasPermission('manageAppointments'), async (req, res) => {
     const { id } = req.params;
-    const { userId, scheduledFor, status, notes } = req.body;
+    const { userId, scheduledFor, status, notes, completedAt } = req.body;
 
     try {
+        // Se o status for 'completed' e não houver data de conclusão, define para agora.
+        // Se o status for alterado para algo diferente de 'completed', limpa a data de conclusão.
+        let finalCompletedAt = completedAt;
+        if (status === 'completed' && !completedAt) {
+            finalCompletedAt = new Date();
+        } else if (status !== 'completed') {
+            finalCompletedAt = null;
+        }
+
         const query = `
             UPDATE appointments SET
-                user_id = $1, scheduled_for = $2, status = $3, notes = $4
-            WHERE id = $5
+                user_id = $1, scheduled_for = $2, status = $3, notes = $4, completed_at = $5
+            WHERE id = $6
             RETURNING *;
         `;
-        const values = [userId, scheduledFor, status, notes, id];
+        const values = [userId, scheduledFor, status, notes, finalCompletedAt, id];
         const { rows } = await db.query(query, values);
 
         if (rows.length === 0) return res.status(404).json({ message: 'Agendamento não encontrado.' });
@@ -896,7 +906,7 @@ app.put('/api/appointments/:id', protect, hasPermission('manageAppointments'), a
                 a.service_id, s.servico as service_name,
                 a.user_id, u.name as user_name,
                 a.scheduled_for, a.status, a.notes,
-                a.created_at, a.updated_at
+                a.completed_at, a.created_at, a.updated_at
             FROM appointments a
             JOIN clients c ON a.client_id = c.id
             JOIN services s ON a.service_id = s.id

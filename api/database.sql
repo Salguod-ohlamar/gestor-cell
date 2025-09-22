@@ -106,6 +106,7 @@ CREATE TABLE appointments (
     user_id INT REFERENCES users(id) ON DELETE SET NULL, -- Técnico responsável
     scheduled_for TIMESTAMPTZ NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'scheduled', -- ex: scheduled, in_progress, completed, canceled
+    completed_at TIMESTAMPTZ, -- Data de conclusão/saída
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()

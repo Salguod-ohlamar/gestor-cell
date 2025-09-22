@@ -1619,6 +1619,30 @@ export const useEstoque = (currentUser) => {
         }
     };
 
+    const handleAddClient = async (clientData, adminName) => {
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/clients`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(clientData)
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Erro ao criar cliente.');
+            }
+            // Adiciona o novo cliente ao estado local e ordena
+            setClientes(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+            logAdminActivity(adminName, 'Criação de Cliente', `Cliente "${data.name}" foi criado.`);
+            console.log('Cliente adicionado com sucesso!');
+            return data; // Retorna o cliente criado para uso imediato
+        } catch (error) {
+            console.error(error.message);
+            // Retorna null para que o componente que chamou possa tratar
+            return null;
+        }
+    };
+
     const handleUpdateCliente = async (clienteId, updatedData, adminName) => {
         try {
             const token = localStorage.getItem('boycell-token');
@@ -1963,6 +1987,7 @@ export const useEstoque = (currentUser) => {
         handlePasswordRecovery,
         // Clientes
         clientes,
+        handleAddClient,
         handleUpdateCliente,
         handleDeleteCliente,
         activityLog,
