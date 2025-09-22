@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, LogOut, PlusCircle, Search, Edit, FileDown, Printer, History, Trash2, ShoppingCart, Settings, Sun, Moon } from 'lucide-react';
+import { ArrowLeft, LogOut, PlusCircle, Search, Edit, FileDown, Printer, History, Trash2, ShoppingCart, Settings, Sun, Moon, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Modal from './Modal.jsx';
@@ -286,6 +286,12 @@ const StockControl = ({ onLogout, currentUser }) => {
               <button onClick={() => navigate('/admin')} className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors mr-4" title="Painel de Administração">
                 <Settings size={20} />
                 <span className="hidden sm:inline">Administração</span>
+              </button>
+            )}
+            {currentUser.permissions?.viewOwnAppointments && (
+              <button onClick={() => navigate('/agendamentos')} className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors mr-4" title="Agendador de Serviços">
+                <Calendar size={20} />
+                <span className="hidden sm:inline">Agendamentos</span>
               </button>
             )}
             <button onClick={onLogout} className="inline-flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors ml-2" title="Sair">
