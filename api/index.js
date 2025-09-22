@@ -794,9 +794,10 @@ app.put('/api/clients/:id', protect, hasPermission('manageClients'), async (req,
 // Rota para excluir um cliente
 app.delete('/api/clients/:id', protect, hasPermission('manageClients'), async (req, res) => {
     const { id } = req.params;
-    const dbClient = await db.getClient();
+    let dbClient;
 
     try {
+        dbClient = await db.getClient();
         await dbClient.query('BEGIN');
 
         // Get client name for the response message
@@ -817,10 +818,10 @@ app.delete('/api/clients/:id', protect, hasPermission('manageClients'), async (r
         res.status(200).json({ message: `Cliente "${clientName}" e todo o seu histórico foram excluídos com sucesso.` });
 
     } catch (err) {
-        await dbClient.query('ROLLBACK');
+        if (dbClient) await dbClient.query('ROLLBACK');
         handleRouteError(res, err, 'excluir o cliente e seu histórico');
     } finally {
-        dbClient.release();
+        if (dbClient) dbClient.release();
     }
 });
 
@@ -1128,10 +1129,11 @@ app.post('/api/sales', protect, async (req, res) => {
         return res.status(400).json({ message: 'O carrinho não pode estar vazio.' });
     }
 
-    const client = await db.connect(); // Get a client from the pool for the transaction
+    let client; // Get a client from the pool for the transaction
 
     try {
-        await client.query('BEGIN'); // Start transaction
+        client = await db.connect();
+        await client.query('BEGIN');
 
         const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
         const randomPart = nanoid(6).toUpperCase();
@@ -1266,11 +1268,11 @@ app.post('/api/sales', protect, async (req, res) => {
         });
 
     } catch (err) {
-        await client.query('ROLLBACK');
+        if (client) await client.query('ROLLBACK');
         console.error('Sale creation error:', err);
         res.status(500).json({ message: err.message || 'Erro no servidor ao finalizar a venda.' });
     } finally {
-        client.release(); // Release the client back to the pool
+        if (client) client.release(); // Release the client back to the pool
     }
 });
 
