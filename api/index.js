@@ -843,7 +843,7 @@ app.get('/api/appointments', protect, hasPermission('viewOwnAppointments'), asyn
 
 // Rota para criar um novo agendamento
 app.post('/api/appointments', protect, hasPermission('manageAppointments'), async (req, res) => {
-    const { clientId, serviceId, userId, scheduledFor, notes } = req.body;
+    const { clientId, serviceId, userId, scheduledFor, notes, status } = req.body;
 
     if (!clientId || !serviceId || !scheduledFor) {
         return res.status(400).json({ message: 'Cliente, serviço e data do agendamento são obrigatórios.' });
@@ -851,8 +851,8 @@ app.post('/api/appointments', protect, hasPermission('manageAppointments'), asyn
 
     try {
         const query = `
-            INSERT INTO appointments (client_id, service_id, user_id, scheduled_for, notes)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO appointments (client_id, service_id, user_id, scheduled_for, notes, status)
+            VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING *;
         `;
 
@@ -866,7 +866,7 @@ app.post('/api/appointments', protect, hasPermission('manageAppointments'), asyn
             return res.status(400).json({ message: 'IDs de cliente, serviço ou técnico inválidos.' });
         }
 
-        const values = [finalClientId, finalServiceId, finalUserId, scheduledFor, notes];
+        const values = [finalClientId, finalServiceId, finalUserId, scheduledFor, notes, status || 'scheduled'];
         const { rows } = await db.query(query, values);
 
         // Para retornar um objeto formatado, precisamos fazer um join ou uma nova query.
