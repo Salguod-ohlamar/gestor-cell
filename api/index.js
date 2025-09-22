@@ -796,10 +796,18 @@ app.delete('/api/clients/:id', protect, hasPermission('manageClients'), async (r
         res.status(200).json({ message: `Cliente "${clientName}" e todo o seu histórico foram excluídos com sucesso.` });
 
     } catch (err) {
-        if (dbClient) await dbClient.query('ROLLBACK'); // Check if client exists before using
+        if (dbClient) {
+            try {
+                await dbClient.query('ROLLBACK');
+            } catch (rbErr) {
+                console.error('Error during transaction rollback on client deletion:', rbErr);
+            }
+        }
         handleRouteError(res, err, 'excluir o cliente e seu histórico');
     } finally {
-        if (dbClient) dbClient.release(); // Check if client exists before using
+        if (dbClient) {
+            try { dbClient.release(); } catch (relErr) { console.error('Error releasing client on client deletion:', relErr); }
+        }
     }
 });
 
@@ -1003,11 +1011,20 @@ app.post('/api/sales', protect, async (req, res) => {
         });
 
     } catch (err) {
-        if (client) await client.query('ROLLBACK'); // Check if client exists before using
+        if (client) {
+            try {
+                await client.query('ROLLBACK');
+            } catch (rbErr) {
+                console.error('Error during transaction rollback on sale creation:', rbErr);
+            }
+        }
         console.error('Sale creation error:', err);
-        res.status(500).json({ message: err.message || 'Erro no servidor ao finalizar a venda.' });
+        // Use o manipulador de erros centralizado para consistência
+        handleRouteError(res, err, 'finalizar a venda');
     } finally {
-        if (client) client.release(); // Check if client exists before using
+        if (client) {
+            try { client.release(); } catch (relErr) { console.error('Error releasing client on sale creation:', relErr); }
+        }
     }
 });
 
