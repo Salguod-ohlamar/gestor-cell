@@ -699,19 +699,24 @@ app.get('/api/clients', protect, async (req, res) => {
 app.post('/api/clients', protect, hasPermission('manageClients'), async (req, res) => {
     const { name, cpf, phone, email } = req.body;
 
-    if (!name || !cpf || !phone) {
-        return res.status(400).json({ message: 'Nome, CPF/CNPJ e Telefone são obrigatórios.' });
+    if (!name || !phone) {
+        return res.status(400).json({ message: 'Nome e Telefone são obrigatórios.' });
     }
 
     try {
-        const { rows: existingClient } = await db.query('SELECT id FROM clients WHERE cpf = $1', [cpf]);
-        if (existingClient.length > 0) {
-            return res.status(409).json({ message: 'Este CPF/CNPJ já está cadastrado.' });
+        // Só verifica a unicidade do CPF se ele for fornecido e não estiver em branco
+        if (cpf && cpf.trim() !== '') {
+            const { rows: existingClient } = await db.query('SELECT id FROM clients WHERE cpf = $1', [cpf]);
+            if (existingClient.length > 0) {
+                return res.status(409).json({ message: 'Este CPF/CNPJ já está cadastrado.' });
+            }
         }
+
+        const finalCpf = (cpf && cpf.trim() !== '') ? cpf.trim() : null;
 
         const { rows } = await db.query(
             'INSERT INTO clients (name, cpf, phone, email) VALUES ($1, $2, $3, $4) RETURNING *',
-            [name, cpf, phone, email]
+            [name, finalCpf, phone, email]
         );
         res.status(201).json(formatClientForAPI(rows[0]));
     } catch (err) {
@@ -934,6 +939,50 @@ app.delete('/api/appointments/:id', protect, hasPermission('manageAppointments')
     }
 });
 
+// Rota para buscar agendamentos concluídos e pendentes de pagamento
+app.get('/api/appointments/payable', protect, async (req, res) => {
+    const { search } = req.query;
+    if (!search || search.trim().length < 3) {
+        return res.json([]);
+    }
+
+    try {
+        const query = `
+            SELECT
+                a.id as appointment_id,
+                a.notes,
+                c.id as client_id,
+                c.name as client_name,
+                c.cpf as client_cpf,
+                c.phone as client_phone,
+                c.email as client_email,
+                s.id as service_id,
+                s.servico,
+                s.preco_final,
+                s.imagem,
+                s.tempo_de_garantia
+            FROM appointments a
+            JOIN clients c ON a.client_id = c.id
+            JOIN services s ON a.service_id = s.id
+            WHERE a.status = 'completed'
+              AND a.sale_id IS NULL
+              AND (c.name ILIKE $1 OR c.phone ILIKE $1 OR c.cpf ILIKE $1)
+            ORDER BY a.completed_at DESC;
+        `;
+        const { rows } = await db.query(query, [`%${search}%`]);
+        
+        const results = rows.map(row => ({
+            id: row.service_id, appointmentId: row.appointment_id, nome: row.servico, servico: row.servico,
+            precoFinal: parseFloat(row.preco_final), imagem: row.imagem, tempoDeGarantia: row.tempo_de_garantia,
+            type: 'servico',
+            client: { id: row.client_id, name: row.client_name, cpf: row.client_cpf, phone: row.client_phone, email: row.client_email }
+        }));
+        res.json(results);
+    } catch (err) {
+        handleRouteError(res, err, 'buscar agendamentos concluídos');
+    }
+});
+
 // ==================
 // SALES ROUTES
 // ==================
@@ -981,8 +1030,10 @@ app.get('/api/sales', protect, async (req, res) => {
                 s.sale_date AS "date",
                 ai.items
             FROM sales s
+            LEFT JOIN users u ON s.user_id = u.id
             LEFT JOIN clients c ON s.client_id = c.id
             JOIN aggregated_items ai ON s.id = ai.sale_id
+            WHERE u.role != 'root'
             ORDER BY s.sale_date DESC;
         `;
         const { rows } = await db.query(query);
@@ -1086,6 +1137,14 @@ app.post('/api/sales', protect, async (req, res) => {
                     detalhes: `Venda de ${item.quantity} unidade(s). Venda Cód: ${receiptCode}.`
                 };
                 await client.query(updateStockQuery, [item.quantity, JSON.stringify(historyEntry), item.id]);
+            }
+
+            // Se o item veio de um agendamento, atualiza o agendamento com o ID da venda
+            if (item.appointmentId) {
+                await client.query(
+                    'UPDATE appointments SET sale_id = $1 WHERE id = $2',
+                    [saleId, item.appointmentId]
+                );
             }
         }
 

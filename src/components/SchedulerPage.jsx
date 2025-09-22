@@ -31,7 +31,7 @@ const SchedulerPage = ({ currentUser }) => {
         status: 'scheduled',
     });
 
-    const technicians = useMemo(() => users.filter(u => u.role === 'vendedor' || u.role === 'admin' || u.role === 'root'), [users]);
+    const technicians = useMemo(() => users.filter(u => u.role === 'vendedor' || u.role === 'admin'), [users]);
     const selectedService = useMemo(() => servicos.find(s => s.id === parseInt(newAppointment.serviceId)), [servicos, newAppointment.serviceId]);
 
     const handleOpenModal = (appointment = null) => {
@@ -108,8 +108,8 @@ const SchedulerPage = ({ currentUser }) => {
 
         // Se não temos um ID de cliente, significa que é um novo cliente
         if (!finalClientId) {
-            if (!clientForm.name || !clientForm.cpf || !clientForm.phone) {
-                alert('Nome, CPF e Telefone são obrigatórios para o novo cliente.');
+            if (!clientForm.name || !clientForm.phone) {
+                alert('Nome e Telefone são obrigatórios para o novo cliente.');
                 return;
             }
             const createdClient = await handleAddClient(clientForm, currentUser.name);
@@ -208,8 +208,8 @@ const SchedulerPage = ({ currentUser }) => {
                             <legend className="px-2 font-semibold">Dados do Cliente</legend>
                             <div className="space-y-4">
                                 <div>
-                                    <label htmlFor="clientCpf" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CPF/CNPJ</label>
-                                    <input type="text" id="clientCpf" name="cpf" value={clientForm.cpf} onChange={handleClientInputChange} onBlur={handleCpfBlur} disabled={!!editingAppointment} required className="mt-1 block w-full p-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg" />
+                                    <label htmlFor="clientCpf" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CPF/CNPJ (Opcional)</label>
+                                    <input type="text" id="clientCpf" name="cpf" value={clientForm.cpf} onChange={handleClientInputChange} onBlur={handleCpfBlur} disabled={!!editingAppointment} className="mt-1 block w-full p-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg" />
                                 </div>
                                 <div>
                                     <label htmlFor="clientName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome</label>
