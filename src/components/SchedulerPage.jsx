@@ -40,6 +40,14 @@ const SchedulerPage = ({ currentUser }) => {
             const client = clientes.find(c => c.id === appointment.clientId);
             if (client) {
                 setClientForm({ id: client.id, name: client.name, cpf: client.cpf, phone: client.phone, email: client.email });
+            } else {
+                // Lógica para cliente temporário (que ainda não tem ID na tabela de clientes)
+                // Popula o formulário com os dados temporários que vêm do próprio objeto de agendamento.
+                setClientForm({
+                    id: null,
+                    name: appointment.clientName, // O nome já vem tratado pela API (COALESCE)
+                    cpf: appointment.tempClientCpf || '', phone: appointment.tempClientPhone || '', email: appointment.tempClientEmail || '',
+                });
             }
             setNewAppointment({
                 clientId: appointment.clientId,
@@ -222,19 +230,19 @@ const SchedulerPage = ({ currentUser }) => {
                             <div className="space-y-4">
                                 <div>
                                     <label htmlFor="clientCpf" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CPF/CNPJ (Opcional)</label>
-                                    <input type="text" id="clientCpf" name="cpf" value={clientForm.cpf} onChange={handleClientInputChange} onBlur={handleCpfBlur} disabled={!!editingAppointment} className="mt-1 block w-full p-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg" />
+                                    <input type="text" id="clientCpf" name="cpf" value={clientForm.cpf} onChange={handleClientInputChange} onBlur={handleCpfBlur} disabled={!!editingAppointment} className="mt-1 block w-full p-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg disabled:opacity-70" />
                                 </div>
                                 <div>
                                     <label htmlFor="clientName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome</label>
-                                    <input type="text" id="clientName" name="name" value={clientForm.name} onChange={handleClientInputChange} disabled={!!editingAppointment && !!clientForm.id} required className="mt-1 block w-full p-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg" />
+                                    <input type="text" id="clientName" name="name" value={clientForm.name} onChange={handleClientInputChange} disabled={!!editingAppointment} required className="mt-1 block w-full p-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg disabled:opacity-70" />
                                 </div>
                                 <div>
                                     <label htmlFor="clientPhone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Telefone</label>
-                                    <input type="text" id="clientPhone" name="phone" value={clientForm.phone} onChange={handleClientInputChange} disabled={!!editingAppointment && !!clientForm.id} required className="mt-1 block w-full p-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg" />
+                                    <input type="text" id="clientPhone" name="phone" value={clientForm.phone} onChange={handleClientInputChange} disabled={!!editingAppointment} required className="mt-1 block w-full p-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg disabled:opacity-70" />
                                 </div>
                                 <div>
                                     <label htmlFor="clientEmail" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email (Opcional)</label>
-                                    <input type="email" id="clientEmail" name="email" value={clientForm.email} onChange={handleClientInputChange} disabled={!!editingAppointment && !!clientForm.id} className="mt-1 block w-full p-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg" />
+                                    <input type="email" id="clientEmail" name="email" value={clientForm.email} onChange={handleClientInputChange} disabled={!!editingAppointment} className="mt-1 block w-full p-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg disabled:opacity-70" />
                                 </div>
                             </div>
                         </fieldset>

@@ -5,6 +5,8 @@ const cors = require('cors');
 const db = require('./db.js');
 const bcrypt = require('bcryptjs'); 
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { nanoid } = require('nanoid');
 require('dotenv').config();
 const { protect, hasPermission } = require('./authMiddleware.js');
 const { getDefaultPermissions, PERMISSION_GROUPS } = require('./permissions.js');
@@ -72,6 +74,10 @@ const formatAppointmentForAPI = (a) => ({
     clientId: a.client_id,
     // O campo client_name já vem tratado do banco com COALESCE
     clientName: a.client_name,
+    tempClientName: a.temp_client_name,
+    tempClientPhone: a.temp_client_phone,
+    tempClientCpf: a.temp_client_cpf,
+    tempClientEmail: a.temp_client_email,
     serviceId: a.service_id,
     serviceName: a.service_name,
     userId: a.user_id,
@@ -571,7 +577,7 @@ app.post('/api/users/:id/reset-password', protect, hasPermission('resetUserPassw
         if (targetUser.role === 'admin' && requestingUser.role !== 'root') return res.status(403).json({ message: 'Apenas o usuário root pode resetar a senha de um administrador.' });
 
         // Gera nova senha aleatória e a criptografa
-        const newPassword = Math.random().toString(36).slice(-8);
+        const newPassword = crypto.randomBytes(6).toString('hex'); // Gera senha de 12 caracteres
         const salt = await bcrypt.genSalt(10);
         const password_hash = await bcrypt.hash(newPassword, salt);
 
@@ -817,6 +823,7 @@ app.get('/api/appointments', protect, hasPermission('viewOwnAppointments'), asyn
             SELECT
                 a.id, a.client_id,
                 -- Usa o nome do cliente da tabela `clients` se existir, senão usa o nome temporário
+                a.temp_client_name, a.temp_client_phone, a.temp_client_cpf, a.temp_client_email,
                 COALESCE(c.name, a.temp_client_name) as client_name,
                 a.service_id, s.servico as service_name,
                 a.user_id, u.name as user_name,
@@ -882,6 +889,7 @@ app.post('/api/appointments', protect, hasPermission('manageAppointments'), asyn
         const newAppointmentResult = await db.query(`
             SELECT
                 a.id, a.client_id, 
+                a.temp_client_name, a.temp_client_phone, a.temp_client_cpf, a.temp_client_email,
                 COALESCE(c.name, a.temp_client_name) as client_name,
                 a.service_id, s.servico as service_name,
                 a.user_id, u.name as user_name,
@@ -931,16 +939,22 @@ app.put('/api/appointments/:id', protect, hasPermission('manageAppointments'), a
         const { rows } = await db.query(query, values);
 
         if (rows.length === 0) return res.status(404).json({ message: 'Agendamento não encontrado.' });
-
+        
+        // CORREÇÃO: A query abaixo usava INNER JOIN e não tratava clientes temporários.
+        // Foi alterada para LEFT JOIN e COALESCE para funcionar corretamente em todos os casos.
         const updatedAppointmentResult = await db.query(`
             SELECT
-                a.id, a.client_id, c.name as client_name,
+                a.id, a.client_id,
+                -- Usa o nome do cliente da tabela `clients` se existir, senão usa o nome temporário
+                a.temp_client_name, a.temp_client_phone, a.temp_client_cpf, a.temp_client_email,
+                COALESCE(c.name, a.temp_client_name) as client_name,
                 a.service_id, s.servico as service_name,
                 a.user_id, u.name as user_name,
                 a.scheduled_for, a.status, a.notes,
                 a.completed_at, a.created_at, a.updated_at
             FROM appointments a
-            JOIN clients c ON a.client_id = c.id
+            -- LEFT JOIN é crucial aqui, pois client_id pode ser nulo para clientes temporários
+            LEFT JOIN clients c ON a.client_id = c.id 
             JOIN services s ON a.service_id = s.id
             LEFT JOIN users u ON a.user_id = u.id
             WHERE a.id = $1
@@ -1089,7 +1103,9 @@ app.post('/api/sales', protect, async (req, res) => {
     try {
         await client.query('BEGIN'); // Start transaction
 
-        const receiptCode = `BC-${new Date().getFullYear()}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${new Date().getDate().toString().padStart(2, '0')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+        const randomPart = nanoid(6).toUpperCase();
+        const receiptCode = `BC-${datePart}-${randomPart}`;
         const saleQuery = `
             INSERT INTO sales (receipt_code, client_id, user_id, vendedor_name, subtotal, discount_percentage, discount_value, total, payment_method)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
