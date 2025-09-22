@@ -794,10 +794,10 @@ app.put('/api/clients/:id', protect, hasPermission('manageClients'), async (req,
 // Rota para excluir um cliente
 app.delete('/api/clients/:id', protect, hasPermission('manageClients'), async (req, res) => {
     const { id } = req.params;
-    let dbClient;
+    let dbClient; // Declarado fora para ser acessível no finally
 
     try {
-        dbClient = await db.getClient();
+        dbClient = await db.getClient(); // Conexão dentro do try
         await dbClient.query('BEGIN');
 
         // Get client name for the response message
@@ -818,10 +818,10 @@ app.delete('/api/clients/:id', protect, hasPermission('manageClients'), async (r
         res.status(200).json({ message: `Cliente "${clientName}" e todo o seu histórico foram excluídos com sucesso.` });
 
     } catch (err) {
-        if (dbClient) await dbClient.query('ROLLBACK');
+        if (dbClient) await dbClient.query('ROLLBACK'); // Verifica se o client existe antes de usar
         handleRouteError(res, err, 'excluir o cliente e seu histórico');
     } finally {
-        if (dbClient) dbClient.release();
+        if (dbClient) dbClient.release(); // Verifica se o client existe antes de usar
     }
 });
 
@@ -1129,10 +1129,10 @@ app.post('/api/sales', protect, async (req, res) => {
         return res.status(400).json({ message: 'O carrinho não pode estar vazio.' });
     }
 
-    let client; // Get a client from the pool for the transaction
+    let client; // Declarado fora para ser acessível no finally
 
     try {
-        client = await db.connect();
+        client = await db.connect(); // Conexão dentro do try
         await client.query('BEGIN');
 
         const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
@@ -1268,11 +1268,11 @@ app.post('/api/sales', protect, async (req, res) => {
         });
 
     } catch (err) {
-        if (client) await client.query('ROLLBACK');
+        if (client) await client.query('ROLLBACK'); // Verifica se o client existe antes de usar
         console.error('Sale creation error:', err);
         res.status(500).json({ message: err.message || 'Erro no servidor ao finalizar a venda.' });
     } finally {
-        if (client) client.release(); // Release the client back to the pool
+        if (client) client.release(); // Verifica se o client existe antes de usar
     }
 });
 
