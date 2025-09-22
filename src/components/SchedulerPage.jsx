@@ -120,27 +120,38 @@ const SchedulerPage = ({ currentUser }) => {
             finalClientId = createdClient.id;
         }
 
-        // Construção explícita do objeto de dados para garantir os tipos corretos
-        const data = {
-            clientId: parseInt(finalClientId, 10),
-            serviceId: parseInt(newAppointment.serviceId, 10),
-            userId: newAppointment.userId ? parseInt(newAppointment.userId, 10) : null,
-            scheduledFor: new Date(newAppointment.scheduledFor).toISOString(),
-            notes: newAppointment.notes,
-            status: newAppointment.status,
-        };
-
-        let success;
         if (editingAppointment) {
-            success = await handleUpdateAppointment(editingAppointment.id, { ...data, completedAt: data.completedAt || null }, currentUser.name);
+            // Lógica para ATUALIZAR um agendamento
+            const updateData = {
+                userId: newAppointment.userId ? parseInt(newAppointment.userId, 10) : null,
+                scheduledFor: new Date(newAppointment.scheduledFor).toISOString(),
+                status: newAppointment.status,
+                notes: newAppointment.notes,
+                completedAt: newAppointment.completedAt ? new Date(newAppointment.completedAt).toISOString() : null,
+            };
+            const success = await handleUpdateAppointment(editingAppointment.id, updateData, currentUser.name);
+            if (success) {
+                handleCloseModal();
+            } else {
+                alert('Falha ao salvar agendamento.');
+            }
         } else {
-            success = await handleAddAppointment(data, currentUser.name);
-        }
+            // Lógica para CRIAR um novo agendamento
+            const createData = {
+                clientId: parseInt(finalClientId, 10),
+                serviceId: parseInt(newAppointment.serviceId, 10),
+                userId: newAppointment.userId ? parseInt(newAppointment.userId, 10) : null,
+                scheduledFor: new Date(newAppointment.scheduledFor).toISOString(),
+                notes: newAppointment.notes,
+                status: newAppointment.status,
+            };
 
-        if (success) {
-            handleCloseModal();
-        } else {
-            alert('Falha ao salvar agendamento.');
+            const success = await handleAddAppointment(createData, currentUser.name);
+            if (success) {
+                handleCloseModal();
+            } else {
+                alert('Falha ao salvar agendamento.');
+            }
         }
     };
 

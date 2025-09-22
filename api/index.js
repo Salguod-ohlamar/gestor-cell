@@ -859,10 +859,10 @@ app.post('/api/appointments', protect, hasPermission('manageAppointments'), asyn
         // Garante que os IDs sejam números inteiros antes de enviar para o banco.
         const finalClientId = parseInt(clientId, 10);
         const finalServiceId = parseInt(serviceId, 10);
-        const finalUserId = userId ? parseInt(userId, 10) : null;
+        const finalUserId = (userId === '' || userId === null || userId === undefined) ? null : parseInt(userId, 10);
 
         // Validação extra para garantir que a conversão funcionou
-        if (isNaN(finalClientId) || isNaN(finalServiceId) || (userId && isNaN(finalUserId))) {
+        if (isNaN(finalClientId) || isNaN(finalServiceId) || (finalUserId !== null && isNaN(finalUserId))) {
             return res.status(400).json({ message: 'IDs de cliente, serviço ou técnico inválidos.' });
         }
 
@@ -907,8 +907,8 @@ app.put('/api/appointments/:id', protect, hasPermission('manageAppointments'), a
         }
 
         // Garante que o ID do técnico seja um número ou nulo
-        const finalUserId = userId ? parseInt(userId, 10) : null;
-        if (userId && isNaN(finalUserId)) {
+        const finalUserId = (userId === '' || userId === null || userId === undefined) ? null : parseInt(userId, 10);
+        if (finalUserId !== null && isNaN(finalUserId)) {
             return res.status(400).json({ message: 'ID de técnico inválido.' });
         }
 
