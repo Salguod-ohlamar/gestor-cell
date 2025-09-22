@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
 import Papa from 'papaparse';
-import toast from 'react-hot-toast';
 import imageCompression from 'browser-image-compression';
 
 import { parsePrice } from './formatters.js';
@@ -34,6 +33,7 @@ export const PERMISSION_GROUPS = {
             editProduct: { label: 'Editar Produto', roles: ['root', 'admin'] },
             deleteProduct: { label: 'Excluir Produto', roles: ['root', 'admin'] },
             exportCsv: { label: 'Exportar CSV de Produtos', roles: ['root', 'admin'] },
+            viewProductHistory: { label: 'Visualizar Histórico do Produto', roles: ['root', 'admin'] },
         }
     },
     services: {
@@ -42,6 +42,13 @@ export const PERMISSION_GROUPS = {
             addService: { label: 'Adicionar Serviço', roles: ['root', 'admin'] },
             editService: { label: 'Editar Serviço', roles: ['root', 'admin'] },
             deleteService: { label: 'Excluir Serviço', roles: ['root', 'admin'] },
+            viewServiceHistory: { label: 'Visualizar Histórico do Serviço', roles: ['root', 'admin'] },
+        }
+    },
+    siteContent: {
+        title: 'Conteúdo do Site',
+        permissions: {
+            manageBanners: { label: 'Gerenciar Banners', roles: ['root', 'admin'] },
         }
     },
     admin: {
@@ -49,6 +56,8 @@ export const PERMISSION_GROUPS = {
         permissions: {
             viewDashboardCharts: { label: 'Ver Análise Gráfica', roles: ['root'] },
             viewSalesHistory: { label: 'Ver Histórico de Vendas', roles: ['root', 'admin'] },
+            viewUserSalesReport: { label: 'Ver Relatório por Vendedor', roles: ['root', 'admin'] },
+            viewDreReport: { label: 'Ver DRE Simplificado', roles: ['root', 'admin'] },
             viewActivityLog: { label: 'Ver Log de Atividades', roles: ['root'] },
             manageClients: { label: 'Gerenciar Clientes', roles: ['root', 'admin'] },
         }
@@ -59,6 +68,7 @@ export const PERMISSION_GROUPS = {
             manageUsers: { label: 'Gerenciar Usuários', roles: ['root'] },
             resetUserPassword: { label: 'Resetar Senha', roles: ['root'] },
             manageBackup: { label: 'Gerenciar Backup/Restore', roles: ['root'] },
+            manageTheme: { label: 'Alterar Tema do Site', roles: ['root'] },
         }
     }
 };
@@ -67,7 +77,11 @@ export const getDefaultPermissions = (role) => {
     const permissions = {};
     Object.values(PERMISSION_GROUPS).forEach(group => {
         for (const key in group.permissions) {
-            permissions[key] = group.permissions[key].roles.includes(role);
+            if (role === 'root') {
+                permissions[key] = true;
+            } else {
+                permissions[key] = group.permissions[key].roles.includes(role);
+            }
         }
     });
     return permissions;
@@ -90,17 +104,35 @@ export const useEstoque = (currentUser) => {
 
     const API_URL = import.meta.env.VITE_API_URL || '';
 
-    // Efeito para buscar os produtos da API quando o componente montar
+    // Efeito para buscar os produtos (com cache)
     useEffect(() => {
-        const fetchProducts = async () => {
+        const loadProducts = async () => {
+            setLoadingEstoque(true);
+            const cachedData = localStorage.getItem('boycell-cache-products');
+            if (cachedData) {
+                try {
+                    const parsedData = JSON.parse(cachedData).map(p => ({
+                        ...p,
+                        preco: parseFloat(p.preco) || 0,
+                        precoFinal: parseFloat(p.precoFinal) || 0,
+                        emEstoque: parseInt(p.emEstoque, 10) || 0,
+                        qtdaMinima: parseInt(p.qtdaMinima, 10) || 0,
+                    }));
+                    setEstoque(parsedData);
+                } catch (e) { console.error("Erro ao carregar produtos do cache", e); }
+            }
+
+            if (!navigator.onLine) {
+                if (cachedData) console.log('App offline. Exibindo produtos do cache.');
+                setLoadingEstoque(false);
+                return;
+            }
+
             try {
-                setLoadingEstoque(true);
                 const response = await fetch(`${API_URL}/api/products`);
-                if (!response.ok) {
-                    throw new Error('Falha ao buscar produtos do servidor');
-                }
+                if (!response.ok) throw new Error('Falha ao buscar produtos do servidor');
                 const data = await response.json();
-                // Garante que os campos numéricos sejam do tipo correto
+                localStorage.setItem('boycell-cache-products', JSON.stringify(data));
                 const parsedData = data.map(p => ({
                     ...p,
                     preco: parseFloat(p.preco) || 0,
@@ -111,13 +143,13 @@ export const useEstoque = (currentUser) => {
                 setEstoque(parsedData);
             } catch (error) {
                 console.error("Erro ao buscar produtos da API:", error);
-                toast.error('Não foi possível carregar os produtos. Verifique o backend.');
+                if (!cachedData) console.error('Não foi possível carregar os produtos.');
             } finally {
                 setLoadingEstoque(false);
             }
         };
 
-        fetchProducts();
+        loadProducts();
     }, []); // O array vazio [] garante que isso rode apenas uma vez
 
     // State for stock value history
@@ -150,13 +182,32 @@ export const useEstoque = (currentUser) => {
     const [loadingServicos, setLoadingServicos] = useState(true);
 
     useEffect(() => {
-        const fetchServicos = async () => {
+        // A mesma lógica de cache aplicada aos produtos deve ser aplicada aqui para os serviços.
+        const loadServicos = async () => {
+            setLoadingServicos(true);
+            const cachedData = localStorage.getItem('boycell-cache-services');
+            if (cachedData) {
+                try {
+                    const parsedData = JSON.parse(cachedData).map(s => ({
+                        ...s,
+                        preco: parseFloat(s.preco) || 0,
+                        precoFinal: parseFloat(s.precoFinal) || 0,
+                    }));
+                    setServicos(parsedData);
+                } catch (e) { console.error("Erro ao carregar serviços do cache", e); }
+            }
+
+            if (!navigator.onLine) {
+                if (cachedData) console.log('App offline. Exibindo serviços do cache.');
+                setLoadingServicos(false);
+                return;
+            }
+
             try {
-                setLoadingServicos(true);
                 const response = await fetch(`${API_URL}/api/services`);
                 if (!response.ok) throw new Error('Falha ao buscar serviços do servidor');
                 const data = await response.json();
-                // Garante que os campos numéricos sejam do tipo correto
+                localStorage.setItem('boycell-cache-services', JSON.stringify(data));
                 const parsedData = data.map(s => ({
                     ...s,
                     preco: parseFloat(s.preco) || 0,
@@ -165,12 +216,12 @@ export const useEstoque = (currentUser) => {
                 setServicos(parsedData);
             } catch (error) {
                 console.error("Erro ao buscar serviços da API:", error);
-                toast.error('Não foi possível carregar os serviços.');
+                if (!cachedData) console.error('Não foi possível carregar os serviços.');
             } finally {
                 setLoadingServicos(false);
             }
         };
-        fetchServicos();
+        loadServicos();
     }, []);
 
     const [isAddServicoModalOpen, setIsAddServicoModalOpen] = useState(false);
@@ -181,6 +232,16 @@ export const useEstoque = (currentUser) => {
     const [servicoSearchTerm, setServicoSearchTerm] = useState('');
     const [servicoSortConfig, setServicoSortConfig] = useState({ key: 'servico', direction: 'ascending' });
     const [servicoCurrentPage, setServicoCurrentPage] = useState(1);
+
+    // ===================================================================
+    // OFFLINE QUEUE STATE
+    // ===================================================================
+    const [offlineQueue, setOfflineQueue] = useState(() => JSON.parse(localStorage.getItem('boycell-offline-queue') || '[]'));
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    useEffect(() => {
+        localStorage.setItem('boycell-offline-queue', JSON.stringify(offlineQueue));
+    }, [offlineQueue]);
 
     // ===================================================================
     // SALES HISTORY STATE
@@ -203,7 +264,7 @@ export const useEstoque = (currentUser) => {
                 setSalesHistory(data);
             } catch (error) {
                 console.error("Erro ao buscar histórico de vendas da API:", error);
-                toast.error('Não foi possível carregar o histórico de vendas.');
+                console.error('Não foi possível carregar o histórico de vendas.');
                 setSalesHistory([]); // Limpa em caso de erro
             }
         };
@@ -250,12 +311,14 @@ export const useEstoque = (currentUser) => {
                 if (!response.ok) {
                     const errorText = await response.text();
                     throw new Error(errorText || 'Falha ao buscar clientes.');
+                    const errorData = await response.json().catch(() => ({ message: `Falha ao buscar clientes. Status: ${response.status}` }));
+                    throw new Error(errorData.message || 'Falha ao buscar clientes.');
                 }
                 const data = await response.json();
                 setClientes(data);
             } catch (error) {
                 console.error("Erro ao buscar clientes da API:", error);
-                toast.error('Não foi possível carregar os clientes.');
+                console.log('Info: Não foi possível carregar os clientes. Isso pode ocorrer se não houver clientes cadastrados ou por um erro de conexão.');
                 setClientes([]); // Limpa em caso de erro
             }
         };
@@ -283,7 +346,7 @@ export const useEstoque = (currentUser) => {
                 setUsers(data);
             } catch (error) {
                 console.error("Erro ao buscar usuários da API:", error);
-                toast.error('Não foi possível carregar os usuários.');
+                console.error('Não foi possível carregar os usuários.');
             }
         };
 
@@ -297,6 +360,30 @@ export const useEstoque = (currentUser) => {
 
     }, [currentUser]);
 
+    // ===================================================================
+    // BANNERS STATE
+    // ===================================================================
+    const [banners, setBanners] = useState([]);
+
+    useEffect(() => {
+        const fetchBanners = async () => {
+            if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'root')) {
+                try {
+                    const token = localStorage.getItem('boycell-token');
+                    const response = await fetch(`${API_URL}/api/banners/all`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (!response.ok) throw new Error('Falha ao buscar banners.');
+                    const data = await response.json();
+                    setBanners(data);
+                } catch (error) {
+                    console.error("Erro ao buscar banners para o admin:", error);
+                    console.error('Não foi possível carregar os banners.');
+                }
+            }
+        };
+        fetchBanners();
+    }, [currentUser]);
 
     // ===================================================================
     // EFFECTS
@@ -330,6 +417,234 @@ export const useEstoque = (currentUser) => {
             console.error("Erro ao salvar o log de atividades:", error);
         }
     }, [activityLog]);
+
+    // Efeito para processar a fila de ações offline
+    useEffect(() => {
+        const processQueue = async () => {
+            if (navigator.onLine && !isSyncing && offlineQueue.length > 0) {
+                setIsSyncing(true);
+                console.log(`Conexão reestabelecida. Sincronizando ${offlineQueue.length} ações...`);
+
+                const actionsToProcess = [...offlineQueue];
+                let remainingActions = [...offlineQueue];
+
+                for (const action of actionsToProcess) {
+                    let success = false;
+                    try {
+                        if (action.type === 'CREATE_SALE') {
+                            const token = localStorage.getItem('boycell-token');
+                            const response = await fetch(`${API_URL}/api/sales`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify(action.payload)
+                            });
+                            
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                let errorMsg;
+                                try {
+                                    const errorData = JSON.parse(errorText);
+                                    errorMsg = errorData.message || errorText;
+                                } catch (e) {
+                                    errorMsg = errorText;
+                                }
+                                throw new Error(errorMsg || 'Erro no servidor ao sincronizar venda.');
+                            }
+                            const finalSaleData = await response.json();
+                            // Sucesso: atualiza o estado local com os dados finais do servidor
+                            setSalesHistory(prev => prev.map(s => s.id === action.meta.tempId ? finalSaleData : s));
+
+                            // CORREÇÃO: Adiciona a lógica para atualizar/criar o cliente no estado local.
+                            // Isso garante que um novo cliente, criado em uma venda offline, apareça
+                            // na lista de clientes após a sincronização.
+                            setClientes(currentClientes => {
+                                const clientExists = currentClientes.some(c => c.id === finalSaleData.clienteId);
+                                const clientData = { 
+                                    id: finalSaleData.clienteId, 
+                                    name: finalSaleData.customer, 
+                                    cpf: finalSaleData.customerCpf, 
+                                    phone: finalSaleData.customerPhone, 
+                                    email: finalSaleData.customerEmail, 
+                                    lastPurchase: finalSaleData.date 
+                                };
+
+                                if (clientExists) {
+                                    return currentClientes.map(c => c.id === finalSaleData.clienteId ? { ...c, ...clientData } : c);
+                                } else if (finalSaleData.clienteId) {
+                                    return [...currentClientes, clientData];
+                                }
+                                return currentClientes;
+                            });
+                            success = true;
+                        }
+                        else if (action.type === 'CREATE_PRODUCT') {
+                            const token = localStorage.getItem('boycell-token');
+                            const response = await fetch(`${API_URL}/api/products`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify(action.payload)
+                            });
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                let errorMsg;
+                                try {
+                                    const errorData = JSON.parse(errorText);
+                                    errorMsg = errorData.message || errorText;
+                                } catch (e) {
+                                    errorMsg = errorText;
+                                }
+                                throw new Error(errorMsg || 'Erro no servidor ao sincronizar produto.');
+                            }
+                            const finalProductData = await response.json();
+                            // Sucesso: atualiza o estado local com os dados finais do servidor
+                            setEstoque(prev => prev.map(p => p.id === action.meta.tempId ? finalProductData : p));
+                            logAdminActivity(action.meta.adminName, 'Criação de Produto', `Produto "${finalProductData.nome}" foi sincronizado.`);
+                            success = true;
+                        }
+                        else if (action.type === 'UPDATE_PRODUCT') {
+                            const token = localStorage.getItem('boycell-token');
+                            const response = await fetch(`${API_URL}/api/products/${action.meta.productId}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify(action.payload)
+                            });
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                let errorMsg;
+                                try {
+                                    const errorData = JSON.parse(errorText);
+                                    errorMsg = errorData.message || errorText;
+                                } catch (e) {
+                                    errorMsg = errorText;
+                                }
+                                throw new Error(errorMsg || 'Erro no servidor ao atualizar produto.');
+                            }
+                            const finalProductData = await response.json();
+                            // The UI is already updated, this just confirms the sync.
+                            logAdminActivity(action.meta.adminName, 'Atualização de Produto', `Produto "${finalProductData.nome}" foi sincronizado.`);
+                            success = true;
+                        }
+                        else if (action.type === 'DELETE_PRODUCT') {
+                            const token = localStorage.getItem('boycell-token');
+                            const response = await fetch(`${API_URL}/api/products/${action.meta.productId}`, {
+                                method: 'DELETE',
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                let errorMsg;
+                                try {
+                                    const errorData = JSON.parse(errorText);
+                                    errorMsg = errorData.message || errorText;
+                                } catch (e) {
+                                    errorMsg = errorText;
+                                }
+                                throw new Error(errorMsg || 'Erro no servidor ao excluir produto.');
+                            }
+                            logAdminActivity(action.meta.adminName, 'Exclusão de Produto', `Exclusão do produto com ID ${action.meta.productId} foi sincronizada.`);
+                            success = true;
+                        }
+                        else if (action.type === 'CREATE_SERVICE') {
+                            const token = localStorage.getItem('boycell-token');
+                            const response = await fetch(`${API_URL}/api/services`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify(action.payload)
+                            });
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                let errorMsg;
+                                try {
+                                    const errorData = JSON.parse(errorText);
+                                    errorMsg = errorData.message || errorText;
+                                } catch (e) {
+                                    errorMsg = errorText;
+                                }
+                                throw new Error(errorMsg || 'Erro no servidor ao criar serviço.');
+                            }
+                            const finalServiceData = await response.json();
+                            setServicos(prev => prev.map(s => s.id === action.meta.tempId ? finalServiceData : s));
+                            logAdminActivity(action.meta.adminName, 'Criação de Serviço', `Serviço "${finalServiceData.servico}" foi sincronizado.`);
+                            success = true;
+                        }
+                        else if (action.type === 'UPDATE_SERVICE') {
+                            const token = localStorage.getItem('boycell-token');
+                            const response = await fetch(`${API_URL}/api/services/${action.meta.serviceId}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify(action.payload)
+                            });
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                let errorMsg;
+                                try {
+                                    const errorData = JSON.parse(errorText);
+                                    errorMsg = errorData.message || errorText;
+                                } catch (e) {
+                                    errorMsg = errorText;
+                                }
+                                throw new Error(errorMsg || 'Erro no servidor ao atualizar serviço.');
+                            }
+                            const finalServiceData = await response.json();
+                            logAdminActivity(action.meta.adminName, 'Atualização de Serviço', `Serviço "${finalServiceData.servico}" foi sincronizado.`);
+                            success = true;
+                        }
+                        else if (action.type === 'DELETE_SERVICE') {
+                            const token = localStorage.getItem('boycell-token');
+                            const response = await fetch(`${API_URL}/api/services/${action.meta.serviceId}`, {
+                                method: 'DELETE',
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                let errorMsg;
+                                try {
+                                    const errorData = JSON.parse(errorText);
+                                    errorMsg = errorData.message || errorText;
+                                } catch (e) {
+                                    errorMsg = errorText;
+                                }
+                                throw new Error(errorMsg || 'Erro no servidor ao excluir serviço.');
+                            }
+                            logAdminActivity(action.meta.adminName, 'Exclusão de Serviço', `Exclusão do serviço com ID ${action.meta.serviceId} foi sincronizada.`);
+                            success = true;
+                        }
+
+                        if (success) {
+                            const actionId = action.type === 'CREATE_PRODUCT' || action.type === 'CREATE_SALE' || action.type === 'CREATE_SERVICE'
+                                ? action.meta.tempId
+                                : action.meta.productId || action.meta.serviceId;
+                            console.log(`Ação "${action.type}" (ID: ${actionId}) sincronizada.`);
+                            // Remove a ação bem-sucedida da lista de ações restantes
+                            // Usar referência de objeto é a forma mais segura de remover a ação correta
+                            remainingActions = remainingActions.filter(a => a !== action);
+                        }
+                    } catch (error) {
+                        const actionId = action.type === 'CREATE_PRODUCT' || action.type === 'CREATE_SALE' || action.type === 'CREATE_SERVICE'
+                            ? action.meta.tempId
+                            : action.meta.productId || action.meta.serviceId;
+                        console.error(`Falha ao sincronizar ação "${action.type}" (ID: ${actionId}): ${error.message}`);
+                        // A ação que falhou permanece em `remainingActions`
+                    }
+                }
+
+                setOfflineQueue(remainingActions);
+                setIsSyncing(false);
+
+                const processedCount = actionsToProcess.length - remainingActions.length;
+                if (processedCount > 0) {
+                    console.log(`${processedCount} ações sincronizadas com sucesso.`);
+                }
+                if (remainingActions.length > 0) {
+                    console.error(`${remainingActions.length} ações não puderam ser sincronizadas e permanecem na fila.`);
+                }
+            }
+        };
+
+        window.addEventListener('online', processQueue);
+        processQueue(); // Tenta processar ao carregar o app
+        return () => window.removeEventListener('online', processQueue);
+    }, [offlineQueue, isSyncing, API_URL]);
 
     // Helper function to log admin actions
     const logAdminActivity = (adminName, action, details) => {
@@ -380,7 +695,7 @@ export const useEstoque = (currentUser) => {
                     reader.readAsDataURL(compressedFile);
                 } catch (error) {
                     console.error('Erro ao comprimir imagem:', error);
-                    toast.error('Falha ao processar a imagem. Tente uma imagem menor ou de outro formato.');
+                    console.error('Falha ao processar a imagem. Tente uma imagem menor ou de outro formato.');
                 }
             };
             compressAndSetImage();
@@ -438,7 +753,7 @@ export const useEstoque = (currentUser) => {
                     reader.readAsDataURL(compressedFile);
                 } catch (error) {
                     console.error('Erro ao comprimir imagem:', error);
-                    toast.error('Falha ao processar a imagem. Tente uma imagem menor ou de outro formato.');
+                    console.error('Falha ao processar a imagem. Tente uma imagem menor ou de outro formato.');
                 }
             };
             compressAndSetImage();
@@ -485,138 +800,219 @@ export const useEstoque = (currentUser) => {
     // ===================================================================
     // CRUD handlers
     const handleAddProduct = async (e, adminName) => {
-        e.preventDefault();
-        if (!newProduct.nome || !newProduct.categoria || !newProduct.marca || !newProduct.fornecedor || !newProduct.emEstoque || !newProduct.qtdaMinima || !newProduct.preco || !newProduct.precoFinal) {
-            toast.error('Por favor, preencha todos os campos obrigatórios.');
-            return;
-        }
-    
-        const emEstoqueNum = parseInt(newProduct.emEstoque, 10);
-        const qtdaMinimaNum = parseInt(newProduct.qtdaMinima, 10);
-        if (emEstoqueNum < qtdaMinimaNum) {
-            toast.error('O estoque não pode ser menor que a quantidade mínima.');
-            return;
-        }
-    
-        try {
-            const token = localStorage.getItem('boycell-token');
-            const response = await fetch(`${API_URL}/api/products`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    ...newProduct,
-                    emEstoque: emEstoqueNum,
-                    qtdaMinima: qtdaMinimaNum,
-                    preco: parseFloat(newProduct.preco),
-                    precoFinal: parseFloat(newProduct.precoFinal),
-                    tempoDeGarantia: parseInt(newProduct.tempoDeGarantia, 10) || 0,
-                })
-            });
-    
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Erro ao adicionar produto.');
-    
-            setEstoque(prevEstoque => [...prevEstoque, data]);
-            logAdminActivity(adminName, 'Criação de Produto', `Produto "${data.nome}" foi criado.`);
-
-            toast.success('Produto adicionado com sucesso!');
-            handleCloseAddModal();
-        } catch (error) {
-            toast.error(error.message);
-        }
+      e.preventDefault();
+      if (!newProduct.nome || !newProduct.categoria || !newProduct.marca || !newProduct.fornecedor || !newProduct.emEstoque || !newProduct.qtdaMinima || !newProduct.preco || !newProduct.precoFinal) {
+          console.error('Por favor, preencha todos os campos obrigatórios.');
+          return;
+      }
+      const emEstoqueNum = parseInt(newProduct.emEstoque, 10);
+      const qtdaMinimaNum = parseInt(newProduct.qtdaMinima, 10);
+      if (emEstoqueNum < qtdaMinimaNum) {
+          console.error('O estoque não pode ser menor que a quantidade mínima.');
+          return;
+      }
+  
+      const tempId = `offline_product_${Date.now()}`;
+      const productPayload = {
+          ...newProduct,
+          emEstoque: emEstoqueNum,
+          qtdaMinima: qtdaMinimaNum,
+          preco: parseFloat(newProduct.preco),
+          precoFinal: parseFloat(newProduct.precoFinal),
+          tempoDeGarantia: parseInt(newProduct.tempoDeGarantia, 10) || 0,
+      };
+  
+      // --- Atualização Otimista ---
+      const optimisticProductData = { ...productPayload, id: tempId, historico: [] };
+      setEstoque(prev => [optimisticProductData, ...prev]);
+      logAdminActivity(adminName, 'Criação de Produto (Otimista)', `Produto "${optimisticProductData.nome}" foi criado localmente.`);
+      handleCloseAddModal();
+  
+      // --- Tentar sincronizar, enfileirar em caso de falha ---
+      try {
+          const token = localStorage.getItem('boycell-token');
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 7000);
+  
+          const response = await fetch(`${API_URL}/api/products`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify(productPayload),
+              signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+  
+          const finalProductData = await response.json();
+          if (!response.ok) throw new Error(finalProductData.message || 'Erro ao adicionar produto.');
+  
+          // Sucesso: substitui os dados otimistas pelos dados finais do servidor
+          setEstoque(prevEstoque => prevEstoque.map(p => p.id === tempId ? finalProductData : p));
+          logAdminActivity(adminName, 'Criação de Produto', `Produto "${finalProductData.nome}" foi criado e sincronizado.`);
+          console.log('Produto adicionado e sincronizado com sucesso!');
+      } catch (error) {
+          if (error.name === 'AbortError') {
+              console.warn(`A sincronização de 'Criação de Produto' demorou muito (timeout). Ação foi enfileirada.`);
+          } else {
+              console.warn(`Falha ao sincronizar 'Criação de Produto': ${error.message}. Ação foi enfileirada.`);
+          }
+          // A atualização otimista já aconteceu. Agora, enfileiramos a ação.
+          setOfflineQueue(prev => [...prev, {
+              type: 'CREATE_PRODUCT',
+              payload: productPayload,
+              meta: { tempId, adminName }
+          }]);
+      }
     };
 
     const handleUpdateProduct = async (e, adminName) => {
-        e.preventDefault();
-        if (!editingProduct) return;
-    
-        const oldItem = estoque.find(item => item.id === editingProduct.id);
-        if (!oldItem) return;
-    
-        const emEstoqueNum = parseInt(editingProduct.emEstoque, 10);
-        const qtdaMinimaNum = parseInt(editingProduct.qtdaMinima, 10);
-        if (emEstoqueNum < qtdaMinimaNum) {
-            toast.error('O estoque não pode ser menor que a quantidade mínima.');
-            return;
-        }
-    
-        const newHistorico = [...(oldItem.historico || [])];
-        const changes = [];
-        const fieldsToCompare = {
-            nome: 'Nome', marca: 'Marca', categoria: 'Categoria', destaque: 'Destaque na Home',
-            fornecedor: 'Fornecedor', emEstoque: 'Estoque', qtdaMinima: 'Qtda. Mínima',
-            preco: 'Preço', tempoDeGarantia: 'Garantia (dias)', precoFinal: 'Preço Final',
-        };
-    
-        for (const key in fieldsToCompare) {
-            const oldValue = oldItem[key];
-            const newValue = editingProduct[key];
-            if (String(oldValue ?? '') !== String(newValue ?? '')) {
-                const displayOld = key === 'destaque' ? (!!oldValue ? 'Sim' : 'Não') : (oldValue ?? 'N/A');
-                const displayNew = key === 'destaque' ? (!!newValue ? 'Sim' : 'Não') : (newValue ?? 'N/A');
-                changes.push(`${fieldsToCompare[key]} alterado de "${displayOld}" para "${displayNew}"`);
-            }
-        }
-    
-        if (changes.length > 0) {
-            newHistorico.push({ data: new Date(), acao: 'Produto Atualizado', detalhes: changes.join('; ') });
-            logAdminActivity(adminName, 'Atualização de Produto', `Produto "${oldItem.nome}" atualizado: ${changes.join('; ')}.`);
-        }
-    
-        const productToUpdate = {
-            ...editingProduct,
-            emEstoque: emEstoqueNum,
-            qtdaMinima: qtdaMinimaNum,
-            preco: parseFloat(editingProduct.preco),
-            precoFinal: parseFloat(editingProduct.precoFinal),
-            tempoDeGarantia: parseInt(editingProduct.tempoDeGarantia, 10) || 0,
-            historico: newHistorico,
-        };
-    
-        try {
-            const token = localStorage.getItem('boycell-token');
-            const response = await fetch(`${API_URL}/api/products/${editingProduct.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(productToUpdate)
-            });
-    
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Erro ao atualizar produto.');
-    
-            setEstoque(currentEstoque => currentEstoque.map(item => (item.id === editingProduct.id ? data : item)));
-            toast.success('Produto atualizado com sucesso!');
-            handleCloseEditModal();
-        } catch (error) {
-            toast.error(error.message);
-        }
+      e.preventDefault();
+      if (!editingProduct) return;
+      const oldItem = estoque.find(item => item.id === editingProduct.id);
+      if (!oldItem) return;
+  
+      const emEstoqueNum = parseInt(editingProduct.emEstoque, 10);
+      const qtdaMinimaNum = parseInt(editingProduct.qtdaMinima, 10);
+      if (emEstoqueNum < qtdaMinimaNum) {
+          console.error('O estoque não pode ser menor que a quantidade mínima.');
+          return;
+      }
+  
+      const newHistorico = [...(oldItem.historico || [])];
+      const changes = [];
+      const fieldsToCompare = {
+          nome: 'Nome', marca: 'Marca', categoria: 'Categoria', destaque: 'Destaque na Home',
+          fornecedor: 'Fornecedor', emEstoque: 'Estoque', qtdaMinima: 'Qtda. Mínima',
+          preco: 'Preço', tempoDeGarantia: 'Garantia (dias)', precoFinal: 'Preço Final',
+      };
+  
+      for (const key in fieldsToCompare) {
+          const oldValue = oldItem[key];
+          const newValue = editingProduct[key];
+          if (String(oldValue ?? '') !== String(newValue ?? '')) {
+              const displayOld = key === 'destaque' ? (!!oldValue ? 'Sim' : 'Não') : (oldValue ?? 'N/A');
+              const displayNew = key === 'destaque' ? (!!newValue ? 'Sim' : 'Não') : (newValue ?? 'N/A');
+              changes.push(`${fieldsToCompare[key]} alterado de "${displayOld}" para "${displayNew}"`);
+          }
+      }
+  
+      if (changes.length > 0) {
+          newHistorico.push({ data: new Date(), acao: 'Produto Atualizado', detalhes: changes.join('; ') });
+          logAdminActivity(adminName, 'Atualização de Produto (Otimista)', `Produto "${oldItem.nome}" atualizado: ${changes.join('; ')}.`);
+      }
+  
+      const productPayload = {
+          ...editingProduct,
+          emEstoque: emEstoqueNum,
+          qtdaMinima: qtdaMinimaNum,
+          preco: parseFloat(editingProduct.preco),
+          precoFinal: parseFloat(editingProduct.precoFinal),
+          tempoDeGarantia: parseInt(editingProduct.tempoDeGarantia, 10) || 0,
+          historico: newHistorico,
+      };
+  
+      // --- Atualização Otimista ---
+      setEstoque(currentEstoque => currentEstoque.map(item => (item.id === editingProduct.id ? productPayload : item)));
+      handleCloseEditModal();
+  
+      // --- Lógica Offline ---
+      if (String(editingProduct.id).startsWith('offline_')) {
+          console.log("Editando um produto criado offline. A atualização será mesclada na ação de criação.");
+          setOfflineQueue(prevQueue => {
+              const newQueue = [...prevQueue];
+              const createActionIndex = newQueue.findIndex(action => action.type === 'CREATE_PRODUCT' && action.meta.tempId === editingProduct.id);
+              if (createActionIndex > -1) {
+                  newQueue[createActionIndex].payload = productPayload;
+              } else {
+                  console.error(`Não foi possível encontrar a ação de criação original para o produto com ID temporário ${editingProduct.id}. A edição pode não ser salva.`);
+              }
+              return newQueue;
+          });
+          return;
+      }
+  
+      // --- Tentar sincronizar, enfileirar em caso de falha ---
+      try {
+          const token = localStorage.getItem('boycell-token');
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 7000);
+  
+          const response = await fetch(`${API_URL}/api/products/${editingProduct.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify(productPayload),
+              signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+  
+          const finalProductData = await response.json();
+          if (!response.ok) throw new Error(finalProductData.message || 'Erro ao atualizar produto.');
+  
+          setEstoque(currentEstoque => currentEstoque.map(item => (item.id === editingProduct.id ? finalProductData : item)));
+          logAdminActivity(adminName, 'Atualização de Produto', `Produto "${finalProductData.nome}" foi atualizado e sincronizado.`);
+          console.log('Produto atualizado e sincronizado com sucesso!');
+      } catch (error) {
+          if (error.name === 'AbortError') {
+              console.warn(`A sincronização de 'Atualização de Produto' demorou muito (timeout). Ação foi enfileirada.`);
+          } else {
+              console.warn(`Falha ao sincronizar 'Atualização de Produto': ${error.message}. Ação foi enfileirada.`);
+          }
+          setOfflineQueue(prev => [...prev, {
+              type: 'UPDATE_PRODUCT',
+              payload: productPayload,
+              meta: { productId: editingProduct.id, adminName }
+          }]);
+      }
     };
 
     const handleExcluirProduto = async (idProduto, adminName) => {
-        const productToDelete = estoque.find(item => item.id === idProduto);
-        if (!productToDelete) return;
-
-        if (window.confirm('Tem certeza que deseja excluir este produto?')) {
-            try {
-                const token = localStorage.getItem('boycell-token');
-                const response = await fetch(`${API_URL}/api/products/${idProduto}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-    
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.message || 'Erro ao excluir produto.');
-    
-                setEstoque(currentEstoque => currentEstoque.filter(item => item.id !== idProduto));
-                logAdminActivity(adminName, 'Exclusão de Produto', `Produto "${productToDelete.nome}" (ID: ${idProduto}) foi excluído.`);
-                toast.success(data.message);
-            } catch (error) {
-                toast.error(error.message);
-            }
-        }
+      const productToDelete = estoque.find(item => item.id === idProduto);
+      if (!productToDelete) return;
+  
+      if (!window.confirm('Tem certeza que deseja excluir este produto?')) {
+          return;
+      }
+  
+      // --- Atualização Otimista ---
+      setEstoque(currentEstoque => currentEstoque.filter(item => item.id !== idProduto));
+      logAdminActivity(adminName, 'Exclusão de Produto (Otimista)', `Produto "${productToDelete.nome}" (ID: ${idProduto}) foi removido localmente.`);
+  
+      // --- Lógica Offline ---
+      if (String(idProduto).startsWith('offline_')) {
+          console.log("Excluindo um produto criado offline. Removendo da fila de sincronização.");
+          setOfflineQueue(prevQueue => prevQueue.filter(action => 
+              !(action.type === 'CREATE_PRODUCT' && action.meta.tempId === idProduto)
+          ));
+          return;
+      }
+  
+      // --- Tentar sincronizar, enfileirar em caso de falha ---
+      try {
+          const token = localStorage.getItem('boycell-token');
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 7000);
+  
+          const response = await fetch(`${API_URL}/api/products/${idProduto}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${token}` },
+              signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+  
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || 'Erro ao excluir produto.');
+  
+          console.log(`Exclusão do produto "${productToDelete.nome}" sincronizada com sucesso.`);
+      } catch (error) {
+          if (error.name === 'AbortError') {
+              console.warn(`A sincronização de 'Exclusão de Produto' demorou muito (timeout). Ação foi enfileirada.`);
+          } else {
+              console.warn(`Falha ao sincronizar 'Exclusão de Produto': ${error.message}. Ação foi enfileirada.`);
+          }
+          setOfflineQueue(prev => [...prev, {
+              type: 'DELETE_PRODUCT',
+              meta: { productId: idProduto, adminName }
+          }]);
+      }
     };
 
     // ===================================================================
@@ -712,7 +1108,7 @@ export const useEstoque = (currentUser) => {
                     reader.readAsDataURL(compressedFile);
                 } catch (error) {
                     console.error('Erro ao comprimir imagem:', error);
-                    toast.error('Falha ao processar a imagem. Tente uma imagem menor ou de outro formato.');
+                    console.error('Falha ao processar a imagem. Tente uma imagem menor ou de outro formato.');
                 }
             };
             compressAndSetImage();
@@ -749,45 +1145,65 @@ export const useEstoque = (currentUser) => {
     const handleAddServico = async (e, adminName) => {
         e.preventDefault();
         if (!newServico.servico || !newServico.fornecedor || !newServico.marca || !newServico.tipoReparo || !newServico.tecnico || !newServico.preco || !newServico.precoFinal) {
-            toast.error('Por favor, preencha todos os campos.');
+            console.error('Por favor, preencha todos os campos.');
             return;
         }
     
+        const tempId = `offline_service_${Date.now()}`;
+        const servicePayload = {
+            ...newServico,
+            preco: parseFloat(newServico.preco),
+            precoFinal: parseFloat(newServico.precoFinal),
+            tempoDeGarantia: parseInt(newServico.tempoDeGarantia, 10) || 0,
+        };
+
+        // --- Atualização Otimista ---
+        const optimisticServiceData = { ...servicePayload, id: tempId, historico: [] };
+        setServicos(prev => [optimisticServiceData, ...prev]);
+        logAdminActivity(adminName, 'Criação de Serviço (Otimista)', `Serviço "${optimisticServiceData.servico}" foi criado localmente.`);
+        handleCloseAddServicoModal();
+
+        // --- Enfileirar se offline ---
+        if (!navigator.onLine) {
+            console.log('App offline. Criação de serviço na fila para sincronização.');
+            setOfflineQueue(prev => [...prev, {
+                type: 'CREATE_SERVICE',
+                payload: servicePayload,
+                meta: { tempId, adminName }
+            }]);
+            return;
+        }
+    
+        // --- Tentar sincronizar se online ---
         try {
             const token = localStorage.getItem('boycell-token');
             const response = await fetch(`${API_URL}/api/services`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    ...newServico,
-                    preco: parseFloat(newServico.preco),
-                    precoFinal: parseFloat(newServico.precoFinal),
-                    tempoDeGarantia: parseInt(newServico.tempoDeGarantia, 10) || 0,
-                })
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(servicePayload)
             });
     
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Erro ao adicionar serviço.');
+            const finalServiceData = await response.json();
+            if (!response.ok) throw new Error(finalServiceData.message || 'Erro ao adicionar serviço.');
     
-            setServicos(prev => [...prev, data]);
-            logAdminActivity(adminName, 'Criação de Serviço', `Serviço "${data.servico}" foi criado.`);
-            toast.success('Serviço adicionado com sucesso!');
-            handleCloseAddServicoModal();
+            setServicos(prev => prev.map(s => s.id === tempId ? finalServiceData : s));
+            logAdminActivity(adminName, 'Criação de Serviço', `Serviço "${finalServiceData.servico}" foi criado e sincronizado.`);
+            console.log('Serviço adicionado e sincronizado com sucesso!');
         } catch (error) {
-            toast.error(error.message);
+            console.error(`Falha ao sincronizar criação de serviço: ${error.message}. A ação será enfileirada.`);
+            setOfflineQueue(prev => [...prev, {
+                type: 'CREATE_SERVICE',
+                payload: servicePayload,
+                meta: { tempId, adminName }
+            }]);
         }
     };
 
     const handleUpdateServico = async (e, adminName) => {
         e.preventDefault();
         if (!editingServico) return;
-    
         const oldServico = servicos.find(s => s.id === editingServico.id);
         if (!oldServico) return;
-    
         const newHistorico = [...(oldServico.historico || [])];
         const changes = [];
         const fieldsToCompare = {
@@ -795,7 +1211,6 @@ export const useEstoque = (currentUser) => {
             tipoReparo: 'Tipo de Reparo', tecnico: 'Técnico', tempoDeGarantia: 'Garantia (dias)',
             preco: 'Preço', precoFinal: 'Preço Final', destaque: 'Destaque',
         };
-    
         for (const key in fieldsToCompare) {
             const oldValue = oldServico[key];
             const newValue = editingServico[key];
@@ -805,36 +1220,71 @@ export const useEstoque = (currentUser) => {
                 changes.push(`${fieldsToCompare[key]} alterado de "${displayOld}" para "${displayNew}"`);
             }
         }
-    
         if (changes.length > 0) {
             newHistorico.push({ data: new Date(), acao: 'Serviço Atualizado', detalhes: changes.join('; ') });
-            logAdminActivity(adminName, 'Atualização de Serviço', `Serviço "${oldServico.servico}" atualizado: ${changes.join('; ')}.`);
+            logAdminActivity(adminName, 'Atualização de Serviço (Otimista)', `Serviço "${oldServico.servico}" atualizado: ${changes.join('; ')}.`);
         }
     
-        const serviceToUpdate = {
+        const servicePayload = {
             ...editingServico,
             tempoDeGarantia: parseInt(editingServico.tempoDeGarantia, 10) || 0,
             preco: parseFloat(editingServico.preco),
             precoFinal: parseFloat(editingServico.precoFinal),
             historico: newHistorico,
         };
+
+        // --- Atualização Otimista ---
+        setServicos(currentServicos => currentServicos.map(s => (s.id === editingServico.id ? servicePayload : s)));
+        handleCloseEditServicoModal();
+
+        // --- Lógica Offline ---
+        if (String(editingServico.id).startsWith('offline_')) {
+            console.log("Editando um serviço criado offline. A atualização será mesclada.");
+            setOfflineQueue(prevQueue => {
+                const newQueue = [...prevQueue];
+                const createActionIndex = newQueue.findIndex(action => action.type === 'CREATE_SERVICE' && action.meta.tempId === editingServico.id);
+                if (createActionIndex > -1) {
+                    newQueue[createActionIndex].payload = servicePayload;
+                } else {
+                    console.error(`Não foi possível encontrar a ação de criação original para o serviço com ID temporário ${editingServico.id}.`);
+                }
+                return newQueue;
+            });
+            return;
+        }
+
+        if (!navigator.onLine) {
+            console.log('App offline. Edição de serviço na fila para sincronização.');
+            setOfflineQueue(prev => [...prev, {
+                type: 'UPDATE_SERVICE',
+                payload: servicePayload,
+                meta: { serviceId: editingServico.id, adminName }
+            }]);
+            return;
+        }
     
+        // --- Tentar sincronizar se online ---
         try {
             const token = localStorage.getItem('boycell-token');
             const response = await fetch(`${API_URL}/api/services/${editingServico.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(serviceToUpdate)
+                body: JSON.stringify(servicePayload)
             });
     
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Erro ao atualizar serviço.');
+            const finalServiceData = await response.json();
+            if (!response.ok) throw new Error(finalServiceData.message || 'Erro ao atualizar serviço.');
     
-            setServicos(currentServicos => currentServicos.map(s => (s.id === editingServico.id ? data : s)));
-            toast.success('Serviço atualizado com sucesso!');
-            handleCloseEditServicoModal();
+            setServicos(currentServicos => currentServicos.map(s => (s.id === editingServico.id ? finalServiceData : s)));
+            logAdminActivity(adminName, 'Atualização de Serviço', `Serviço "${finalServiceData.servico}" foi atualizado e sincronizado.`);
+            console.log('Serviço atualizado e sincronizado com sucesso!');
         } catch (error) {
-            toast.error(error.message);
+            console.error(`Falha ao sincronizar atualização de serviço: ${error.message}. A ação será enfileirada.`);
+            setOfflineQueue(prev => [...prev, {
+                type: 'UPDATE_SERVICE',
+                payload: servicePayload,
+                meta: { serviceId: editingServico.id, adminName }
+            }]);
         }
     };
 
@@ -842,23 +1292,50 @@ export const useEstoque = (currentUser) => {
         const serviceToDelete = servicos.find(s => s.id === id);
         if (!serviceToDelete) return;
 
-        if (window.confirm('Tem certeza que deseja excluir este serviço?')) {
-            try {
-                const token = localStorage.getItem('boycell-token');
-                const response = await fetch(`${API_URL}/api/services/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+        if (!window.confirm('Tem certeza que deseja excluir este serviço?')) {
+            return;
+        }
+
+        // --- Atualização Otimista ---
+        setServicos(currentServicos => currentServicos.filter(s => s.id !== id));
+        logAdminActivity(adminName, 'Exclusão de Serviço (Otimista)', `Serviço "${serviceToDelete.servico}" (ID: ${id}) foi removido localmente.`);
+
+        // --- Lógica Offline ---
+        if (String(id).startsWith('offline_')) {
+            console.log("Excluindo um serviço criado offline. Removendo da fila de sincronização.");
+            setOfflineQueue(prevQueue => prevQueue.filter(action => 
+                !(action.type === 'CREATE_SERVICE' && action.meta.tempId === id)
+            ));
+            return;
+        }
+
+        if (!navigator.onLine) {
+            console.log('App offline. Exclusão de serviço na fila para sincronização.');
+            setOfflineQueue(prev => [...prev, {
+                type: 'DELETE_SERVICE',
+                meta: { serviceId: id, adminName }
+            }]);
+            return;
+        }
     
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.message || 'Erro ao excluir serviço.');
+        // --- Tentar sincronizar se online ---
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/services/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
     
-                setServicos(currentServicos => currentServicos.filter(s => s.id !== id));
-                logAdminActivity(adminName, 'Exclusão de Serviço', `Serviço "${serviceToDelete.servico}" (ID: ${id}) foi excluído.`);
-                toast.success(data.message);
-            } catch (error) {
-                toast.error(error.message);
-            }
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao excluir serviço.');
+    
+            console.log(`Exclusão do serviço "${serviceToDelete.servico}" sincronizada com sucesso.`);
+        } catch (error) {
+            console.error(`Falha ao sincronizar exclusão de serviço: ${error.message}. A ação será enfileirada.`);
+            setOfflineQueue(prev => [...prev, {
+                type: 'DELETE_SERVICE',
+                meta: { serviceId: id, adminName }
+            }]);
         }
     };
 
@@ -1019,55 +1496,86 @@ export const useEstoque = (currentUser) => {
     , [estoque]);
 
     const handleSale = async (saleDetails) => {
-        try {
-            const token = localStorage.getItem('boycell-token');
-            const response = await fetch(`${API_URL}/api/sales`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(saleDetails)
-            });
-    
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Erro ao finalizar a venda.');
-    
-            // Update frontend state after successful sale
-            // 1. Update sales history
-            setSalesHistory(prevHistory => [data, ...prevHistory]);
-    
-            // 2. Update stock
-            setEstoque(currentEstoque => {
-                const newEstoque = [...currentEstoque];
-                data.items.forEach(cartItem => {
-                    if (cartItem.type === 'produto') {
-                        const productIndex = newEstoque.findIndex(p => p.id === cartItem.id);
-                        if (productIndex !== -1) {
-                            const product = newEstoque[productIndex];
-                            const newStock = (Number(product.emEstoque) || 0) - cartItem.quantity;
-                            newEstoque[productIndex] = { ...product, emEstoque: newStock };
-                        }
-                    }
-                });
-                return newEstoque;
-            });
-    
-            // 3. Update clients list
-            setClientes(currentClientes => {
-                const existingClient = currentClientes.find(c => c.id === data.clienteId);
-                const clientData = { id: data.clienteId, name: data.customer, cpf: data.customerCpf, phone: data.customerPhone, email: data.customerEmail, lastPurchase: data.date };
-                if (existingClient) {
-                    return currentClientes.map(c => c.id === data.clienteId ? { ...c, ...clientData } : c);
-                } else {
-                    return [...currentClientes, clientData];
+        console.log("PDV: 1. Iniciando handleSale");
+        const tempId = `offline_${Date.now()}`;
+        const receiptCode = generateReceiptCode();
+
+        // --- Atualização Otimista (acontece sempre) ---
+        const optimisticSaleData = { id: tempId, receiptCode, date: new Date().toISOString(), ...saleDetails };
+        console.log("PDV: 2. Dados otimistas criados:", optimisticSaleData);
+
+        setSalesHistory(prev => [optimisticSaleData, ...prev]);
+        setEstoque(currentEstoque => {
+            const newEstoque = [...currentEstoque];
+            saleDetails.items.forEach(cartItem => {
+                if (cartItem.type === 'produto') {
+                    const idx = newEstoque.findIndex(p => p.id === cartItem.id);
+                    if (idx > -1) newEstoque[idx].emEstoque -= cartItem.quantity;
                 }
             });
-    
-            return data; // Return the complete sale object from the backend
+            return newEstoque;
+        });
+
+        // Verifica se a venda contém itens que foram criados offline e ainda não foram sincronizados.
+        const hasOfflineItems = saleDetails.items.some(item => String(item.id).startsWith('offline_'));
+
+        if (hasOfflineItems) {
+            // Se houver itens offline, não tenta sincronizar agora. Apenas enfileira.
+            console.warn("PDV: 3b. Venda contém itens offline. Enfileirando para sincronização posterior.");
+            setOfflineQueue(prev => [...prev, { type: 'CREATE_SALE', payload: saleDetails, meta: { tempId } }]);
+            return optimisticSaleData; // Retorna os dados otimistas para a UI.
+        }
+
+        // --- Tenta Sincronizar, Enfileira em Caso de Falha (apenas para vendas com itens já sincronizados) ---
+        try {
+            console.log("PDV: 3a. Tentando sincronizar com o servidor...");
+            const token = localStorage.getItem('boycell-token');
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 7000);
+
+            const response = await fetch(`${API_URL}/api/sales`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(saleDetails),
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                let errorMsg;
+                try {
+                    const errorData = JSON.parse(errorText);
+                    errorMsg = errorData.message || errorText;
+                } catch (e) {
+                    errorMsg = errorText;
+                }
+                throw new Error(errorMsg || 'Erro do servidor ao finalizar a venda.');
+            }
+
+            const finalSaleData = await response.json();
+            console.log("PDV: 4a. Sincronização ONLINE bem-sucedida. Retornando dados do servidor.", finalSaleData);
+            setSalesHistory(prev => prev.map(s => s.id === tempId ? finalSaleData : s));
+            setClientes(currentClientes => {
+                const clientExists = currentClientes.some(c => c.id === finalSaleData.clienteId);
+                const clientData = { id: finalSaleData.clienteId, name: finalSaleData.customer, cpf: finalSaleData.customerCpf, phone: finalSaleData.customerPhone, email: finalSaleData.customerEmail, lastPurchase: finalSaleData.date };
+                if (clientExists) {
+                    return currentClientes.map(c => c.id === finalSaleData.clienteId ? { ...c, ...clientData } : c);
+                } else if (finalSaleData.clienteId) {
+                    return [...currentClientes, clientData];
+                }
+                return currentClientes;
+            });
+            return finalSaleData;
+
         } catch (error) {
-            toast.error(error.message);
-            return null;
+            if (error.name === 'AbortError') {
+                console.warn(`PDV: 4b. A sincronização demorou muito (timeout). Ação foi enfileirada.`);
+            } else {
+                console.warn(`PDV: 4b. Falha na sincronização (OFFLINE ou erro de rede). ${error.message}. Ação foi enfileirada.`);
+            }
+            setOfflineQueue(prev => [...prev, { type: 'CREATE_SALE', payload: saleDetails, meta: { tempId } }]);
+            return optimisticSaleData;
         }
     };
 
@@ -1075,7 +1583,7 @@ export const useEstoque = (currentUser) => {
         try {
             const token = localStorage.getItem('boycell-token');
             if (!token) {
-                toast.error('Não autorizado. Faça login novamente.');
+                console.error('Não autorizado. Faça login novamente.');
                 return false;
             }
 
@@ -1096,10 +1604,10 @@ export const useEstoque = (currentUser) => {
 
             setUsers(prevUsers => [...prevUsers, data]);
             logAdminActivity(adminName, 'Criação de Usuário', `Vendedor "${data.name}" (${data.email}) foi criado.`);
-            toast.success('Vendedor adicionado com sucesso!');
+            console.log('Vendedor adicionado com sucesso!');
             return true;
         } catch (error) {
-            toast.error(error.message);
+            console.error(error.message);
             return false;
         }
     };
@@ -1110,11 +1618,11 @@ export const useEstoque = (currentUser) => {
 
         // Frontend validation for quick feedback
         if (userToDelete.role === 'root') {
-            toast.error('O usuário root não pode ser excluído.');
+            console.error('O usuário root não pode ser excluído.');
             return;
         }
         if (userToDelete.role === 'admin' && currentUser.role !== 'root') {
-            toast.error('Apenas o usuário root pode excluir um administrador.');
+            console.error('Apenas o usuário root pode excluir um administrador.');
             return;
         }
 
@@ -1131,9 +1639,9 @@ export const useEstoque = (currentUser) => {
 
                 setUsers(currentUsers => currentUsers.filter(user => user.id !== userId));
                 logAdminActivity(adminName, 'Exclusão de Usuário', `Usuário "${userToDelete.name}" (${userToDelete.email}) foi excluído.`);
-                toast.success(data.message);
+                console.log(data.message);
             } catch (error) {
-                toast.error(error.message);
+                console.error(error.message);
             }
         }
     };
@@ -1171,11 +1679,35 @@ export const useEstoque = (currentUser) => {
                 logAdminActivity(adminName, 'Atualização de Usuário', `Dados do usuário "${oldUser.name}" atualizados: ${changes.join('; ')}.`);
             }
 
-            toast.success("Usuário atualizado com sucesso!");
+            console.log("Usuário atualizado com sucesso!");
             return true;
         } catch (error) {
-            toast.error(error.message);
+            console.error(error.message);
             return false;
+        }
+    };
+
+    const handleAddClient = async (clientData, adminName) => {
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/clients`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(clientData)
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Erro ao criar cliente.');
+            }
+            // Adiciona o novo cliente ao estado local e ordena
+            setClientes(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+            logAdminActivity(adminName, 'Criação de Cliente', `Cliente "${data.name}" foi criado.`);
+            console.log('Cliente adicionado com sucesso!');
+            return data; // Retorna o cliente criado para uso imediato
+        } catch (error) {
+            console.error(error.message);
+            // Retorna null para que o componente que chamou possa tratar
+            return null;
         }
     };
 
@@ -1199,10 +1731,10 @@ export const useEstoque = (currentUser) => {
             );
 
             logAdminActivity(adminName, 'Atualização de Cliente', `Dados do cliente "${data.name}" foram atualizados.`);
-            toast.success("Cliente atualizado com sucesso!");
+            console.log("Cliente atualizado com sucesso!");
             return true;
         } catch (error) {
-            toast.error(error.message);
+            console.error(error.message);
             return false;
         }
     };
@@ -1230,9 +1762,9 @@ export const useEstoque = (currentUser) => {
                     );
                 }
                 logAdminActivity(adminName, 'Exclusão de Cliente', `Cliente "${clienteToDelete.name}" (CPF: ${clienteToDelete.cpf}) foi excluído.`);
-                toast.success(data.message);
+                console.log(data.message);
             } catch (error) {
-                toast.error(error.message);
+                console.error(error.message);
             }
         }
     };
@@ -1263,10 +1795,10 @@ export const useEstoque = (currentUser) => {
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
-            toast.success('Backup realizado com sucesso!');
+            console.log('Backup realizado com sucesso!');
         } catch (error) {
             console.error("Erro ao criar backup:", error);
-            toast.error('Ocorreu um erro ao criar o backup.');
+            console.error('Ocorreu um erro ao criar o backup.');
         }
     };
 
@@ -1280,31 +1812,31 @@ export const useEstoque = (currentUser) => {
                 localStorage.setItem(`boycell-${key}`, JSON.stringify(restoredData[key]));
             });
 
-            toast.success('Dados restaurados localmente! A aplicação será recarregada.');
+            console.log('Dados restaurados localmente! A aplicação será recarregada.');
             setTimeout(() => {
                 window.location.reload();
             }, 2000);
 
         } catch (error) {
             console.error("Erro ao restaurar backup:", error);
-            toast.error('Arquivo de backup inválido ou corrompido.');
+            console.error('Arquivo de backup inválido ou corrompido.');
         }
     };
 
     const handleResetUserPassword = async (userId, adminName, currentUser) => {
         const userToReset = users.find(user => user.id === userId);
         if (!userToReset) {
-            toast.error('Usuário não encontrado.');
+            console.error('Usuário não encontrado.');
             return;
         }
 
         // Validações no frontend para feedback rápido
         if (userToReset.role === 'root') {
-            toast.error('Não é possível resetar a senha do usuário root.');
+            console.error('Não é possível resetar a senha do usuário root.');
             return;
         }
         if (userToReset.role === 'admin' && currentUser.role !== 'root') {
-            toast.error('Apenas o usuário root pode resetar a senha de um administrador.');
+            console.error('Apenas o usuário root pode resetar a senha de um administrador.');
             return;
         }
 
@@ -1321,11 +1853,9 @@ export const useEstoque = (currentUser) => {
 
                 const { newPassword } = data;
                 logAdminActivity(adminName, 'Reset de Senha', `A senha do usuário "${userToReset.name}" foi resetada.`);
-                toast.success(`Senha de ${userToReset.name} resetada para: "${newPassword}"`, {
-                    duration: 10000,
-                });
+                console.log(`Senha de ${userToReset.name} resetada para: "${newPassword}"`);
             } catch (error) {
-                toast.error(error.message);
+                console.error(error.message);
             }
         }
     };
@@ -1341,11 +1871,69 @@ export const useEstoque = (currentUser) => {
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Erro ao solicitar recuperação.');
 
-            toast.success(data.message);
+            console.log(data.message);
             return true;
         } catch (error) {
-            toast.error(error.message);
+            console.error(error.message);
             return false;
+        }
+    };
+
+    const handleAddBanner = async (newBannerData, adminName) => {
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/banners`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(newBannerData)
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao adicionar banner.');
+            setBanners(prev => [...prev, data].sort((a, b) => a.sort_order - b.sort_order));
+            logAdminActivity(adminName, 'Criação de Banner', `Banner "${data.title || 'Novo'}" foi criado.`);
+            console.log('Banner adicionado com sucesso!');
+            return true;
+        } catch (error) {
+            console.error(error.message);
+            return false;
+        }
+    };
+
+    const handleUpdateBanner = async (bannerId, bannerData, adminName) => {
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/banners/${bannerId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(bannerData)
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao atualizar banner.');
+            setBanners(prev => prev.map(b => b.id === bannerId ? data : b).sort((a, b) => a.sort_order - b.sort_order));
+            logAdminActivity(adminName, 'Atualização de Banner', `Banner "${data.title || 'ID: '+bannerId}" foi atualizado.`);
+            console.log('Banner atualizado com sucesso!');
+            return true;
+        } catch (error) {
+            console.error(error.message);
+            return false;
+        }
+    };
+
+    const handleDeleteBanner = async (bannerId, adminName) => {
+        if (!window.confirm('Tem certeza que deseja excluir este banner?')) return;
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/banners/${bannerId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao excluir banner.');
+            setBanners(prev => prev.filter(b => b.id !== bannerId));
+            logAdminActivity(adminName, 'Exclusão de Banner', `Banner com ID ${bannerId} foi excluído.`);
+            console.log(data.message);
+        } catch (error) {
+            console.error(error.message);
         }
     };
 
@@ -1412,10 +2000,16 @@ export const useEstoque = (currentUser) => {
         handlePasswordRecovery,
         // Clientes
         clientes,
+        handleAddClient,
         handleUpdateCliente,
         handleDeleteCliente,
         activityLog,
         handleBackup,
         handleRestore,
+        // Banners
+        banners,
+        handleAddBanner,
+        handleUpdateBanner,
+        handleDeleteBanner,
     };
 };

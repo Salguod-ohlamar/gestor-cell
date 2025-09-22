@@ -1,24 +1,30 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ArrowLeft, LogOut, PlusCircle, Search, Edit, DollarSign, Package, FileDown, ChevronLeft, ChevronRight, GripVertical, Printer, Eye, EyeOff, ChevronUpSquare, ChevronDownSquare, History, Trash2, Layers, ShoppingCart, TrendingUp, ShoppingBag, Banknote, LayoutDashboard, Users, KeyRound, ListChecks, Mail, Send, RefreshCw, Upload, Download, UserCog, Settings } from 'lucide-react';
+import { ArrowLeft, LogOut, PlusCircle, Search, Edit, DollarSign, Package, FileDown, ChevronLeft, ChevronRight, GripVertical, Printer, Eye, EyeOff, ChevronUpSquare, ChevronDownSquare, History, Trash2, Layers, ShoppingCart, TrendingUp, ShoppingBag, Banknote, LayoutDashboard, Users, KeyRound, ListChecks, Mail, Send, RefreshCw, Upload, Download, UserCog, Settings, Image as ImageIcon, TrendingUp as TrendingUpIcon, Sun, Moon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Label, AreaChart, Area } from 'recharts';
 import { Toaster, toast } from 'react-hot-toast';
 import Modal from './components/Modal.jsx';
 import ReciboVenda from './components/ReciboVenda.jsx';
-import { useEstoque, PERMISSION_GROUPS, getDefaultPermissions } from './components/useEstoque.jsx';
+import BannerManager from './components/BannerManager.jsx';
+import { useEstoqueContext } from './components/EstoqueContext.jsx';
+import { useTheme } from './components/ThemeContext.jsx';
+import RelatorioVendasMensal from './components/RelatorioVendasMensal.jsx';
+import RelatorioVendasUsuario from './components/RelatorioVendasUsuario.jsx';
+import DreReport from './components/DreReport.jsx';
+import { PERMISSION_GROUPS, getDefaultPermissions } from './components/useEstoque.jsx';
 
 // Dashboard components can be moved to their own file later
 const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue, onToggle }) => {
   const Icon = icon;
   return (
-    <div className={`bg-gray-900 p-6 rounded-2xl shadow-xl flex items-center gap-6 border-l-4 ${colorClass}`}>
-      <Icon size={32} className="text-gray-400 flex-shrink-0" />
+    <div className={`bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-xl flex items-center gap-6 border-l-4 ${colorClass}`}>
+      <Icon size={32} className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
       <div>
-        <p className="text-sm text-gray-400">{title}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400">{title}</p>
         <div className="flex items-center gap-2">
-          <p className="text-2xl font-bold text-white">{value}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
           {isToggleable && (
-            <button onClick={onToggle} className="text-gray-500 hover:text-white" title={showValue ? "Ocultar Valor" : "Mostrar Valor"}>
+            <button onClick={onToggle} className="text-gray-500 hover:text-gray-900 dark:hover:text-white" title={showValue ? "Ocultar Valor" : "Mostrar Valor"}>
               {showValue ? <Eye size={20} /> : <EyeOff size={20} />}
             </button>
           )}
@@ -30,7 +36,7 @@ const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue
 
 const ChartContainer = ({ title, show, onToggle, children, onDragStart, onDragEnter, onDragEnd }) => (
   <div 
-    className="bg-gray-800/50 p-6 rounded-xl flex flex-col transition-shadow duration-300 shadow-lg hover:shadow-cyan-500/20"
+    className="bg-gray-100 dark:bg-gray-800/50 p-6 rounded-xl flex flex-col transition-shadow duration-300 shadow-lg hover:shadow-cyan-500/20"
     draggable
     onDragStart={onDragStart}
     onDragEnter={onDragEnter}
@@ -39,10 +45,10 @@ const ChartContainer = ({ title, show, onToggle, children, onDragStart, onDragEn
   >
     <div className="flex justify-between items-center mb-4 cursor-move group">
       <div className="flex items-center gap-2">
-        <GripVertical size={20} className="text-gray-500 group-hover:text-cyan-400 transition-colors" />
-        <h3 className="text-xl font-semibold text-white">{title}</h3>
+        <GripVertical size={20} className="text-gray-500 group-hover:text-cyan-500 dark:group-hover:text-cyan-400 transition-colors" />
+        <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h3>
       </div>
-      <button onClick={onToggle} className="text-gray-400 hover:text-white">
+      <button onClick={onToggle} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
         {show ? <ChevronUpSquare size={20} /> : <ChevronDownSquare size={20} />}
       </button>
     </div>
@@ -52,13 +58,10 @@ const ChartContainer = ({ title, show, onToggle, children, onDragStart, onDragEn
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#d0ed57', '#ffc658'];
 
-const AdminPage = ({ 
-    onLogout, 
-    currentUser,
- }) => {
+const AdminPage = ({ onLogout, currentUser }) => {
 
     const navigate = useNavigate();
-
+    const { theme, toggleTheme } = useTheme();
     const {
         dashboardData,
         salesHistory,
@@ -71,7 +74,11 @@ const AdminPage = ({
         handleBackup,
         handleRestore,
         stockValueHistory,
-    } = useEstoque(currentUser);
+        banners,
+        handleAddBanner,
+        handleUpdateBanner,
+        handleDeleteBanner,
+    } = useEstoqueContext();
 
     // State and handlers that were in StockControl.jsx
     const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState(false);
@@ -79,10 +86,14 @@ const AdminPage = ({
     const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
     const [isActivityLogModalOpen, setIsActivityLogModalOpen] = useState(false);
     const [isSalesHistoryModalOpen, setIsSalesHistoryModalOpen] = useState(false);
+    const [isUserSalesReportModalOpen, setIsUserSalesReportModalOpen] = useState(false);
+    const [isDreModalOpen, setIsDreModalOpen] = useState(false);
+    const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
     const [isChartsModalOpen, setIsChartsModalOpen] = useState(false);
     const [newUserData, setNewUserData] = useState({ name: '', email: '', password: '' });
     const [editingUser, setEditingUser] = useState(null);
     const [reprintingSale, setReprintingSale] = useState(null);
+    const [monthlySalesReport, setMonthlySalesReport] = useState(null);
     const [logActionFilter, setLogActionFilter] = useState('');
     const [logAdminFilter, setLogAdminFilter] = useState('');
     const [showTotalValue, setShowTotalValue] = useState(false);
@@ -91,7 +102,16 @@ const AdminPage = ({
     const [salesHistorySearchTerm, setSalesHistorySearchTerm] = useState('');
     const [salesHistoryEndDate, setSalesHistoryEndDate] = useState('');
     const [salesChartPeriod, setSalesChartPeriod] = useState('day');
+    const [userSalesReportData, setUserSalesReportData] = useState(null);
+    const [userSalesReportUserId, setUserSalesReportUserId] = useState('');
+    const [userSalesReportStartDate, setUserSalesReportStartDate] = useState('');
+    const [userSalesReportEndDate, setUserSalesReportEndDate] = useState('');
+    const [loadingUserSalesReport, setLoadingUserSalesReport] = useState(false);
     const restoreInputRef = useRef(null);
+    const [dreStartDate, setDreStartDate] = useState('');
+    const [dreEndDate, setDreEndDate] = useState('');
+    const [dreData, setDreData] = useState(null);
+    const [loadingDre, setLoadingDre] = useState(false);
     const chartDragItem = useRef(null);
     const chartDragOverItem = useRef(null);
 
@@ -131,6 +151,19 @@ const AdminPage = ({
             console.error("Failed to save chart config to localStorage", error);
         }
     }, [chartsConfig]);
+
+    useEffect(() => {
+        const afterPrint = () => {
+            document.body.classList.remove('print-mode-recibo');
+            document.body.classList.remove('print-mode-monthly-report');
+            document.body.classList.remove('print-mode-dre-report');
+            document.body.classList.remove('print-mode-user-sales-report');
+        };
+
+        window.addEventListener('afterprint', afterPrint);
+
+        return () => window.removeEventListener('afterprint', afterPrint);
+    }, []);
 
     const canManageUser = (targetUser) => {
         if (!currentUser || !targetUser) return false;
@@ -262,6 +295,138 @@ const AdminPage = ({
         setChartsConfig(prevConfig => prevConfig.map(chart => chart.id === id ? { ...chart, visible: !chart.visible } : chart));
     };
 
+    const handlePrintMonthlyReport = () => {
+        const today = new Date();
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+
+        const monthlySales = salesHistory.filter(sale => {
+            if (!sale || !sale.date) return false;
+            const saleDate = new Date(sale.date);
+            return saleDate >= startOfMonth && saleDate <= endOfMonth;
+        });
+
+        if (monthlySales.length === 0) {
+            toast.error("Nenhuma venda encontrada para o mês atual.");
+            return;
+        }
+        //faz a somatoria do total vendido no mês
+        const totalVendido = monthlySales.reduce((acc, sale) => acc + Number(sale.total || 0), 0);
+        const totalVendas = monthlySales.length;
+        const totalsByPaymentMethod = monthlySales.reduce((acc, sale) => {
+            const method = sale.paymentMethod || 'Indefinido';
+            const total = Number(sale.total || 0);
+            if (!acc[method]) {
+                acc[method] = { total: 0, count: 0 };
+            }
+            acc[method].total += total;
+            acc[method].count += 1;
+            return acc;
+        }, {});
+
+        setMonthlySalesReport({
+            sales: monthlySales.sort((a, b) => new Date(a.date) - new Date(b.date)),
+            month: today.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }),
+            totalVendido,
+            totalVendas,
+            totalsByPaymentMethod,
+        });
+
+        setTimeout(() => {
+            document.body.classList.add('print-mode-monthly-report');
+            window.print();
+        }, 100);
+    };
+
+    const handleGenerateUserSalesReport = async () => {
+        if (!userSalesReportUserId || !userSalesReportStartDate || !userSalesReportEndDate) {
+            toast.error('Por favor, selecione o vendedor e o período.');
+            return;
+        }
+        setLoadingUserSalesReport(true);
+        setUserSalesReportData(null);
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const user = users.find(u => u.id == userSalesReportUserId);
+            if (!user) {
+                toast.error('Vendedor não encontrado.');
+                setLoadingUserSalesReport(false);
+                return;
+            }
+    
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reports/sales-by-user?userId=${userSalesReportUserId}&startDate=${userSalesReportStartDate}&endDate=${userSalesReportEndDate}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Erro ao gerar o relatório.');
+            }
+            
+            if (data.sales.length === 0) {
+                toast.error('Nenhuma venda encontrada para este vendedor no período selecionado.');
+                setUserSalesReportData(null);
+            } else {
+                setUserSalesReportData({
+                    ...data,
+                    user: user.name,
+                    period: { start: userSalesReportStartDate, end: userSalesReportEndDate },
+                });
+            }
+        } catch (error) {
+            toast.error(error.message);
+            setUserSalesReportData(null);
+        } finally {
+            setLoadingUserSalesReport(false);
+        }
+    };
+
+    const handlePrintUserSalesReport = () => {
+        if (!userSalesReportData) {
+            toast.error("Gere um relatório antes de imprimir.");
+            return;
+        }
+        setTimeout(() => {
+            document.body.classList.add('print-mode-user-sales-report');
+            window.print();
+        }, 100);
+    };
+
+    const handleGenerateDreReport = async () => {
+        if (!dreStartDate || !dreEndDate) {
+            toast.error('Por favor, selecione as datas de início e fim.');
+            return;
+        }
+        setLoadingDre(true);
+        setDreData(null);
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reports/dre?startDate=${dreStartDate}&endDate=${dreEndDate}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Erro ao gerar o relatório DRE.');
+            }
+            setDreData(data);
+        } catch (error) {
+            toast.error(error.message);
+            setDreData(null);
+        } finally {
+            setLoadingDre(false);
+        }
+    };
+
+    const handlePrintDre = () => {
+        if (!dreData) {
+            toast.error("Gere um relatório antes de imprimir.");
+            return;
+        }
+        setTimeout(() => {
+            document.body.classList.add('print-mode-dre-report');
+            window.print();
+        }, 100);
+    };
+
     const handleOpenReprintModal = (sale) => setReprintingSale(sale);
     const handleCloseReprintModal = () => setReprintingSale(null);
 
@@ -388,19 +553,28 @@ const AdminPage = ({
         return Object.values(groupedData).sort((a, b) => new Date(a.period) - new Date(b.period));
     }, [salesHistory, salesChartPeriod]);
 
-    const actionButtonClasses = "w-full inline-flex items-center justify-start gap-3 px-4 py-3 bg-gray-800 hover:bg-gray-700 text-gray-200 font-medium rounded-lg transition-colors duration-300 text-sm";
+    const actionButtonClasses = "w-full inline-flex items-center justify-start gap-3 px-4 py-3 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium rounded-lg transition-colors duration-300 text-sm";
 
     return (
-        <div className="bg-gray-950 text-gray-100 min-h-screen font-sans leading-relaxed">
-            <Toaster position="top-right" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
+        <div className="bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen font-sans leading-relaxed">
+            <Toaster position="top-right" toastOptions={{ className: 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white', style: { background: 'transparent', boxShadow: 'none' } }} />
             <input type="file" ref={restoreInputRef} onChange={handleFileRestore} accept=".json" className="hidden" />
             <div id="recibo-printable-area" className="hidden">
                 <ReciboVenda saleDetails={reprintingSale} />
             </div>
+            <div id="monthly-report-printable-area" className="hidden">
+                <RelatorioVendasMensal reportData={monthlySalesReport} />
+            </div>
+            <div id="user-sales-report-printable-area" className="hidden">
+                <RelatorioVendasUsuario reportData={userSalesReportData} />
+            </div>
+            <div id="dre-report-printable-area" className="hidden">
+                <DreReport reportData={dreData} />
+            </div>
 
             <main id="admin-non-printable-area" className="container mx-auto px-4 py-8 md:py-16">
                 <div className="flex flex-wrap justify-between items-center gap-4 mb-8">
-                    <h1 className="text-4xl font-bold text-white">Painel de Administração</h1>
+                    <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Painel de Administração</h1>
                     <div>
                         <button onClick={() => navigate('/estoque')} className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors mr-4" title="Voltar ao Estoque">
                             <ArrowLeft size={20} />
@@ -413,10 +587,10 @@ const AdminPage = ({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
                     {/* Painel de Administração */}
-                    <div className="bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-purple-500 md:col-span-1 lg:col-span-1">
-                        <h3 className="text-xl font-semibold text-purple-400 mb-4">Gerenciamento</h3>
+                    <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-purple-500 md:col-span-1 lg:col-span-1">
+                        <h3 className="text-xl font-semibold text-purple-600 dark:text-purple-400 mb-4">Gerenciamento</h3>
                         <div className="flex flex-col gap-3">
                             {currentUser.permissions?.manageUsers && (
                                 <>
@@ -436,8 +610,19 @@ const AdminPage = ({
                         </div>
                     </div>
 
-                    <div className="bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-cyan-500 md:col-span-1 lg:col-span-1">
-                        <h3 className="text-xl font-semibold text-cyan-400 mb-4">Relatórios e Dados</h3>
+                    {currentUser.permissions?.manageBanners && (
+                        <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-green-500 md:col-span-1 lg:col-span-1">
+                            <h3 className="text-xl font-semibold text-green-600 dark:text-green-400 mb-4">Conteúdo do Site</h3>
+                            <div className="flex flex-col gap-3">
+                                <button onClick={() => setIsBannerModalOpen(true)} className={actionButtonClasses}>
+                                    <ImageIcon size={18} /> Gerenciar Banners
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-cyan-500 md:col-span-1 lg:col-span-1">
+                        <h3 className="text-xl font-semibold text-cyan-600 dark:text-cyan-400 mb-4">Relatórios e Dados</h3>
                         <div className="flex flex-col gap-3">
                             {currentUser.permissions?.viewDashboardCharts && (
                                 <button onClick={handleOpenChartsModal} className={actionButtonClasses}>
@@ -454,12 +639,27 @@ const AdminPage = ({
                                     <History size={18} /> Histórico de Vendas
                                 </button>
                             )}
+                            {currentUser.permissions?.viewUserSalesReport && (
+                                <button onClick={() => setIsUserSalesReportModalOpen(true)} className={actionButtonClasses}>
+                                    <Users size={18} /> Relatório por Vendedor
+                                </button>
+                            )}
+                            {currentUser.permissions?.viewDreReport && (
+                                <button onClick={() => setIsDreModalOpen(true)} className={actionButtonClasses}>
+                                    <TrendingUpIcon size={18} /> DRE Simplificado
+                                </button>
+                            )}
                         </div>
                     </div>
 
-                    <div className="bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-yellow-500 md:col-span-2 lg:col-span-1">
-                        <h3 className="text-xl font-semibold text-yellow-400 mb-4">Sistema</h3>
+                    <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-yellow-500 md:col-span-2 lg:col-span-1">
+                        <h3 className="text-xl font-semibold text-yellow-600 dark:text-yellow-400 mb-4">Sistema</h3>
                         <div className="flex flex-col gap-3">
+                            {currentUser.permissions?.manageTheme && (
+                                <button onClick={toggleTheme} className={actionButtonClasses}>
+                                    {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />} Alterar para Tema {theme === 'dark' ? 'Claro' : 'Escuro'}
+                                </button>
+                            )}
                             {currentUser.permissions?.manageBackup && (
                                 <>
                                     <button onClick={handleBackup} className={actionButtonClasses}>
@@ -476,16 +676,114 @@ const AdminPage = ({
             </main>
 
             {/* MODALS */}
+            <Modal isOpen={isBannerModalOpen} onClose={() => setIsBannerModalOpen(false)} size="2xl">
+                <BannerManager 
+                    banners={banners}
+                    onAdd={handleAddBanner}
+                    onUpdate={handleUpdateBanner}
+                    onDelete={handleDeleteBanner}
+                    currentUser={currentUser}
+                />
+            </Modal>
+
+            <Modal isOpen={isUserSalesReportModalOpen} onClose={() => setIsUserSalesReportModalOpen(false)} size="xl">
+                <h2 className="text-2xl font-bold text-center text-cyan-600 dark:text-cyan-400 mb-6">Relatório de Vendas por Vendedor</h2>
+                <div className="flex flex-wrap items-center justify-center gap-4 mb-6 p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="userSelect" className="text-sm font-medium text-gray-700 dark:text-gray-300">Vendedor:</label>
+                        <select
+                            id="userSelect"
+                            value={userSalesReportUserId}
+                            onChange={e => setUserSalesReportUserId(e.target.value)}
+                            className="p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+                        >
+                            <option value="">Selecione um vendedor</option>
+                            {users.filter(u => u.role !== 'root').map(user => (
+                                <option key={user.id} value={user.id}>{user.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="userSaleStartDate" className="text-sm font-medium text-gray-700 dark:text-gray-300">De:</label>
+                        <input 
+                            type="date" 
+                            id="userSaleStartDate"
+                            value={userSalesReportStartDate}
+                            onChange={e => setUserSalesReportStartDate(e.target.value)}
+                            className="p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="userSaleEndDate" className="text-sm font-medium text-gray-700 dark:text-gray-300">Até:</label>
+                        <input 
+                            type="date" 
+                            id="userSaleEndDate"
+                            value={userSalesReportEndDate}
+                            onChange={e => setUserSalesReportEndDate(e.target.value)}
+                            className="p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+                        />
+                    </div>
+                    <button onClick={handleGenerateUserSalesReport} disabled={loadingUserSalesReport} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium rounded-lg transition-colors disabled:bg-gray-500">
+                        {loadingUserSalesReport ? 'Gerando...' : 'Gerar Relatório'}
+                    </button>
+                    <button onClick={handlePrintUserSalesReport} disabled={!userSalesReportData} className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors disabled:bg-gray-500">
+                        <Printer size={16} /> Imprimir
+                    </button>
+                </div>
+
+                <div className="bg-white rounded-lg overflow-y-auto max-h-[60vh]"><RelatorioVendasUsuario reportData={userSalesReportData} /></div>
+            </Modal>
+
+            <Modal isOpen={isDreModalOpen} onClose={() => setIsDreModalOpen(false)} size="xl">
+                <h2 className="text-2xl font-bold text-center text-green-600 dark:text-green-400 mb-6">DRE Simplificado</h2>
+                <div className="flex flex-wrap items-center justify-center gap-4 mb-6 p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="dreStartDate" className="text-sm font-medium text-gray-700 dark:text-gray-300">De:</label>
+                        <input 
+                            type="date" 
+                            id="dreStartDate"
+                            value={dreStartDate}
+                            onChange={e => setDreStartDate(e.target.value)}
+                            className="p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="dreEndDate" className="text-sm font-medium text-gray-700 dark:text-gray-300">Até:</label>
+                        <input 
+                            type="date" 
+                            id="dreEndDate"
+                            value={dreEndDate}
+                            onChange={e => setDreEndDate(e.target.value)}
+                            className="p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+                        />
+                    </div>
+                    <button onClick={handleGenerateDreReport} disabled={loadingDre} className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-lg transition-colors disabled:bg-gray-500">
+                        {loadingDre ? 'Gerando...' : 'Gerar Relatório'}
+                    </button>
+                    <button onClick={handlePrintDre} disabled={!dreData} className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors disabled:bg-gray-500">
+                        <Printer size={16} /> Imprimir
+                    </button>
+                </div>
+
+                <div className="bg-white rounded-lg overflow-y-auto max-h-[60vh]">
+                    {loadingDre ? (
+                        <p className="text-center text-gray-500 py-10">Carregando dados do relatório...</p>
+                    ) : (
+                        <DreReport reportData={dreData} />
+                    )}
+                </div>
+            </Modal>
+
             <Modal isOpen={isUserManagementModalOpen} onClose={handleCloseUserManagementModal} size="lg">
-                <h2 className="text-2xl font-bold text-center text-purple-400 mb-6">Gerenciar Usuários</h2>
+                <h2 className="text-2xl font-bold text-center text-purple-600 dark:text-purple-400 mb-6">Gerenciar Usuários</h2>
                 <div>
-                    <h3 className="text-xl font-semibold text-white mb-4">Usuários Cadastrados</h3>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Usuários Cadastrados</h3>
                     <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
                         {users.map(user => {
                             const showManagementButtons = canManageUser(user);
                             const userRoleClass = user.role === 'root' ? 'bg-red-500 text-white' : (user.role === 'admin' ? 'bg-green-500 text-black' : 'bg-blue-500 text-white');
                             return (
-                                <div key={user.id} className="flex items-center justify-between bg-gray-800 p-3 rounded-lg">
+                                <div key={user.id} className="flex items-center justify-between bg-gray-100 dark:bg-gray-800 p-3 rounded-lg">
                                     <div>
                                         <p className="font-semibold text-white">{user.name}</p>
                                         <p className="text-sm text-gray-400">{user.email}</p>
@@ -512,30 +810,30 @@ const AdminPage = ({
             </Modal>
 
             <Modal isOpen={isEditUserModalOpen} onClose={handleCloseEditUserModal} size="xl">
-                <h2 className="text-2xl font-bold text-center text-blue-400 mb-6">Editar Usuário</h2>
+                <h2 className="text-2xl font-bold text-center text-blue-600 dark:text-blue-400 mb-6">Editar Usuário</h2>
                 {editingUser && (
                     <form className="space-y-4" onSubmit={handleUpdateUserSubmit}>
                         <div>
-                            <label htmlFor="edit-user-name" className="block text-sm font-medium text-gray-300">Nome</label>
-                            <input id="edit-user-name" name="name" type="text" value={editingUser.name} onChange={handleEditUserChange} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <label htmlFor="edit-user-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome</label>
+                            <input id="edit-user-name" name="name" type="text" value={editingUser.name} onChange={handleEditUserChange} required className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                         </div>
                         <div>
-                            <label htmlFor="edit-user-email" className="block text-sm font-medium text-gray-300">Email</label>
-                            <input id="edit-user-email" name="email" type="email" value={editingUser.email} onChange={handleEditUserChange} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <label htmlFor="edit-user-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                            <input id="edit-user-email" name="email" type="email" value={editingUser.email} onChange={handleEditUserChange} required className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                         </div>
                         <div>
-                            <label htmlFor="edit-user-password" className="block text-sm font-medium text-gray-300">Nova Senha (Opcional)</label>
-                            <input id="edit-user-password" name="password" type="password" value={editingUser.password} onChange={handleEditUserChange} placeholder="Deixe em branco para não alterar" className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <label htmlFor="edit-user-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nova Senha (Opcional)</label>
+                            <input id="edit-user-password" name="password" type="password" value={editingUser.password} onChange={handleEditUserChange} placeholder="Deixe em branco para não alterar" className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                         </div>
                         {currentUser.role === 'root' && editingUser.role !== 'root' && (
                             <div>
-                                <label htmlFor="edit-user-role" className="block text-sm font-medium text-gray-300">Nível de Acesso</label>
+                                <label htmlFor="edit-user-role" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nível de Acesso</label>
                                 <select
                                     id="edit-user-role"
                                     name="role"
                                     value={editingUser.role}
                                     onChange={handleEditUserChange}
-                                    className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value="vendedor">Vendedor</option>
                                     <option value="admin">Administrador</option>
@@ -544,11 +842,11 @@ const AdminPage = ({
                         )}
                         {currentUser.role === 'root' && editingUser.role !== 'root' && (
                             <div className="mt-4">
-                                <h4 className="text-lg font-semibold text-white mb-2">Permissões</h4>
-                                <div className="space-y-6 p-4 bg-gray-800/50 rounded-lg max-h-80 overflow-y-auto">
+                                <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Permissões</h4>
+                                <div className="space-y-6 p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg max-h-80 overflow-y-auto">
                                     {Object.values(PERMISSION_GROUPS).map((group, groupIndex) => (
                                         <div key={group.title}>
-                                            <h5 className="text-md font-semibold text-white mb-3">{group.title}</h5>
+                                            <h5 className="text-md font-semibold text-gray-900 dark:text-white mb-3">{group.title}</h5>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                                                 {Object.entries(group.permissions).map(([key, { label }]) => (
                                                     <label key={key} className="flex items-center gap-2 cursor-pointer">
@@ -562,14 +860,14 @@ const AdminPage = ({
                                                                     permissions: { ...(prev.permissions || {}), [key]: checked }
                                                                 }));
                                                             }}
-                                                            className="form-checkbox h-4 w-4 text-blue-500 bg-gray-800 border-gray-700 rounded focus:ring-blue-500"
+                                                            className="form-checkbox h-4 w-4 text-blue-500 bg-gray-200 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded focus:ring-blue-500"
                                                         />
-                                                        <span className="text-sm text-gray-300">{label}</span>
+                                                        <span className="text-sm text-gray-700 dark:text-gray-300">{label}</span>
                                                     </label>
                                                 ))}
                                             </div>
                                             {groupIndex < Object.values(PERMISSION_GROUPS).length - 1 && (
-                                                <hr className="border-gray-700 mt-4" />
+                                                <hr className="border-gray-300 dark:border-gray-700 mt-4" />
                                             )}
                                         </div>
                                     ))}
@@ -584,19 +882,19 @@ const AdminPage = ({
             </Modal>
 
             <Modal isOpen={isAddUserModalOpen} onClose={handleCloseAddUserModal}>
-                <h2 className="text-2xl font-bold text-center text-purple-400 mb-6">Adicionar Novo Usuário</h2>
+                <h2 className="text-2xl font-bold text-center text-purple-600 dark:text-purple-400 mb-6">Adicionar Novo Usuário</h2>
                 <form className="space-y-4" onSubmit={handleAddNewUser}>
                     <div>
-                        <label htmlFor="user-name" className="block text-sm font-medium text-gray-300">Nome</label>
-                        <input id="user-name" name="name" type="text" value={newUserData.name} onChange={handleNewUserChange} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                        <label htmlFor="user-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome</label>
+                        <input id="user-name" name="name" type="text" value={newUserData.name} onChange={handleNewUserChange} required className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" />
                     </div>
                     <div>
-                        <label htmlFor="user-email" className="block text-sm font-medium text-gray-300">Email</label>
-                        <input id="user-email" name="email" type="email" value={newUserData.email} onChange={handleNewUserChange} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                        <label htmlFor="user-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                        <input id="user-email" name="email" type="email" value={newUserData.email} onChange={handleNewUserChange} required className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" />
                     </div>
                     <div>
-                        <label htmlFor="user-password" className="block text-sm font-medium text-gray-300">Senha</label>
-                        <input id="user-password" name="password" type="password" value={newUserData.password} onChange={handleNewUserChange} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                        <label htmlFor="user-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Senha</label>
+                        <input id="user-password" name="password" type="password" value={newUserData.password} onChange={handleNewUserChange} required className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" />
                     </div>
                     <button type="submit" className="w-full mt-2 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors">
                         Adicionar Usuário
@@ -605,27 +903,27 @@ const AdminPage = ({
             </Modal>
 
             <Modal isOpen={isActivityLogModalOpen} onClose={() => setIsActivityLogModalOpen(false)} size="2xl">
-                <h2 className="text-2xl font-bold text-center text-orange-400 mb-6">Log de Atividades do Administrador</h2>
-                <div className="flex flex-wrap items-center justify-center gap-4 mb-6 p-4 bg-gray-800/50 rounded-lg">
+                <h2 className="text-2xl font-bold text-center text-orange-600 dark:text-orange-400 mb-6">Log de Atividades do Administrador</h2>
+                <div className="flex flex-wrap items-center justify-center gap-4 mb-6 p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
                     <div className="flex items-center gap-2">
-                        <label htmlFor="logActionFilter" className="text-sm font-medium text-gray-300">Ação:</label>
+                        <label htmlFor="logActionFilter" className="text-sm font-medium text-gray-700 dark:text-gray-300">Ação:</label>
                         <select 
                             id="logActionFilter"
                             value={logActionFilter}
                             onChange={e => setLogActionFilter(e.target.value)}
-                            className="p-2 bg-gray-700 border border-gray-600 rounded-lg text-sm"
+                            className="p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
                         >
                             <option value="">Todas as Ações</option>
                             {logActions.map(action => <option key={action} value={action}>{action}</option>)}
                         </select>
                     </div>
                     <div className="flex items-center gap-2">
-                        <label htmlFor="logAdminFilter" className="text-sm font-medium text-gray-300">Admin:</label>
+                        <label htmlFor="logAdminFilter" className="text-sm font-medium text-gray-700 dark:text-gray-300">Admin:</label>
                         <select 
                             id="logAdminFilter"
                             value={logAdminFilter}
                             onChange={e => setLogAdminFilter(e.target.value)}
-                            className="p-2 bg-gray-700 border border-gray-600 rounded-lg text-sm"
+                            className="p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
                         >
                             <option value="">Todos os Admins</option>
                             {logAdmins.map(admin => <option key={admin} value={admin}>{admin}</option>)}
@@ -645,12 +943,12 @@ const AdminPage = ({
                 <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-3">
                     {filteredActivityLog && filteredActivityLog.length > 0 ? (
                         filteredActivityLog.map(log => (
-                            <div key={log.id} className="p-3 bg-gray-800 rounded-lg border-l-4 border-orange-500">
+                            <div key={log.id} className="p-3 bg-gray-200 dark:bg-gray-800 rounded-lg border-l-4 border-orange-500">
                                 <div className="flex justify-between items-center text-sm mb-1">
-                                    <p className="font-bold text-orange-300">{log.action}</p>
-                                    <p className="text-xs text-gray-400">{new Date(log.timestamp).toLocaleString('pt-BR')}</p>
+                                    <p className="font-bold text-orange-600 dark:text-orange-300">{log.action}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(log.timestamp).toLocaleString('pt-BR')}</p>
                                 </div>
-                                <p className="text-sm text-gray-300">
+                                <p className="text-sm text-gray-700 dark:text-gray-300">
                                     <span className="font-semibold">{log.admin}</span>: {log.details}
                                 </p>
                             </div>
@@ -662,26 +960,26 @@ const AdminPage = ({
             </Modal>
 
             <Modal isOpen={isSalesHistoryModalOpen} onClose={handleCloseSalesHistoryModal} size="xl">
-                <h2 className="text-2xl font-bold text-center text-yellow-400 mb-6">Histórico de Vendas</h2>
-                <div className="flex flex-wrap items-center justify-center gap-4 mb-6 p-4 bg-gray-800/50 rounded-lg">
+                <h2 className="text-2xl font-bold text-center text-yellow-600 dark:text-yellow-400 mb-6">Histórico de Vendas</h2>
+                <div className="flex flex-wrap items-center justify-center gap-4 mb-6 p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
                     <div className="flex items-center gap-2">
-                        <label htmlFor="startDate" className="text-sm font-medium text-gray-300">De:</label>
+                        <label htmlFor="startDate" className="text-sm font-medium text-gray-700 dark:text-gray-300">De:</label>
                         <input 
                             type="date" 
                             id="startDate"
                             value={salesHistoryStartDate}
                             onChange={e => setSalesHistoryStartDate(e.target.value)}
-                            className="p-2 bg-gray-700 border border-gray-600 rounded-lg text-sm"
+                            className="p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
                         />
                     </div>
                     <div className="flex items-center gap-2">
-                        <label htmlFor="endDate" className="text-sm font-medium text-gray-300">Até:</label>
+                        <label htmlFor="endDate" className="text-sm font-medium text-gray-700 dark:text-gray-300">Até:</label>
                         <input 
                             type="date" 
                             id="endDate"
                             value={salesHistoryEndDate}
                             onChange={e => setSalesHistoryEndDate(e.target.value)}
-                            className="p-2 bg-gray-700 border border-gray-600 rounded-lg text-sm"
+                            className="p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
                         />
                     </div>
                     <button 
@@ -693,6 +991,12 @@ const AdminPage = ({
                     >
                         Limpar Filtros
                     </button>
+                    <button 
+                        onClick={handlePrintMonthlyReport}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                        <Printer size={16} /> Imprimir Relatório do Mês
+                    </button>
                 </div>
 
                 <div className="relative mb-6">
@@ -702,7 +1006,7 @@ const AdminPage = ({
                     <input
                         type="text"
                         placeholder="Buscar por cliente, CPF ou produto..."
-                        className="w-full p-3 pl-10 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                        className="w-full p-3 pl-10 bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
                         value={salesHistorySearchTerm}
                         onChange={(e) => setSalesHistorySearchTerm(e.target.value)}
                     />
@@ -711,15 +1015,15 @@ const AdminPage = ({
                 <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-4">
                     {filteredSalesHistory.length > 0 ? (
                         filteredSalesHistory.map(sale => (
-                            <div key={sale.id} className="p-4 bg-gray-800 rounded-lg border-l-4 border-yellow-500">
+                            <div key={sale.id} className="p-4 bg-gray-200 dark:bg-gray-800 rounded-lg border-l-4 border-yellow-500">
                                 <div className="flex justify-between items-start mb-3">
                                     <div className="flex-grow">
-                                        <p className="text-sm text-gray-400">{new Date(sale.date).toLocaleString('pt-BR')}</p>
-                                        {sale.receiptCode && <p className="text-xs text-gray-500 font-mono">Cód: {sale.receiptCode}</p>}
-                                        <p className="text-lg font-bold text-yellow-300">Total: {sale.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                                        {sale.customer && <p className="text-sm text-gray-300">Cliente: <span className="font-medium">{sale.customer}</span></p>}
-                                        <p className="text-sm text-gray-300">Pagamento: <span className="font-semibold text-yellow-200">{sale.paymentMethod}</span></p>
-                                        {sale.vendedor && <p className="text-sm text-gray-300">Vendedor: <span className="font-medium">{sale.vendedor}</span></p>}
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">{new Date(sale.date).toLocaleString('pt-BR')}</p>
+                                        {sale.receiptCode && <p className="text-xs text-gray-400 dark:text-gray-500 font-mono">Cód: {sale.receiptCode}</p>}
+                                        <p className="text-lg font-bold text-yellow-600 dark:text-yellow-300">Total: {sale.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                                        {sale.customer && <p className="text-sm text-gray-700 dark:text-gray-300">Cliente: <span className="font-medium">{sale.customer}</span></p>}
+                                        <p className="text-sm text-gray-700 dark:text-gray-300">Pagamento: <span className="font-semibold text-yellow-700 dark:text-yellow-200">{sale.paymentMethod}</span></p>
+                                        {sale.vendedor && <p className="text-sm text-gray-700 dark:text-gray-300">Vendedor: <span className="font-medium">{sale.vendedor}</span></p>}
                                     </div>
                                     <div className="flex-shrink-0">
                                         <button onClick={() => handleOpenReprintModal(sale)} className="inline-flex items-center gap-2 px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-xs font-medium rounded-full transition-colors">
@@ -728,9 +1032,9 @@ const AdminPage = ({
                                         </button>
                                     </div>
                                 </div>
-                                <div className="border-t border-gray-700 pt-2">
-                                    <p className="text-sm font-semibold mb-1 text-gray-200">Itens:</p>
-                                    <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
+                                <div className="border-t border-gray-300 dark:border-gray-700 pt-2">
+                                    <p className="text-sm font-semibold mb-1 text-gray-800 dark:text-gray-200">Itens:</p>
+                                    <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
                                         {sale.items.map(item => (<li key={`${item.type}-${item.id}`}>{item.nome || item.servico} (x{item.quantity})</li>))}
                                     </ul>
                                 </div>
@@ -741,11 +1045,11 @@ const AdminPage = ({
             </Modal>
 
             <Modal isOpen={isChartsModalOpen} onClose={handleCloseChartsModal} size="2xl">
-                <h2 className="text-2xl font-bold text-center text-cyan-400 mb-6">Análise Gráfica</h2>
+                <h2 className="text-2xl font-bold text-center text-cyan-600 dark:text-cyan-400 mb-6">Análise Gráfica</h2>
                 {renderCharts ? (
                 <div className="max-h-[80vh] overflow-y-auto p-2">
-                    <div className="bg-gray-900/50 p-6 rounded-2xl mb-8">
-                        <h3 className="text-xl font-semibold text-white mb-4">Resumo Geral</h3>
+                    <div className="bg-gray-200 dark:bg-gray-900/50 p-6 rounded-2xl mb-8">
+                        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Resumo Geral</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
                         <DashboardCard 
                             icon={DollarSign} 
@@ -770,31 +1074,31 @@ const AdminPage = ({
 
                         switch(chart.id) {
                         case 'evolution':
-                            chartContent = <AreaChart data={stockValueHistory} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke="#4A5568" /><XAxis dataKey="date" tickFormatter={(timeStr) => new Date(timeStr).toLocaleDateString('pt-BR')} stroke="#A0AEC0" /><YAxis stroke="#A0AEC0" tickFormatter={(value) => `R$ ${value.toLocaleString('pt-BR')}`} /><Tooltip contentStyle={{ backgroundColor: '#1A202C', border: '1px solid #4A5568' }} labelStyle={{ color: '#E2E8F0' }} formatter={(value) => [value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), "Valor"]} /><Legend /><Area type="monotone" dataKey="value" stroke="#38B2AC" fill="#38B2AC" fillOpacity={0.3} name="Valor do Estoque" /></AreaChart>;
+                            chartContent = <AreaChart data={stockValueHistory} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? "#4A5568" : "#E2E8F0"} /><XAxis dataKey="date" tickFormatter={(timeStr) => new Date(timeStr).toLocaleDateString('pt-BR')} stroke={theme === 'dark' ? "#A0AEC0" : "#4A5568"} /><YAxis stroke={theme === 'dark' ? "#A0AEC0" : "#4A5568"} tickFormatter={(value) => `R$ ${value.toLocaleString('pt-BR')}`} /><Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1A202C' : '#FFFFFF', border: `1px solid ${theme === 'dark' ? '#4A5568' : '#CBD5E0'}` }} labelStyle={{ color: theme === 'dark' ? '#E2E8F0' : '#1A202C' }} formatter={(value) => [value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), "Valor"]} /><Legend /><Area type="monotone" dataKey="value" stroke="#38B2AC" fill="#38B2AC" fillOpacity={0.3} name="Valor do Estoque" /></AreaChart>;
                             break;
                         case 'salesPeriod':
-                            chartContent = <><div className="flex justify-center gap-2 mb-4"><button onClick={() => setSalesChartPeriod('day')} className={`px-3 py-1 text-sm rounded-full transition-colors ${salesChartPeriod === 'day' ? 'bg-cyan-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>Dia</button><button onClick={() => setSalesChartPeriod('week')} className={`px-3 py-1 text-sm rounded-full transition-colors ${salesChartPeriod === 'week' ? 'bg-cyan-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>Semana</button><button onClick={() => setSalesChartPeriod('month')} className={`px-3 py-1 text-sm rounded-full transition-colors ${salesChartPeriod === 'month' ? 'bg-cyan-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>Mês</button></div><ResponsiveContainer width="100%" height="85%"><BarChart data={salesByPeriodData} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke="#4A5568" /><XAxis dataKey="period" stroke="#A0AEC0" tickFormatter={(str) => { if (salesChartPeriod === 'month') return new Date(str + '-02').toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }); return new Date(str).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }); }} minTickGap={20} /><YAxis stroke="#A0AEC0" tickFormatter={(value) => `R$${value >= 1000 ? `${value/1000}k` : value}`} /><Tooltip contentStyle={{ backgroundColor: '#1A202C', border: '1px solid #4A5568' }} labelStyle={{ color: '#E2E8F0' }} formatter={(value) => [value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), "Total Vendido"]} labelFormatter={(label) => { if (salesChartPeriod === 'month') return new Date(label + '-02').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }); if (salesChartPeriod === 'week') return `Semana de ${new Date(label).toLocaleDateString('pt-BR', { dateStyle: 'short' })}`; return new Date(label).toLocaleDateString('pt-BR', { dateStyle: 'long' }); }} /><Legend wrapperStyle={{ paddingTop: '20px' }} /><Bar dataKey="total" fill="#FF8042" name="Total Vendido" /></BarChart></ResponsiveContainer></>;
+                            chartContent = <><div className="flex justify-center gap-2 mb-4"><button onClick={() => setSalesChartPeriod('day')} className={`px-3 py-1 text-sm rounded-full transition-colors ${salesChartPeriod === 'day' ? 'bg-cyan-600 text-white' : 'bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600'}`}>Dia</button><button onClick={() => setSalesChartPeriod('week')} className={`px-3 py-1 text-sm rounded-full transition-colors ${salesChartPeriod === 'week' ? 'bg-cyan-600 text-white' : 'bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600'}`}>Semana</button><button onClick={() => setSalesChartPeriod('month')} className={`px-3 py-1 text-sm rounded-full transition-colors ${salesChartPeriod === 'month' ? 'bg-cyan-600 text-white' : 'bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600'}`}>Mês</button></div><ResponsiveContainer width="100%" height="85%"><BarChart data={salesByPeriodData} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? "#4A5568" : "#E2E8F0"} /><XAxis dataKey="period" stroke={theme === 'dark' ? "#A0AEC0" : "#4A5568"} tickFormatter={(str) => { if (salesChartPeriod === 'month') return new Date(str + '-02').toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }); return new Date(str).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }); }} minTickGap={20} /><YAxis stroke={theme === 'dark' ? "#A0AEC0" : "#4A5568"} tickFormatter={(value) => `R$${value >= 1000 ? `${value/1000}k` : value}`} /><Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1A202C' : '#FFFFFF', border: `1px solid ${theme === 'dark' ? '#4A5568' : '#CBD5E0'}` }} labelStyle={{ color: theme === 'dark' ? '#E2E8F0' : '#1A202C' }} formatter={(value) => [value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), "Total Vendido"]} labelFormatter={(label) => { if (salesChartPeriod === 'month') return new Date(label + '-02').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }); if (salesChartPeriod === 'week') return `Semana de ${new Date(label).toLocaleDateString('pt-BR', { dateStyle: 'short' })}`; return new Date(label).toLocaleDateString('pt-BR', { dateStyle: 'long' }); }} /><Legend wrapperStyle={{ paddingTop: '20px' }} /><Bar dataKey="total" fill="#FF8042" name="Total Vendido" /></BarChart></ResponsiveContainer></>;
                             break;
                         case 'topSellingProducts':
-                            chartContent = <BarChart data={dashboardData.topSellingProducts} layout="vertical" margin={{ top: 5, right: 30, left: 120, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke="#4A5568" /><XAxis type="number" stroke="#A0AEC0" allowDecimals={false} /><YAxis dataKey="name" type="category" stroke="#A0AEC0" width={120} tick={{ fontSize: 12 }} /><Tooltip contentStyle={{ backgroundColor: '#1A202C', border: '1px solid #4A5568' }} labelStyle={{ color: '#E2E8F0' }} formatter={(value) => [value, "Unidades Vendidas"]} /><Bar dataKey="quantitySold" fill="#d0ed57" name="Unidades Vendidas" /></BarChart>;
+                            chartContent = <BarChart data={dashboardData.topSellingProducts} layout="vertical" margin={{ top: 5, right: 30, left: 120, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? "#4A5568" : "#E2E8F0"} /><XAxis type="number" stroke={theme === 'dark' ? "#A0AEC0" : "#4A5568"} allowDecimals={false} /><YAxis dataKey="name" type="category" stroke={theme === 'dark' ? "#A0AEC0" : "#4A5568"} width={120} tick={{ fontSize: 12 }} /><Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1A202C' : '#FFFFFF', border: `1px solid ${theme === 'dark' ? '#4A5568' : '#CBD5E0'}` }} labelStyle={{ color: theme === 'dark' ? '#E2E8F0' : '#1A202C' }} formatter={(value) => [value, "Unidades Vendidas"]} /><Bar dataKey="quantitySold" fill="#d0ed57" name="Unidades Vendidas" /></BarChart>;
                             break;
                         case 'topSellingServices':
-                            chartContent = <BarChart data={dashboardData.topSellingServices} layout="vertical" margin={{ top: 5, right: 30, left: 120, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke="#4A5568" /><XAxis type="number" stroke="#A0AEC0" allowDecimals={false} /><YAxis dataKey="name" type="category" stroke="#A0AEC0" width={120} tick={{ fontSize: 12 }} /><Tooltip contentStyle={{ backgroundColor: '#1A202C', border: '1px solid #4A5568' }} labelStyle={{ color: '#E2E8F0' }} formatter={(value) => [value, "Vezes Realizado"]} /><Bar dataKey="quantitySold" fill="#8884d8" name="Vezes Realizado" /></BarChart>;
+                            chartContent = <BarChart data={dashboardData.topSellingServices} layout="vertical" margin={{ top: 5, right: 30, left: 120, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? "#4A5568" : "#E2E8F0"} /><XAxis type="number" stroke={theme === 'dark' ? "#A0AEC0" : "#4A5568"} allowDecimals={false} /><YAxis dataKey="name" type="category" stroke={theme === 'dark' ? "#A0AEC0" : "#4A5568"} width={120} tick={{ fontSize: 12 }} /><Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1A202C' : '#FFFFFF', border: `1px solid ${theme === 'dark' ? '#4A5568' : '#CBD5E0'}` }} labelStyle={{ color: theme === 'dark' ? '#E2E8F0' : '#1A202C' }} formatter={(value) => [value, "Vezes Realizado"]} /><Bar dataKey="quantitySold" fill="#8884d8" name="Vezes Realizado" /></BarChart>;
                             break;
                         case 'topStock':
-                            chartContent = <BarChart data={dashboardData.maisEstoque} layout="vertical" margin={{ top: 5, right: 30, left: 100, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke="#4A5568" /><XAxis type="number" stroke="#A0AEC0" /><YAxis dataKey="nome" type="category" stroke="#A0AEC0" width={100} tick={{ fontSize: 12 }} /><Tooltip contentStyle={{ backgroundColor: '#1A202C', border: '1px solid #4A5568' }} labelStyle={{ color: '#E2E8F0' }} formatter={(value) => [value, "Estoque"]} /><Bar dataKey="emEstoque" fill="#8884d8" name="Em Estoque" /></BarChart>;
+                            chartContent = <BarChart data={dashboardData.maisEstoque} layout="vertical" margin={{ top: 5, right: 30, left: 100, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? "#4A5568" : "#E2E8F0"} /><XAxis type="number" stroke={theme === 'dark' ? "#A0AEC0" : "#4A5568"} /><YAxis dataKey="nome" type="category" stroke={theme === 'dark' ? "#A0AEC0" : "#4A5568"} width={100} tick={{ fontSize: 12 }} /><Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1A202C' : '#FFFFFF', border: `1px solid ${theme === 'dark' ? '#4A5568' : '#CBD5E0'}` }} labelStyle={{ color: theme === 'dark' ? '#E2E8F0' : '#1A202C' }} formatter={(value) => [value, "Estoque"]} /><Bar dataKey="emEstoque" fill="#8884d8" name="Em Estoque" /></BarChart>;
                             break;
                         case 'lowStock':
-                            chartContent = <BarChart data={dashboardData.menosEstoque} layout="vertical" margin={{ top: 5, right: 30, left: 100, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke="#4A5568" /><XAxis type="number" stroke="#A0AEC0" /><YAxis dataKey="nome" type="category" stroke="#A0AEC0" width={100} tick={{ fontSize: 12 }} /><Tooltip contentStyle={{ backgroundColor: '#1A202C', border: '1px solid #4A5568' }} labelStyle={{ color: '#E2E8F0' }} formatter={(value) => [value, "Estoque"]} /><Bar dataKey="emEstoque" fill="#82ca9d" name="Em Estoque" /></BarChart>;
+                            chartContent = <BarChart data={dashboardData.menosEstoque} layout="vertical" margin={{ top: 5, right: 30, left: 100, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? "#4A5568" : "#E2E8F0"} /><XAxis type="number" stroke={theme === 'dark' ? "#A0AEC0" : "#4A5568"} /><YAxis dataKey="nome" type="category" stroke={theme === 'dark' ? "#A0AEC0" : "#4A5568"} width={100} tick={{ fontSize: 12 }} /><Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1A202C' : '#FFFFFF', border: `1px solid ${theme === 'dark' ? '#4A5568' : '#CBD5E0'}` }} labelStyle={{ color: theme === 'dark' ? '#E2E8F0' : '#1A202C' }} formatter={(value) => [value, "Estoque"]} /><Bar dataKey="emEstoque" fill="#82ca9d" name="Em Estoque" /></BarChart>;
                             break;
                         case 'category':
-                            chartContent = <PieChart><Pie data={dashboardData.categoriaDistribution} cx="50%" cy="50%" labelLine={false} outerRadius={80} fill="#8884d8" dataKey="value" nameKey="name" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>{dashboardData.categoriaDistribution.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><Tooltip contentStyle={{ backgroundColor: '#1A202C', border: '1px solid #4A5568' }} /><Legend /></PieChart>;
+                            chartContent = <PieChart><Pie data={dashboardData.categoriaDistribution} cx="50%" cy="50%" labelLine={false} outerRadius={80} fill="#8884d8" dataKey="value" nameKey="name" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>{dashboardData.categoriaDistribution.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1A202C' : '#FFFFFF', border: `1px solid ${theme === 'dark' ? '#4A5568' : '#CBD5E0'}` }} /><Legend /></PieChart>;
                             break;
                         case 'supplier':
-                            chartContent = <PieChart><Pie data={dashboardData.fornecedorDistribution} cx="50%" cy="50%" labelLine={false} outerRadius={80} fill="#8884d8" dataKey="value" nameKey="name" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>{dashboardData.fornecedorDistribution.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><Tooltip contentStyle={{ backgroundColor: '#1A202C', border: '1px solid #4A5568' }} /><Legend /></PieChart>;
+                            chartContent = <PieChart><Pie data={dashboardData.fornecedorDistribution} cx="50%" cy="50%" labelLine={false} outerRadius={80} fill="#8884d8" dataKey="value" nameKey="name" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>{dashboardData.fornecedorDistribution.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1A202C' : '#FFFFFF', border: `1px solid ${theme === 'dark' ? '#4A5568' : '#CBD5E0'}` }} /><Legend /></PieChart>;
                             break;
                         case 'payment':
-                            chartContent = <PieChart><Pie data={dashboardData.paymentMethodDistribution} cx="50%" cy="50%" labelLine={false} outerRadius={80} fill="#8884d8" dataKey="value" nameKey="name" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>{dashboardData.paymentMethodDistribution.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><Tooltip contentStyle={{ backgroundColor: '#1A202C', border: '1px solid #4A5568' }} /><Legend /></PieChart>;
+                            chartContent = <PieChart><Pie data={dashboardData.paymentMethodDistribution} cx="50%" cy="50%" labelLine={false} outerRadius={80} fill="#8884d8" dataKey="value" nameKey="name" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>{dashboardData.paymentMethodDistribution.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1A202C' : '#FFFFFF', border: `1px solid ${theme === 'dark' ? '#4A5568' : '#CBD5E0'}` }} /><Legend /></PieChart>;
                             break;
                         default:
                             chartContent = null;
@@ -827,7 +1131,7 @@ const AdminPage = ({
             <Modal isOpen={reprintingSale !== null} onClose={handleCloseReprintModal}>
                 {reprintingSale && (
                     <>
-                        <h2 className="text-2xl font-bold text-center text-blue-400 mb-4">Reimpressão de Recibo</h2>
+                        <h2 className="text-2xl font-bold text-center text-blue-600 dark:text-blue-400 mb-4">Reimpressão de Recibo</h2>
                         <div className="bg-white rounded-lg overflow-y-auto max-h-[60vh]">
                             <ReciboVenda saleDetails={reprintingSale} />
                         </div>
@@ -835,7 +1139,7 @@ const AdminPage = ({
                             <button onClick={handleWhatsAppRecibo} className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-full transition-colors">
                                 <Send size={18} /> Enviar por WhatsApp
                             </button>
-                            <button onClick={handleEmailRecibo} className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-full transition-colors">
+                            <button onClick={handleEmailRecibo} className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-500 dark:bg-gray-600 hover:bg-gray-600 dark:hover:bg-gray-700 text-white font-medium rounded-full transition-colors">
                                 <Mail size={18} /> Enviar por Email
                             </button>
                             <button onClick={handlePrintRecibo} className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-colors">

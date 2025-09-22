@@ -45,15 +45,15 @@ const LoginPage = ({ onLogin, handlePasswordRecovery }) => {
     if (modalView === 'login') {
         return (
             <>
-                <h2 className="text-2xl font-bold text-center text-green-400 mb-6">Acessar Conta</h2>
+                <h2 className="text-2xl font-bold text-center text-green-600 dark:text-green-400 mb-6">Acessar Conta</h2>
                 <form className="space-y-4" onSubmit={handleLoginSubmit}>
                     <div>
-                        <label htmlFor="email-login" className="block text-sm font-medium text-gray-300">Email</label>
-                        <input id="email-login" type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                        <label htmlFor="email-login" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                        <input id="email-login" type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
                     </div>
                     <div>
-                        <label htmlFor="password-login" className="block text-sm font-medium text-gray-300">Senha</label>
-                        <input id="password-login" type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                        <label htmlFor="password-login" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Senha</label>
+                        <input id="password-login" type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
                     </div>
                     <button type="submit" className="w-full mt-4 px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors duration-300">Entrar</button>
                 </form>
@@ -66,15 +66,15 @@ const LoginPage = ({ onLogin, handlePasswordRecovery }) => {
 
     return (
         <>
-            <h2 className="text-2xl font-bold text-center text-green-400 mb-6">Recuperar Senha</h2>
+            <h2 className="text-2xl font-bold text-center text-green-600 dark:text-green-400 mb-6">Recuperar Senha</h2>
             <form className="space-y-4" onSubmit={handleRecoverSubmit}>
                 <div>
-                    <label htmlFor="email-recover" className="block text-sm font-medium text-gray-300">Email Cadastrado</label>
-                    <input id="email-recover" type="email" value={recoverEmail} onChange={e => setRecoverEmail(e.target.value)} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <label htmlFor="email-recover" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Cadastrado</label>
+                    <input id="email-recover" type="email" value={recoverEmail} onChange={e => setRecoverEmail(e.target.value)} required className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
                 </div>
                 <div>
-                    <label htmlFor="name-recover" className="block text-sm font-medium text-gray-300">Nome Completo</label>
-                    <input id="name-recover" type="text" value={recoverName} onChange={e => setRecoverName(e.target.value)} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <label htmlFor="name-recover" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome Completo</label>
+                    <input id="name-recover" type="text" value={recoverName} onChange={e => setRecoverName(e.target.value)} required className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
                 </div>
                 <button type="submit" className="w-full mt-4 px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors duration-300">Recuperar</button>
             </form>

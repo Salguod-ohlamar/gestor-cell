@@ -3,7 +3,20 @@ import React from 'react';
 const ReciboVenda = ({ saleDetails }) => {
     if (!saleDetails) return null;
 
-    const { items, subtotal, discountPercentage, discountValue, total, date, customer, paymentMethod, customerCpf, customerPhone, customerEmail, receiptCode } = saleDetails;
+    // Defensive destructuring to prevent errors if some properties are missing
+    const { 
+        items = [], 
+        subtotal = 0, 
+        discountPercentage = 0, 
+        discountValue = 0, 
+        total = 0, 
+        date, 
+        customer, 
+        paymentMethod, 
+        customerCpf, 
+        customerPhone, 
+        customerEmail, 
+        receiptCode } = saleDetails;
 
     return (
         <div className="p-8 bg-white text-black font-mono text-xs">
@@ -14,7 +27,7 @@ const ReciboVenda = ({ saleDetails }) => {
                 <p className="text-xs italic">Este documento não é fiscal.</p>
             </div>
             <div className="mb-4">
-                <p>Data: {new Date(date).toLocaleString('pt-BR')}</p>
+                <p>Data: {date ? new Date(date).toLocaleString('pt-BR') : 'N/A'}</p>
                 {customer && <p>Cliente: {customer}</p>}
                 {customerCpf && <p>CPF/CNPJ: {customerCpf}</p>}
                 {customerPhone && <p>Telefone: {customerPhone}</p>}
@@ -32,7 +45,7 @@ const ReciboVenda = ({ saleDetails }) => {
                 </thead>
                 <tbody>
                     {items.map(item => {
-                        const dataGarantia = new Date(date);
+                        const dataGarantia = date ? new Date(date) : new Date();
                         if (item.tempoDeGarantia && item.tempoDeGarantia > 0) {
                             dataGarantia.setDate(dataGarantia.getDate() + item.tempoDeGarantia);
                         }
@@ -46,9 +59,9 @@ const ReciboVenda = ({ saleDetails }) => {
                                         </span>
                                     )}
                                 </td>
-                                <td className="text-center p-1">{item.quantity}</td>
-                                <td className="text-right p-1">{item.precoFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                                <td className="text-right p-1">{(item.precoFinal * item.quantity).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                                <td className="text-center p-1">{item.quantity || 1}</td>
+                                <td className="text-right p-1">{(item.precoFinal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                                <td className="text-right p-1">{((item.precoFinal || 0) * (item.quantity || 1)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
                             </tr>
                         );
                     })}
@@ -58,17 +71,17 @@ const ReciboVenda = ({ saleDetails }) => {
                 <div className="w-1/2 space-y-1">
                     <div className="flex justify-between">
                         <span>Subtotal:</span>
-                        <span>{subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                        <span>{(subtotal || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                     </div>
                     {discountValue > 0 && (
                         <div className="flex justify-between text-gray-600">
                             <span>Desconto ({discountPercentage}%):</span>
-                            <span>-{discountValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                            <span>-{(discountValue || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                         </div>
                     )}
                     <div className="flex justify-between font-bold text-sm border-t-2 border-black pt-2 mt-1">
                         <span>TOTAL:</span>
-                        <span>{total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                        <span>{(total || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                     </div>
                 </div>
             </div>

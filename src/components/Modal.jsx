@@ -18,11 +18,11 @@ const Modal = ({ isOpen, onClose, children, size = 'md' }) => {
       onClick={onClose} // Fecha o modal ao clicar no fundo
     >
       {/* Conteúdo do Modal */}
-      <div 
-        className={`bg-gray-900 p-8 rounded-2xl shadow-xl w-full ${sizeClasses[size]} relative`}
+      <div
+        className={`bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-8 rounded-2xl shadow-xl w-full ${sizeClasses[size]} relative`}
         onClick={e => e.stopPropagation()} // Impede que o clique dentro do modal o feche
       >
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-white text-3xl leading-none" aria-label="Fechar modal">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:hover:text-white text-3xl leading-none" aria-label="Fechar modal">
           &times;
         </button>
         {children}

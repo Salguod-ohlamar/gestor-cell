@@ -1,19 +1,21 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowLeft, LogOut, Search, Edit, Trash2, ChevronLeft, ChevronRight, History, RefreshCw, Mail, Send, Printer, Settings, Package } from 'lucide-react';
+import { ArrowLeft, LogOut, Search, Edit, Trash2, ChevronLeft, ChevronRight, History, RefreshCw, Mail, Send, Printer, Settings, Package, Sun, Moon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import Modal from './Modal.jsx';
+import { useEstoqueContext } from './EstoqueContext.jsx';
 import ReciboVenda from './ReciboVenda.jsx';
+import { useTheme } from './ThemeContext.jsx';
 
-const ClientesPage = ({
-    onLogout,
-    currentUser,
-    clientes,
-    salesHistory,
-    handleUpdateCliente,
-    handleDeleteCliente,
-}) => {
+const ClientesPage = ({ onLogout, currentUser }) => {
+    const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
+    const {
+        clientes,
+        salesHistory,
+        handleUpdateCliente,
+        handleDeleteCliente,
+    } = useEstoqueContext();
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -32,7 +34,11 @@ const ClientesPage = ({
             (cliente.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
             (cliente.cpf?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
             (cliente.phone?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-        ).sort((a, b) => new Date(b.lastPurchase) - new Date(a.lastPurchase));
+        ).sort((a, b) => {
+            const dateA = a.lastPurchase ? new Date(a.lastPurchase).getTime() : 0;
+            const dateB = b.lastPurchase ? new Date(b.lastPurchase).getTime() : 0;
+            return dateB - dateA;
+        });
     }, [clientes, searchTerm]);
 
     const totalPages = Math.ceil(filteredClientes.length / itemsPerPage);
@@ -152,6 +158,9 @@ const ClientesPage = ({
                             <ArrowLeft size={20} />
                             <span className="hidden sm:inline">Voltar ao Estoque</span>
                         </button>
+            <button onClick={toggleTheme} className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300 transition-colors" title={`Alterar para Tema ${theme === 'dark' ? 'Claro' : 'Escuro'}`}>
+                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
                         <button onClick={onLogout} className="inline-flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors" title="Sair">
                             <LogOut size={20} />
                             <span className="hidden sm:inline">Sair</span>

@@ -5,9 +5,11 @@ const cors = require('cors');
 const db = require('./db.js');
 const bcrypt = require('bcryptjs'); 
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { nanoid } = require('nanoid');
 require('dotenv').config();
-const { protect, adminOnly } = require('./authMiddleware.js');
-const { getDefaultPermissions } = require('./permissions.js');
+const { protect, hasPermission } = require('./authMiddleware.js');
+const { getDefaultPermissions, PERMISSION_GROUPS } = require('./permissions.js');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -15,6 +17,62 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors()); // Permite requisições do nosso frontend React
 app.use(express.json()); // Permite que o Express entenda JSON
+
+// ==================
+// HELPER FUNCTIONS
+// ==================
+
+// Converte um objeto de produto do formato do banco de dados para o formato da API (camelCase)
+const formatProductForAPI = (p) => ({
+    id: p.id,
+    nome: p.nome,
+    categoria: p.categoria,
+    marca: p.marca,
+    fornecedor: p.fornecedor,
+    emEstoque: p.em_estoque,
+    qtdaMinima: p.qtda_minima,
+    preco: parseFloat(p.preco),
+    precoFinal: parseFloat(p.preco_final),
+    markup: p.markup,
+    imagem: p.imagem,
+    destaque: !!p.destaque,
+    tempoDeGarantia: p.tempo_de_garantia,
+    historico: p.historico,
+});
+
+// Converte um objeto de serviço do formato do banco de dados para o formato da API (camelCase)
+const formatServiceForAPI = (s) => ({
+    id: s.id,
+    servico: s.servico,
+    fornecedor: s.fornecedor,
+    marca: s.marca,
+    tipoReparo: s.tipo_reparo,
+    tecnico: s.tecnico,
+    preco: parseFloat(s.preco),
+    precoFinal: parseFloat(s.preco_final),
+    markup: s.markup,
+    imagem: s.imagem,
+    destaque: !!s.destaque,
+    tempoDeGarantia: s.tempo_de_garantia,
+    historico: s.historico,
+});
+
+// Converte um objeto de cliente do formato do banco de dados para o formato da API (camelCase)
+const formatClientForAPI = (c) => ({
+    id: c.id,
+    name: c.name,
+    cpf: c.cpf,
+    phone: c.phone,
+    email: c.email,
+    lastPurchase: c.last_purchase,
+    isActive: c.is_active,
+});
+
+// Centraliza o tratamento de erros para as rotas
+const handleRouteError = (res, err, contextMessage) => {
+    console.error(`Erro ao ${contextMessage}:`, err);
+    res.status(500).json({ message: `Erro no servidor ao ${contextMessage}.`, error: err.message });
+};
 
 // Rota de teste
 app.get('/', (req, res) => {
@@ -25,27 +83,9 @@ app.get('/', (req, res) => {
 app.get('/api/products', async (req, res) => {
   try {
     const { rows } = await db.query('SELECT * FROM products ORDER BY nome ASC');
-    // Converte o padrão snake_case do DB para camelCase do JS
-    const products = rows.map(p => ({
-        id: p.id,
-        nome: p.nome,
-        categoria: p.categoria,
-        marca: p.marca,
-        fornecedor: p.fornecedor,
-        emEstoque: p.em_estoque,
-        qtdaMinima: p.qtda_minima,
-        preco: parseFloat(p.preco),
-        precoFinal: parseFloat(p.preco_final),
-        markup: p.markup,
-        imagem: p.imagem,
-        destaque: !!p.destaque,
-        tempoDeGarantia: p.tempo_de_garantia,
-        historico: p.historico,
-    }));
-    res.json(products);
+    res.json(rows.map(formatProductForAPI));
   } catch (err) {
-    console.error('Erro ao buscar produtos:', err);
-    res.status(500).send('Erro no servidor ao buscar produtos.');
+    handleRouteError(res, err, 'buscar produtos');
   }
 });
 
@@ -65,17 +105,9 @@ app.get('/api/products/search', protect, async (req, res) => {
         `;
         const { rows } = await db.query(queryText, [`%${q}%`]);
         
-        const products = rows.map(p => ({
-            id: p.id, nome: p.nome, categoria: p.categoria, marca: p.marca,
-            fornecedor: p.fornecedor, emEstoque: p.em_estoque, qtdaMinima: p.qtda_minima,
-            preco: parseFloat(p.preco), precoFinal: parseFloat(p.preco_final),
-            markup: p.markup, imagem: p.imagem, destaque: !!p.destaque,
-            tempoDeGarantia: p.tempo_de_garantia, historico: p.historico,
-        }));
-        res.json(products);
+        res.json(rows.map(formatProductForAPI));
     } catch (err) {
-        console.error('Product search error:', err);
-        res.status(500).send('Erro no servidor ao buscar produtos.');
+        handleRouteError(res, err, 'buscar produtos');
     }
 });
 
@@ -84,7 +116,7 @@ app.get('/api/products/search', protect, async (req, res) => {
 // ==================
 
 // Rota para criar um novo serviço
-app.post('/api/services', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.post('/api/services', protect, hasPermission('addService'), async (req, res) => {
     const {
         servico, fornecedor, marca, tipoReparo, tecnico,
         preco, precoFinal, markup, imagem, destaque, tempoDeGarantia
@@ -117,31 +149,14 @@ app.post('/api/services', protect, adminOnly(['root', 'admin']), async (req, res
         const { rows } = await db.query(query, values);
         const newService = rows[0];
         
-        // Converte de volta para camelCase para a resposta
-        res.status(201).json({
-            id: newService.id,
-            servico: newService.servico,
-            fornecedor: newService.fornecedor,
-            marca: newService.marca,
-            tipoReparo: newService.tipo_reparo,
-            tecnico: newService.tecnico,
-            preco: parseFloat(newService.preco),
-            precoFinal: parseFloat(newService.preco_final),
-            markup: newService.markup,
-            imagem: newService.imagem,
-            destaque: !!newService.destaque,
-            tempoDeGarantia: newService.tempo_de_garantia,
-            historico: newService.historico,
-        });
-
+        res.status(201).json(formatServiceForAPI(newService));
     } catch (err) {
-        console.error('Create service error:', err);
-        res.status(500).send('Erro no servidor ao criar serviço.');
+        handleRouteError(res, err, 'criar serviço');
     }
 });
 
 // Rota para atualizar um serviço
-app.put('/api/services/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.put('/api/services/:id', protect, hasPermission('editService'), async (req, res) => {
     const { id } = req.params;
     const {
         servico, fornecedor, marca, tipoReparo, tecnico,
@@ -169,22 +184,14 @@ app.put('/api/services/:id', protect, adminOnly(['root', 'admin']), async (req, 
         if (rows.length === 0) return res.status(404).json({ message: 'Serviço não encontrado.' });
         
         const updatedService = rows[0];
-        res.json({
-            id: updatedService.id, servico: updatedService.servico, fornecedor: updatedService.fornecedor,
-            marca: updatedService.marca, tipoReparo: updatedService.tipo_reparo, tecnico: updatedService.tecnico,
-            preco: parseFloat(updatedService.preco), precoFinal: parseFloat(updatedService.preco_final),
-            markup: updatedService.markup, imagem: updatedService.imagem, destaque: !!updatedService.destaque,
-            tempoDeGarantia: updatedService.tempo_de_garantia, historico: updatedService.historico,
-        });
-
+        res.json(formatServiceForAPI(updatedService));
     } catch (err) {
-        console.error('Update service error:', err);
-        res.status(500).send('Erro no servidor ao atualizar serviço.');
+        handleRouteError(res, err, 'atualizar serviço');
     }
 });
 
 // Rota para excluir um serviço
-app.delete('/api/services/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.delete('/api/services/:id', protect, hasPermission('deleteService'), async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -202,8 +209,7 @@ app.delete('/api/services/:id', protect, adminOnly(['root', 'admin']), async (re
         res.status(200).json({ message: `Serviço "${result.rows[0].servico}" excluído com sucesso.` });
 
     } catch (err) {
-        console.error('Delete service error:', err);
-        res.status(500).send('Erro no servidor ao excluir serviço.');
+        handleRouteError(res, err, 'excluir serviço');
     }
 });
 
@@ -211,25 +217,9 @@ app.delete('/api/services/:id', protect, adminOnly(['root', 'admin']), async (re
 app.get('/api/services', async (req, res) => {
   try {
     const { rows } = await db.query('SELECT * FROM services ORDER BY servico ASC');
-    const services = rows.map(s => ({
-        id: s.id,
-        servico: s.servico,
-        fornecedor: s.fornecedor,
-        marca: s.marca,
-        tipoReparo: s.tipo_reparo,
-        tecnico: s.tecnico,
-        preco: parseFloat(s.preco),
-        precoFinal: parseFloat(s.preco_final),
-        markup: s.markup,
-        imagem: s.imagem,
-        destaque: s.destaque,
-        tempoDeGarantia: s.tempo_de_garantia,
-        historico: s.historico,
-    }));
-    res.json(services);
+    res.json(rows.map(formatServiceForAPI));
   } catch (err) {
-    console.error('Erro ao buscar serviços:', err);
-    res.status(500).send('Erro no servidor ao buscar serviços.');
+    handleRouteError(res, err, 'buscar serviços');
   }
 });
 
@@ -242,22 +232,101 @@ app.get('/api/services/search', protect, async (req, res) => {
     try {
         const queryText = `SELECT * FROM services WHERE servico ILIKE $1 ORDER BY servico ASC LIMIT 20;`;
         const { rows } = await db.query(queryText, [`%${q}%`]);
-        const services = rows.map(s => ({
-            id: s.id, servico: s.servico, fornecedor: s.fornecedor, marca: s.marca,
-            tipoReparo: s.tipo_reparo, tecnico: s.tecnico, preco: parseFloat(s.preco),
-            precoFinal: parseFloat(s.preco_final), markup: s.markup, imagem: s.imagem,
-            destaque: !!s.destaque, tempoDeGarantia: s.tempo_de_garantia, historico: s.historico,
-        }));
-        res.json(services);
+        res.json(rows.map(formatServiceForAPI));
     } catch (err) {
-        console.error('Service search error:', err);
-        res.status(500).send('Erro no servidor ao buscar serviços.');
+        handleRouteError(res, err, 'buscar serviços');
     }
 });
 
+// ==================
+// BANNER MANAGEMENT ROUTES
+// ==================
+
+// Rota para buscar todos os banners ativos (público)
+app.get('/api/banners', async (req, res) => {
+  try {
+    const { rows } = await db.query('SELECT * FROM banners WHERE is_active = TRUE ORDER BY sort_order ASC, created_at DESC');
+    res.json(rows);
+  } catch (err) {
+    handleRouteError(res, err, 'buscar banners');
+  }
+});
+
+// Rota para buscar TODOS os banners (admin)
+app.get('/api/banners/all', protect, hasPermission('manageBanners'), async (req, res) => {
+  try {
+    const { rows } = await db.query('SELECT * FROM banners ORDER BY sort_order ASC, created_at DESC');
+    res.json(rows);
+  } catch (err) {
+    handleRouteError(res, err, 'buscar todos os banners');
+  }
+});
+
+// Rota para criar um novo banner
+app.post('/api/banners', protect, hasPermission('manageBanners'), async (req, res) => {
+    const { title, text, image_url, link_url, is_active, sort_order } = req.body;
+
+    if (!image_url) {
+        return res.status(400).json({ message: 'A imagem do banner é obrigatória.' });
+    }
+
+    try {
+        const query = `
+            INSERT INTO banners (title, text, image_url, link_url, is_active, sort_order)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING *;
+        `;
+        const values = [title, text, image_url, link_url, is_active, sort_order || 0];
+        const { rows } = await db.query(query, values);
+        res.status(201).json(rows[0]);
+    } catch (err) {
+        handleRouteError(res, err, 'criar banner');
+    }
+});
+
+// Rota para atualizar um banner
+app.put('/api/banners/:id', protect, hasPermission('manageBanners'), async (req, res) => {
+    const { id } = req.params;
+    const { title, text, image_url, link_url, is_active, sort_order } = req.body;
+
+    if (!image_url) {
+        return res.status(400).json({ message: 'A imagem do banner é obrigatória.' });
+    }
+
+    try {
+        const query = `
+            UPDATE banners SET
+                title = $1, text = $2, image_url = $3, link_url = $4, is_active = $5, sort_order = $6, updated_at = NOW()
+            WHERE id = $7
+            RETURNING *;
+        `;
+        const values = [title, text, image_url, link_url, is_active, sort_order || 0, id];
+        const { rows } = await db.query(query, values);
+
+        if (rows.length === 0) return res.status(404).json({ message: 'Banner não encontrado.' });
+        
+        res.json(rows[0]);
+    } catch (err) {
+        handleRouteError(res, err, 'atualizar banner');
+    }
+});
+
+// Rota para excluir um banner
+app.delete('/api/banners/:id', protect, hasPermission('manageBanners'), async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await db.query('DELETE FROM banners WHERE id = $1', [id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Banner não encontrado.' });
+        }
+        res.status(200).json({ message: 'Banner excluído com sucesso.' });
+    } catch (err) {
+        handleRouteError(res, err, 'excluir banner');
+    }
+});
 
 // Rota para criar um novo produto
-app.post('/api/products', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.post('/api/products', protect, hasPermission('addProduct'), async (req, res) => {
     const {
         nome, categoria, marca, fornecedor, emEstoque, qtdaMinima,
         preco, precoFinal, markup, imagem, destaque, tempoDeGarantia
@@ -290,32 +359,14 @@ app.post('/api/products', protect, adminOnly(['root', 'admin']), async (req, res
         const { rows } = await db.query(query, values);
         const newProduct = rows[0];
         
-        // Converte de volta para camelCase para a resposta
-        res.status(201).json({
-            id: newProduct.id,
-            nome: newProduct.nome,
-            categoria: newProduct.categoria,
-            marca: newProduct.marca,
-            fornecedor: newProduct.fornecedor,
-            emEstoque: newProduct.em_estoque,
-            qtdaMinima: newProduct.qtda_minima,
-            preco: parseFloat(newProduct.preco),
-            precoFinal: parseFloat(newProduct.preco_final),
-            markup: newProduct.markup,
-            imagem: newProduct.imagem,
-            destaque: newProduct.destaque,
-            tempoDeGarantia: newProduct.tempo_de_garantia,
-            historico: newProduct.historico,
-        });
-
+        res.status(201).json(formatProductForAPI(newProduct));
     } catch (err) {
-        console.error('Create product error:', err);
-        res.status(500).send('Erro no servidor ao criar produto.');
+        handleRouteError(res, err, 'criar produto');
     }
 });
 
 // Rota para atualizar um produto
-app.put('/api/products/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.put('/api/products/:id', protect, hasPermission('editProduct'), async (req, res) => {
     const { id } = req.params;
     const {
         nome, categoria, marca, fornecedor, emEstoque, qtdaMinima,
@@ -343,31 +394,14 @@ app.put('/api/products/:id', protect, adminOnly(['root', 'admin']), async (req, 
         if (rows.length === 0) return res.status(404).json({ message: 'Produto não encontrado.' });
         
         const updatedProduct = rows[0];
-        res.json({
-            id: updatedProduct.id,
-            nome: updatedProduct.nome,
-            categoria: updatedProduct.categoria,
-            marca: updatedProduct.marca,
-            fornecedor: updatedProduct.fornecedor,
-            emEstoque: updatedProduct.em_estoque,
-            qtdaMinima: updatedProduct.qtda_minima,
-            preco: parseFloat(updatedProduct.preco),
-            precoFinal: parseFloat(updatedProduct.preco_final),
-            markup: updatedProduct.markup,
-            imagem: updatedProduct.imagem,
-            destaque: !!updatedProduct.destaque,
-            tempoDeGarantia: updatedProduct.tempo_de_garantia,
-            historico: updatedProduct.historico,
-        });
-
+        res.json(formatProductForAPI(updatedProduct));
     } catch (err) {
-        console.error('Update product error:', err);
-        res.status(500).send('Erro no servidor ao atualizar produto.');
+        handleRouteError(res, err, 'atualizar produto');
     }
 });
 
 // Rota para excluir um produto
-app.delete('/api/products/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.delete('/api/products/:id', protect, hasPermission('deleteProduct'), async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -385,8 +419,7 @@ app.delete('/api/products/:id', protect, adminOnly(['root', 'admin']), async (re
         res.status(200).json({ message: `Produto "${result.rows[0].nome}" excluído com sucesso.` });
 
     } catch (err) {
-        console.error('Delete product error:', err);
-        res.status(500).send('Erro no servidor ao excluir produto.');
+        handleRouteError(res, err, 'excluir produto');
     }
 });
 
@@ -417,6 +450,17 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ message: 'Credenciais inválidas.' });
     }
 
+    // Garante que o usuário tenha as permissões mais recentes para sua role
+    const defaultPerms = getDefaultPermissions(user.role);
+    const finalPermissions = { ...defaultPerms, ...(user.permissions || {}) };
+
+    // Garante que o root sempre tenha todas as permissões
+    if (user.role === 'root') {
+        Object.keys(finalPermissions).forEach(key => {
+            finalPermissions[key] = true;
+        });
+    }
+
     // Create JWT
     const token = jwt.sign(
       { id: user.id, role: user.role, name: user.name },
@@ -424,13 +468,42 @@ app.post('/api/auth/login', async (req, res) => {
       { expiresIn: '8h' } // Token expires in 8 hours
     );
 
-    // Return token and user info (without password hash)
     const { password_hash, ...userWithoutPassword } = user;
-    res.json({ token, user: userWithoutPassword });
+    // Retorna o token e as informações do usuário com as permissões atualizadas
+    res.json({ token, user: { ...userWithoutPassword, permissions: finalPermissions } });
   } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).send('Erro no servidor durante o login.');
+    handleRouteError(res, err, 'durante o login');
   }
+});
+
+// Rota para verificar o token e retornar os dados do usuário atualizado
+app.get('/api/auth/me', protect, async (req, res) => {
+    try {
+        // req.user é populado pelo middleware 'protect' com os dados do token
+        const { rows } = await db.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+        const user = rows[0];
+
+        if (!user) {
+            return res.status(404).json({ message: 'Usuário não encontrado.' });
+        }
+
+        // Re-calcula as permissões para garantir que estão sempre atualizadas
+        const defaultPerms = getDefaultPermissions(user.role);
+        const finalPermissions = { ...defaultPerms, ...(user.permissions || {}) };
+
+        if (user.role === 'root') {
+            Object.keys(finalPermissions).forEach(key => {
+                finalPermissions[key] = true;
+            });
+        }
+
+        const { password_hash, ...userWithoutPassword } = user;
+        // Retorna o objeto do usuário com as permissões mais recentes
+        res.json({ ...userWithoutPassword, permissions: finalPermissions });
+
+    } catch (err) {
+        handleRouteError(res, err, 'ao buscar dados do usuário');
+    }
 });
 
 // Rota para recuperação de senha (simulada)
@@ -455,8 +528,7 @@ app.post('/api/auth/recover', async (req, res) => {
         res.json({ message: `Se um usuário com esse email e nome existir, um link de recuperação foi enviado.` });
 
     } catch (err) {
-        console.error('Password recovery error:', err);
-        res.status(500).send('Erro no servidor durante a recuperação de senha.');
+        handleRouteError(res, err, 'durante a recuperação de senha');
     }
 });
 
@@ -465,7 +537,7 @@ app.post('/api/auth/recover', async (req, res) => {
 // ==================
 
 // Rota para criar um novo usuário (somente admin/root)
-app.post('/api/users/register', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.post('/api/users/register', protect, hasPermission('manageUsers'), async (req, res) => {
   const { name, email, password, role } = req.body;
   const requestingUser = req.user;
   const finalRole = role || 'vendedor';
@@ -495,13 +567,12 @@ app.post('/api/users/register', protect, adminOnly(['root', 'admin']), async (re
 
     res.status(201).json(rows[0]);
   } catch (err) {
-    console.error('Registration error:', err);
-    res.status(500).send('Erro no servidor ao registrar usuário.');
+    handleRouteError(res, err, 'registrar usuário');
   }
 });
 
 // Rota para resetar a senha de um usuário
-app.post('/api/users/:id/reset-password', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.post('/api/users/:id/reset-password', protect, hasPermission('resetUserPassword'), async (req, res) => {
     const { id } = req.params;
     const requestingUser = req.user;
 
@@ -514,7 +585,7 @@ app.post('/api/users/:id/reset-password', protect, adminOnly(['root', 'admin']),
         if (targetUser.role === 'admin' && requestingUser.role !== 'root') return res.status(403).json({ message: 'Apenas o usuário root pode resetar a senha de um administrador.' });
 
         // Gera nova senha aleatória e a criptografa
-        const newPassword = Math.random().toString(36).slice(-8);
+        const newPassword = crypto.randomBytes(6).toString('hex'); // Gera senha de 12 caracteres
         const salt = await bcrypt.genSalt(10);
         const password_hash = await bcrypt.hash(newPassword, salt);
 
@@ -524,13 +595,12 @@ app.post('/api/users/:id/reset-password', protect, adminOnly(['root', 'admin']),
         res.json({ message: `Senha de ${targetUser.name} resetada com sucesso.`, newPassword: newPassword });
 
     } catch (err) {
-        console.error('Reset password error:', err);
-        res.status(500).send('Erro no servidor ao resetar a senha.');
+        handleRouteError(res, err, 'resetar a senha');
     }
 });
 
 // Rota para buscar todos os usuários (protegida)
-app.get('/api/users', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.get('/api/users', protect, hasPermission('manageUsers'), async (req, res) => {
   const requestingUser = req.user;
   try {
     let queryText = 'SELECT id, name, email, role, permissions FROM users';
@@ -546,13 +616,12 @@ app.get('/api/users', protect, adminOnly(['root', 'admin']), async (req, res) =>
     const { rows } = await db.query(queryText, queryParams);
     res.json(rows);
   } catch (err) {
-    console.error('Error fetching users:', err);
-    res.status(500).send('Erro no servidor ao buscar usuários.');
+    handleRouteError(res, err, 'buscar usuários');
   }
 });
 
 // Rota para atualizar um usuário
-app.put('/api/users/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.put('/api/users/:id', protect, hasPermission('manageUsers'), async (req, res) => {
     const { id } = req.params;
     const { name, email, password, permissions, role } = req.body;
     const requestingUser = req.user;
@@ -601,13 +670,12 @@ app.put('/api/users/:id', protect, adminOnly(['root', 'admin']), async (req, res
         res.json(rows[0]);
 
     } catch (err) {
-        console.error('Update user error:', err);
-        res.status(500).send('Erro no servidor ao atualizar o usuário.');
+        handleRouteError(res, err, 'atualizar o usuário');
     }
 });
 
 // Rota para excluir um usuário
-app.delete('/api/users/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.delete('/api/users/:id', protect, hasPermission('manageUsers'), async (req, res) => {
     const { id } = req.params;
     const requestingUser = req.user;
 
@@ -623,8 +691,7 @@ app.delete('/api/users/:id', protect, adminOnly(['root', 'admin']), async (req, 
         res.status(200).json({ message: `Usuário "${targetUser.name}" excluído com sucesso.` });
 
     } catch (err) {
-        console.error('Delete user error:', err);
-        res.status(500).send('Erro no servidor ao excluir o usuário.');
+        handleRouteError(res, err, 'excluir o usuário');
     }
 });
 
@@ -634,44 +701,46 @@ app.delete('/api/users/:id', protect, adminOnly(['root', 'admin']), async (req, 
 
 // Rota para buscar todos os clientes
 app.get('/api/clients', protect, async (req, res) => {
-    const { includeInactive = 'false' } = req.query;
     try {
-        const query = includeInactive === 'true' ? 'SELECT * FROM clients ORDER BY name ASC' : 'SELECT * FROM clients WHERE is_active = TRUE ORDER BY name ASC';
+        const query = 'SELECT * FROM clients ORDER BY name ASC';
         const { rows } = await db.query(query);
-        res.json(rows);
+        res.json(rows.map(formatClientForAPI));
     } catch (err) {
-        console.error('Error fetching clients:', err);
-        res.status(500).send('Erro no servidor ao buscar clientes.');
+        handleRouteError(res, err, 'buscar clientes');
     }
 });
 
 // Rota para criar um novo cliente (pela tela de gerenciamento)
-app.post('/api/clients', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.post('/api/clients', protect, hasPermission('manageClients'), async (req, res) => {
     const { name, cpf, phone, email } = req.body;
 
-    if (!name || !cpf || !phone) {
-        return res.status(400).json({ message: 'Nome, CPF/CNPJ e Telefone são obrigatórios.' });
+    if (!name || !phone) {
+        return res.status(400).json({ message: 'Nome e Telefone são obrigatórios.' });
     }
 
     try {
-        const { rows: existingClient } = await db.query('SELECT id FROM clients WHERE cpf = $1', [cpf]);
-        if (existingClient.length > 0) {
-            return res.status(409).json({ message: 'Este CPF/CNPJ já está cadastrado.' });
+        // Só verifica a unicidade do CPF se ele for fornecido e não estiver em branco
+        if (cpf && cpf.trim() !== '') {
+            const { rows: existingClient } = await db.query('SELECT id FROM clients WHERE cpf = $1', [cpf]);
+            if (existingClient.length > 0) {
+                return res.status(409).json({ message: 'Este CPF/CNPJ já está cadastrado.' });
+            }
         }
+
+        const finalCpf = (cpf && cpf.trim() !== '') ? cpf.trim() : null;
 
         const { rows } = await db.query(
             'INSERT INTO clients (name, cpf, phone, email) VALUES ($1, $2, $3, $4) RETURNING *',
-            [name, cpf, phone, email]
+            [name, finalCpf, phone, email]
         );
-        res.status(201).json(rows[0]);
+        res.status(201).json(formatClientForAPI(rows[0]));
     } catch (err) {
-        console.error('Create client error:', err);
-        res.status(500).send('Erro no servidor ao criar cliente.');
+        handleRouteError(res, err, 'criar cliente');
     }
 });
 
 // Rota para atualizar um cliente
-app.put('/api/clients/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.put('/api/clients/:id', protect, hasPermission('manageClients'), async (req, res) => {
     const { id } = req.params;
     const { name, cpf, phone, email } = req.body;
 
@@ -694,27 +763,19 @@ app.put('/api/clients/:id', protect, adminOnly(['root', 'admin']), async (req, r
         if (rows.length === 0) return res.status(404).json({ message: 'Cliente não encontrado.' });
 
         const updatedClient = rows[0];
-        res.json({
-            id: updatedClient.id,
-            name: updatedClient.name,
-            cpf: updatedClient.cpf,
-            phone: updatedClient.phone,
-            email: updatedClient.email,
-            lastPurchase: updatedClient.last_purchase,
-            // Não precisamos enviar created_at ou updated_at para a interface
-        });
+        res.json(formatClientForAPI(updatedClient));
     } catch (err) {
-        console.error('Update client error:', err);
-        res.status(500).send('Erro no servidor ao atualizar o cliente.');
+        handleRouteError(res, err, 'atualizar o cliente');
     }
 });
 
 // Rota para excluir um cliente
-app.delete('/api/clients/:id', protect, adminOnly(['root', 'admin']), async (req, res) => {
+app.delete('/api/clients/:id', protect, hasPermission('manageClients'), async (req, res) => {
     const { id } = req.params;
-    const dbClient = await db.getClient();
+    let dbClient; // Declare outside to be accessible in finally
 
     try {
+        dbClient = await db.getClient(); // Connect inside the try block
         await dbClient.query('BEGIN');
 
         // Get client name for the response message
@@ -735,11 +796,18 @@ app.delete('/api/clients/:id', protect, adminOnly(['root', 'admin']), async (req
         res.status(200).json({ message: `Cliente "${clientName}" e todo o seu histórico foram excluídos com sucesso.` });
 
     } catch (err) {
-        await dbClient.query('ROLLBACK');
-        console.error('Hard delete client error:', err);
-        res.status(500).send('Erro no servidor ao excluir o cliente e seu histórico.');
+        if (dbClient) {
+            try {
+                await dbClient.query('ROLLBACK');
+            } catch (rbErr) {
+                console.error('Error during transaction rollback on client deletion:', rbErr);
+            }
+        }
+        handleRouteError(res, err, 'excluir o cliente e seu histórico');
     } finally {
-        dbClient.release();
+        if (dbClient) {
+            try { dbClient.release(); } catch (relErr) { console.error('Error releasing client on client deletion:', relErr); }
+        }
     }
 });
 
@@ -754,10 +822,9 @@ app.get('/api/clients/search', protect, async (req, res) => {
         if (rows.length === 0) {
             return res.status(404).json({ message: 'Cliente não encontrado.' });
         }
-        res.json(rows[0]);
+        res.json(formatClientForAPI(rows[0]));
     } catch (err) {
-        console.error('Search client error:', err);
-        res.status(500).send('Erro no servidor ao buscar cliente.');
+        handleRouteError(res, err, 'buscar cliente');
     }
 });
 
@@ -945,7 +1012,28 @@ app.delete('/api/appointments/:id', protect, adminOnly(['root', 'admin', 'vended
 // Rota para buscar o histórico de vendas
 app.get('/api/sales', protect, async (req, res) => {
     try {
+        // Esta query foi otimizada para ser mais performática.
+        // 1. Primeiro, agregamos os itens de venda em um JSON por cada ID de venda (usando um CTE).
+        // 2. Depois, juntamos a tabela de vendas principal com os itens já agregados.
+        // Isso evita que o banco de dados precise processar a agregação JSON em um join gigante, melhorando a velocidade.
         const query = `
+            WITH aggregated_items AS (
+                SELECT
+                    si.sale_id,
+                    json_agg(json_build_object(
+                        'id', COALESCE(si.product_id, si.service_id),
+                        'type', si.item_type,
+                        'nome', si.item_name,
+                        'servico', si.item_name,
+                        'quantity', si.quantity,
+                        'precoFinal', si.unit_price,
+                        'tempoDeGarantia', COALESCE(p.tempo_de_garantia, sv.tempo_de_garantia, 0)
+                    )) AS items
+                FROM sale_items si
+                LEFT JOIN products p ON si.product_id = p.id AND si.item_type = 'produto'
+                LEFT JOIN services sv ON si.service_id = sv.id AND si.item_type = 'servico'
+                GROUP BY si.sale_id
+            )
             SELECT
                 s.id,
                 s.receipt_code AS "receiptCode",
@@ -962,28 +1050,18 @@ app.get('/api/sales', protect, async (req, res) => {
                 s.total,
                 s.payment_method AS "paymentMethod",
                 s.sale_date AS "date",
-                json_agg(json_build_object(
-                    'id', COALESCE(si.product_id, si.service_id),
-                    'type', si.item_type,
-                    'nome', si.item_name,
-                    'servico', si.item_name,
-                    'quantity', si.quantity,
-                    'precoFinal', si.unit_price,
-                    'tempoDeGarantia', COALESCE(p.tempo_de_garantia, sv.tempo_de_garantia, 0)
-                )) AS items
+                ai.items
             FROM sales s
-            JOIN sale_items si ON s.id = si.sale_id
+            LEFT JOIN users u ON s.user_id = u.id
             LEFT JOIN clients c ON s.client_id = c.id
-            LEFT JOIN products p ON si.product_id = p.id
-            LEFT JOIN services sv ON si.service_id = sv.id
-            GROUP BY s.id, c.id
+            JOIN aggregated_items ai ON s.id = ai.sale_id
+            WHERE u.role != 'root'
             ORDER BY s.sale_date DESC;
         `;
         const { rows } = await db.query(query);
         res.json(rows);
     } catch (err) {
-        console.error('Error fetching sales history:', err);
-        res.status(500).send('Erro no servidor ao buscar histórico de vendas.');
+        handleRouteError(res, err, 'buscar histórico de vendas');
     }
 });
 
@@ -1000,34 +1078,57 @@ app.post('/api/sales', protect, async (req, res) => {
         return res.status(400).json({ message: 'O carrinho não pode estar vazio.' });
     }
 
-    const dbClient = await db.query('BEGIN');
+    let client; // Declare outside to be accessible in finally
 
     try {
-        let clientId;
-        const { rows: existingClients } = await db.query('SELECT id FROM clients WHERE cpf = $1', [customerCpf]);
-        if (existingClients.length > 0) {
-            clientId = existingClients[0].id;
-            await db.query('UPDATE clients SET last_purchase = NOW(), phone = $1, email = $2, name = $3 WHERE id = $4', [customerPhone, customerEmail, customer, clientId]);
-        } else {
-            const { rows: newClient } = await db.query(
-                'INSERT INTO clients (name, cpf, phone, email, last_purchase) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
-                [customer, customerCpf, customerPhone, customerEmail]
-            );
-            clientId = newClient[0].id;
-        }
+        client = await db.connect(); // Connect inside the try block
+        await client.query('BEGIN');
 
-        const receiptCode = `BC-${new Date().getFullYear()}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${new Date().getDate().toString().padStart(2, '0')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+        const randomPart = nanoid(6).toUpperCase();
+        const receiptCode = `BC-${datePart}-${randomPart}`;
         const saleQuery = `
             INSERT INTO sales (receipt_code, client_id, user_id, vendedor_name, subtotal, discount_percentage, discount_value, total, payment_method)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING id, sale_date;
         `;
-        const saleValues = [receiptCode, clientId, userId, vendedor, subtotal, discountPercentage, discountValue, total, paymentMethod];
-        const { rows: newSale } = await db.query(saleQuery, saleValues);
+        // Insere a venda inicialmente sem client_id, que será atualizado depois.
+        const saleValues = [receiptCode, null, userId, vendedor, subtotal, discountPercentage, discountValue, total, paymentMethod];
+        const { rows: newSale } = await client.query(saleQuery, saleValues);
         const saleId = newSale[0].id;
         const saleDate = newSale[0].sale_date;
 
-        for (const item of items) {
+        let clientId;
+        
+        // Lógica de criar/encontrar cliente para a venda.
+        const finalCustomerName = (customer && customer.trim()) ? customer.trim() : 'Consumidor Final';
+        const sanitizedCpf = (customerCpf && customerCpf.trim()) ? customerCpf.trim() : null;
+        if (sanitizedCpf) {
+            const { rows: existingClients } = await client.query('SELECT id FROM clients WHERE cpf = $1', [sanitizedCpf]);
+            if (existingClients.length > 0) {
+                clientId = existingClients[0].id;
+            }
+        }
+        if (!clientId) {
+            const { rows: newClient } = await client.query('INSERT INTO clients (name, cpf, phone, email, last_purchase) VALUES ($1, $2, $3, $4, NOW()) RETURNING id', [finalCustomerName, sanitizedCpf, customerPhone, customerEmail]);
+            clientId = newClient[0].id;
+        }
+
+        // Se um cliente foi identificado ou criado, atualiza o registro da venda.
+        if (clientId) {
+            await client.query('UPDATE sales SET client_id = $1 WHERE id = $2', [clientId, saleId]);
+        }
+
+        // Ordena os itens pelo ID para garantir uma ordem de bloqueio consistente no banco de dados.
+        // Isso previne deadlocks quando múltiplas vendas com os mesmos produtos são processadas simultaneamente.
+        const sortedItems = [...items].sort((a, b) => {
+            // Garante que a ordenação funcione para IDs numéricos e strings (offline_...)
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idA.localeCompare(idB);
+        });
+
+        for (const item of sortedItems) {
             const saleItemQuery = `
                 INSERT INTO sale_items (sale_id, product_id, service_id, item_type, quantity, item_name, unit_price)
                 VALUES ($1, $2, $3, $4, $5, $6, $7);
@@ -1041,10 +1142,10 @@ app.post('/api/sales', protect, async (req, res) => {
                 item.nome || item.servico,
                 item.precoFinal
             ];
-            await db.query(saleItemQuery, saleItemValues);
+            await client.query(saleItemQuery, saleItemValues);
 
             if (item.type === 'produto') {
-                const productInDb = await db.query('SELECT em_estoque FROM products WHERE id = $1 FOR UPDATE', [item.id]);
+                const productInDb = await client.query('SELECT em_estoque FROM products WHERE id = $1 FOR UPDATE', [item.id]);
                 if (productInDb.rows[0].em_estoque < item.quantity) {
                     throw new Error(`Estoque insuficiente para o produto "${item.nome || item.servico}".`);
                 }
@@ -1056,24 +1157,159 @@ app.post('/api/sales', protect, async (req, res) => {
                     acao: 'Venda Realizada',
                     detalhes: `Venda de ${item.quantity} unidade(s). Venda Cód: ${receiptCode}.`
                 };
-                await db.query(updateStockQuery, [item.quantity, JSON.stringify(historyEntry), item.id]);
+                await client.query(updateStockQuery, [item.quantity, JSON.stringify(historyEntry), item.id]);
             }
         }
 
-        await db.query('COMMIT');
+        await client.query('COMMIT');
+
+        // Otimização: Cria uma versão "enxuta" dos itens para a resposta da API.
+        // Remove campos grandes e desnecessários para o recibo (como imagem e histórico),
+        // o que torna a resposta muito mais rápida e leve.
+        const leanItems = items.map(({ imagem, historico, ...item }) => item);
 
         res.status(201).json({
             id: saleId,
             receiptCode,
             clienteId: clientId,
             date: saleDate,
-            ...req.body
+            // Re-constrói o corpo da resposta com os dados essenciais
+            items: leanItems, // Usa a versão enxuta dos itens
+            subtotal,
+            discountPercentage,
+            discountValue,
+            total,
+            customer,
+            customerCpf,
+            customerPhone,
+            customerEmail,
+            paymentMethod,
+            vendedor
         });
 
     } catch (err) {
-        await db.query('ROLLBACK');
+        if (client) {
+            try {
+                await client.query('ROLLBACK');
+            } catch (rbErr) {
+                console.error('Error during transaction rollback on sale creation:', rbErr);
+            }
+        }
         console.error('Sale creation error:', err);
-        res.status(500).json({ message: err.message || 'Erro no servidor ao finalizar a venda.' });
+        // Use o manipulador de erros centralizado para consistência
+        handleRouteError(res, err, 'finalizar a venda');
+    } finally {
+        if (client) {
+            try { client.release(); } catch (relErr) { console.error('Error releasing client on sale creation:', relErr); }
+        }
+    }
+});
+
+app.get('/api/reports/sales-by-user', protect, hasPermission('viewUserSalesReport'), async (req, res) => {
+    const { userId, startDate, endDate } = req.query;
+
+    if (!userId || !startDate || !endDate) {
+        return res.status(400).json({ message: 'ID do usuário, data de início e fim são obrigatórios.' });
+    }
+
+    try {
+        const salesResult = await db.query(`
+            SELECT
+                s.id,
+                s.receipt_code AS "receiptCode",
+                s.client_id AS "clienteId",
+                c.name AS "customer",
+                s.total,
+                s.payment_method AS "paymentMethod",
+                s.sale_date AS "date",
+                json_agg(json_build_object(
+                    'id', COALESCE(si.product_id, si.service_id),
+                    'type', si.item_type,
+                    'nome', si.item_name,
+                    'servico', si.item_name,
+                    'quantity', si.quantity,
+                    'precoFinal', si.unit_price
+                )) AS items
+            FROM sales s
+            JOIN sale_items si ON s.id = si.sale_id
+            LEFT JOIN clients c ON s.client_id = c.id
+            WHERE s.user_id = $1 AND s.sale_date >= $2 AND s.sale_date <= $3
+            GROUP BY s.id, c.id
+            ORDER BY s.sale_date ASC;
+        `, [userId, startDate, endDate]);
+
+        const sales = salesResult.rows.map(sale => ({
+            ...sale,
+            total: parseFloat(sale.total)
+        }));
+
+        if (sales.length === 0) {
+            return res.json({ sales: [], totalVendido: 0, totalVendas: 0, totalsByPaymentMethod: {} });
+        }
+
+        const totalVendido = sales.reduce((acc, sale) => acc + sale.total, 0);
+        const totalVendas = sales.length;
+
+        res.json({
+            sales,
+            totalVendido,
+            totalVendas,
+        });
+
+    } catch (err) {
+        handleRouteError(res, err, 'gerar o relatório de vendas por vendedor');
+    }
+});
+
+// ==================
+// REPORTS ROUTES
+// ==================
+
+app.get('/api/reports/dre', protect, hasPermission('viewDreReport'), async (req, res) => {
+    const { startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+        return res.status(400).json({ message: 'As datas de início e fim são obrigatórias.' });
+    }
+
+    try {
+        // 1. Calcular Receita Bruta de Vendas (total vendido + descontos)
+        const salesResult = await db.query(
+            'SELECT SUM(total) as total_revenue, SUM(discount_value) as total_discount FROM sales WHERE sale_date >= $1 AND sale_date <= $2',
+            [startDate, endDate]
+        );
+        const totalRevenue = parseFloat(salesResult.rows[0].total_revenue) || 0;
+        const totalDiscount = parseFloat(salesResult.rows[0].total_discount) || 0;
+
+        // 2. Calcular Custo dos Produtos Vendidos (CMV) e Serviços Prestados
+        const costsResult = await db.query(`
+            SELECT 
+                SUM(
+                    CASE 
+                        WHEN si.item_type = 'produto' THEN si.quantity * p.preco
+                        WHEN si.item_type = 'servico' THEN si.quantity * s.preco
+                        ELSE 0 
+                    END
+                ) as total_cost
+            FROM sale_items si
+            JOIN sales ON si.sale_id = sales.id
+            LEFT JOIN products p ON si.product_id = p.id AND si.item_type = 'produto'
+            LEFT JOIN services s ON si.service_id = s.id AND si.item_type = 'servico'
+            WHERE sales.sale_date >= $1 AND sales.sale_date <= $2;
+        `, [startDate, endDate]);
+        const totalCost = parseFloat(costsResult.rows[0].total_cost) || 0;
+
+        res.json({
+            period: { start: startDate, end: endDate },
+            receitaBruta: totalRevenue + totalDiscount,
+            deducoes: totalDiscount,
+            receitaLiquida: totalRevenue,
+            custoVendas: totalCost,
+            lucroBruto: totalRevenue - totalCost,
+        });
+
+    } catch (err) {
+        handleRouteError(res, err, 'gerar o DRE');
     }
 });
 

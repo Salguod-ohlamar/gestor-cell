@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, X, Edit, LogOut, ShoppingCart, Mail, Printer, Send, Banknote, CreditCard, QrCode, DollarSign, ShoppingBag, Calendar, Eye, EyeOff } from 'lucide-react';
+import { Search, X, Edit, LogOut, ShoppingCart, Mail, Printer, Send, Banknote, CreditCard, QrCode, DollarSign, ShoppingBag, Calendar, Eye, EyeOff, Sun, Moon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Toaster, toast } from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 import ReciboVenda from './ReciboVenda';
 import Modal from './Modal.jsx';
 import { validateCPF, validatePhone } from './formatters.js';
+import { useEstoqueContext } from './EstoqueContext.jsx';
+import { useTheme } from './ThemeContext.jsx';
 
 const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue, onToggle }) => {
     const Icon = icon;
@@ -26,15 +28,15 @@ const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue
     );
   };
 
-const VendasPage = ({ 
-    onLogout, 
-    currentUser, 
-    handleSale, 
-    salesHistory,
-    estoque,
-    servicos
-}) => {
+const VendasPage = ({ onLogout, currentUser }) => {
     const navigate = useNavigate();
+    const { theme, toggleTheme } = useTheme();
+    const {
+        handleSale,
+        salesHistory,
+        estoque,
+        servicos
+    } = useEstoqueContext();
 
     const [carrinho, setCarrinho] = useState(() => {
         try {
@@ -75,7 +77,7 @@ const VendasPage = ({
     const [discount, setDiscount] = useState('');
     const [produtoSearchTerm, setProdutoSearchTerm] = useState('');
     const [servicoSearchTerm, setServicoSearchTerm] = useState('');
-    const [activeTab, setActiveTab] = useState('produtos'); // 'produtos' ou 'servicos'
+    const [activeTab, setActiveTab] = useState('produtos'); // 'produtos', 'servicos', ou 'agendamentos'
     const [showVendasHoje, setShowVendasHoje] = useState(false);
     const [showVendidoHoje, setShowVendidoHoje] = useState(false);
     const [showVendidoMes, setShowVendidoMes] = useState(false);
@@ -247,58 +249,58 @@ const VendasPage = ({
     }, [subtotalCarrinho, discount]);
 
     const handleFinalizarVenda = async () => {
-        if (carrinho.length === 0) {
-            toast.error("O carrinho está vazio.");
-            return;
-        }
-        
-        if (!customerName || !customerPhone) {
-            toast.error("Por favor, preencha os dados do cliente: Nome e Telefone.");
-            return;
-        }
+        try {
+            if (carrinho.length === 0) {
+                toast.error("O carrinho está vazio.");
+                return;
+            }
 
-        // Valida o CPF apenas se ele for preenchido
-        if (customerCpf && !validateCPF(customerCpf)) {
-             toast.error("CPF/CNPJ inválido. Por favor, verifique.");
-             setIsCpfValid(false);
-             return;
-        }
+            // Valida o CPF apenas se ele for preenchido
+            if (customerCpf && !validateCPF(customerCpf)) {
+                 toast.error("CPF/CNPJ inválido. Por favor, verifique.");
+                 setIsCpfValid(false);
+                 return;
+            }
 
-        if (!validatePhone(customerPhone)) {
-            toast.error("Telefone inválido. Por favor, verifique. Use o formato (XX) 9XXXX-XXXX.");
-            setIsPhoneValid(false);
-            return;
-        }
+            const saleDetails = {
+                items: [...carrinho],
+                subtotal: subtotalCarrinho,
+                discountPercentage: parseFloat(discount) || 0,
+                discountValue: discountValue,
+                total: totalCarrinho,
+                date: new Date(),
+                customer: customerName,
+                customerCpf: customerCpf,
+                customerPhone: customerPhone,
+                customerEmail: customerEmail,
+                paymentMethod: paymentMethod,
+                vendedor: currentUser.name,
+            };
 
-        const saleDetails = {
-            items: [...carrinho],
-            subtotal: subtotalCarrinho,
-            discountPercentage: parseFloat(discount) || 0,
-            discountValue: discountValue,
-            total: totalCarrinho,
-            date: new Date(),
-            customer: customerName,
-            customerCpf: customerCpf,
-            customerPhone: customerPhone,
-            customerEmail: customerEmail,
-            paymentMethod: paymentMethod,
-            vendedor: currentUser.name,
-        };
+            console.log("PDV: Chamando handleSale...");
+            const completeSaleDetails = await handleSale(saleDetails);
+            console.log("PDV: Retorno de handleSale:", completeSaleDetails);
 
-        const completeSaleDetails = await handleSale(saleDetails);
+            if (completeSaleDetails) {
+                console.log("PDV: Dados da venda recebidos. Abrindo modal do recibo.");
+                setLastSaleDetails(completeSaleDetails);
+                toast.success(`Venda de ${totalCarrinho.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} finalizada!`);
+                setCarrinho([]);
+                setDiscount('');
+                setPaymentMethod('Dinheiro'); // Reseta para o padrão
+                setCustomerCpf('');
+                setCustomerName('');
+                setCustomerPhone('');
+                setCustomerEmail('');
 
-        if (completeSaleDetails) {
-            setLastSaleDetails(completeSaleDetails);
-            toast.success(`Venda de ${totalCarrinho.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} finalizada!`);
-            setCarrinho([]);
-            setDiscount('');
-            setPaymentMethod('Dinheiro'); // Reseta para o padrão
-            setCustomerCpf('');
-            setCustomerName('');
-            setCustomerPhone('');
-            setCustomerEmail('');
-
-            setIsReciboModalOpen(true);
+                setIsReciboModalOpen(true);
+            } else {
+                console.error("PDV: Retorno de handleSale foi nulo ou indefinido. O recibo não será exibido.");
+                toast.error("Ocorreu um erro inesperado e a venda não pôde ser processada.");
+            }
+        } catch (error) {
+            console.error("Erro crítico ao finalizar venda:", error);
+            toast.error(`Erro ao finalizar venda: ${error.message}`);
         }
     };
 
@@ -428,7 +430,6 @@ const VendasPage = ({
 
     return (
         <div className="bg-gray-950 text-gray-100 min-h-screen font-sans">
-            <Toaster position="top-right" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
             <div id="recibo-printable-area" className="hidden">
                 <ReciboVenda saleDetails={lastSaleDetails} />
             </div>
@@ -521,7 +522,7 @@ const VendasPage = ({
                             </div>
                             <div className="mt-6 border-t border-gray-700 pt-4">
                                 <div className="mb-4">
-                                    <label htmlFor="customerName" className="block text-sm font-medium text-gray-300 mb-1">Nome do Cliente <span className="text-red-500">*</span></label>
+                                    <label htmlFor="customerName" className="block text-sm font-medium text-gray-300 mb-1">Nome do Cliente (Opcional)</label>
                                     <input
                                         type="text"
                                         id="customerName"
@@ -529,7 +530,6 @@ const VendasPage = ({
                                         onChange={(e) => setCustomerName(e.target.value)}
                                         placeholder="Insira o nome do cliente"
                                         className="w-full p-2 bg-gray-800 border border-gray-700 rounded-lg"
-                                        required
                                     />
                                 </div>
                                 <div className="mb-4">
@@ -546,7 +546,7 @@ const VendasPage = ({
                                     {!isCpfValid && <p className="text-red-500 text-xs mt-1">CPF/CNPJ inválido.</p>}
                                 </div>
                                 <div className="mb-4">
-                                    <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-300 mb-1">Telefone <span className="text-red-500">*</span></label>
+                                    <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-300 mb-1">Telefone (Opcional)</label>
                                     <input
                                         type="text"
                                         id="customerPhone"
@@ -554,7 +554,6 @@ const VendasPage = ({
                                         onChange={handlePhoneChange}
                                         placeholder="Insira o telefone para contato"
                                         className={`w-full p-2 bg-gray-800 border rounded-lg transition-colors ${isPhoneValid ? 'border-gray-700 focus:ring-green-500' : 'border-red-500 focus:ring-red-500'}`}
-                                        required
                                     />
                                     {!isPhoneValid && <p className="text-red-500 text-xs mt-1">Telefone inválido.</p>}
                                 </div>

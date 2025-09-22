@@ -16,11 +16,19 @@ const PERMISSION_GROUPS = {
             deleteService: { roles: ['root', 'admin'] },
         }
     },
+    siteContent: {
+        title: 'Conteúdo do Site',
+        permissions: {
+            manageBanners: { roles: ['root', 'admin'] },
+        }
+    },
     admin: {
         title: 'Administração',
         permissions: {
             viewDashboardCharts: { roles: ['root'] },
             viewSalesHistory: { roles: ['root', 'admin'] },
+            viewUserSalesReport: { roles: ['root', 'admin'] },
+            viewDreReport: { roles: ['root', 'admin'] },
             viewActivityLog: { roles: ['root'] },
             manageClients: { roles: ['root', 'admin'] },
         }
@@ -31,6 +39,7 @@ const PERMISSION_GROUPS = {
             manageUsers: { roles: ['root'] },
             resetUserPassword: { roles: ['root'] },
             manageBackup: { roles: ['root'] },
+            manageTheme: { roles: ['root'] },
         }
     }
 };
@@ -39,10 +48,14 @@ const getDefaultPermissions = (role) => {
     const permissions = {};
     Object.values(PERMISSION_GROUPS).forEach(group => {
         for (const key in group.permissions) {
-            permissions[key] = group.permissions[key].roles.includes(role);
+            if (role === 'root') {
+                permissions[key] = true;
+            } else {
+                permissions[key] = group.permissions[key].roles.includes(role);
+            }
         }
     });
     return permissions;
 };
 
-module.exports = { getDefaultPermissions };
+module.exports = { PERMISSION_GROUPS, getDefaultPermissions };
