@@ -634,17 +634,17 @@ app.post('/api/users/:id/reset-password', protect, hasPermission('resetUserPassw
 // Rota para buscar todos os usuários (protegida)
 app.get('/api/users', protect, hasPermission('manageUsers'), async (req, res) => {
   const requestingUser = req.user;
+  let queryText;
+  const queryParams = [];
+
+  if (requestingUser.role === 'root') {
+    queryText = 'SELECT id, name, email, role, permissions FROM users ORDER BY name ASC';
+  } else {
+    queryText = 'SELECT id, name, email, role, permissions FROM users WHERE role != $1 ORDER BY name ASC';
+    queryParams.push('root');
+  }
+
   try {
-    let queryText = 'SELECT id, name, email, role, permissions FROM users';
-    const queryParams = [];
-
-    // Se o usuário for um admin (mas não root), não mostrar o usuário root.
-    if (requestingUser.role === 'admin') {
-        queryText += ' WHERE role != $1';
-        queryParams.push('root');
-    }
-
-    queryText += ' ORDER BY name ASC';
     const { rows } = await db.query(queryText, queryParams);
     res.json(rows);
   } catch (err) {
@@ -907,6 +907,10 @@ app.get('/api/sales', protect, async (req, res) => {
 
         if (role === 'admin' || role === 'root') {
             // Nenhuma condição extra para admin/root
+            // Se for admin, não mostra as vendas do root. Se for root, mostra tudo.
+            if (role === 'admin') {
+                query += ` WHERE s.vendedor_name NOT IN (SELECT name FROM users WHERE role = 'root')`;
+            }
         } else {
             query += ' WHERE s.vendedor_name = $1';
             queryParams.push(name);
