@@ -155,19 +155,22 @@ const VendasPage = ({ onLogout, currentUser }) => {
         const inicioDoDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
         const inicioDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
 
-        const vendasDoVendedor = salesHistory.filter(
-            sale => sale.vendedor === currentUser?.name
-        );
+        // Se o usuário for admin ou root, usa todas as vendas. Senão, filtra por vendedor.
+        const vendasConsideradas = (currentUser?.role === 'admin' || currentUser?.role === 'root')
+            ? salesHistory
+            : salesHistory.filter(sale => sale.vendedor === currentUser?.name);
 
-        const vendasHoje = vendasDoVendedor.filter(sale => {
+
+        const vendasHoje = vendasConsideradas.filter(sale => {
             const saleDate = new Date(sale.date);
             return saleDate >= inicioDoDia;
         });
 
-        const vendasMes = vendasDoVendedor.filter(sale => {
+        const vendasMes = vendasConsideradas.filter(sale => {
             const saleDate = new Date(sale.date);
             return saleDate >= inicioDoMes;
         });
+
 
         const totalVendidoHoje = vendasHoje.reduce((acc, sale) => acc + sale.total, 0);
         const totalVendidoMes = vendasMes.reduce((acc, sale) => acc + sale.total, 0);
@@ -254,11 +257,6 @@ const VendasPage = ({ onLogout, currentUser }) => {
             return;
         }
         
-        if (!customerName || !customerPhone) {
-            toast.error("Por favor, preencha os dados do cliente: Nome e Telefone.");
-            return;
-        }
-
         // Valida o CPF apenas se ele for preenchido
         if (customerCpf && !validateCPF(customerCpf)) {
              toast.error("CPF/CNPJ inválido. Por favor, verifique.");

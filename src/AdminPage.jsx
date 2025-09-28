@@ -112,6 +112,8 @@ const AdminPage = ({ onLogout, currentUser }) => {
     const [dreEndDate, setDreEndDate] = useState('');
     const [dreData, setDreData] = useState(null);
     const [loadingDre, setLoadingDre] = useState(false);
+    const [reportMonth, setReportMonth] = useState(new Date().getMonth());
+    const [reportYear, setReportYear] = useState(new Date().getFullYear());
     const chartDragItem = useRef(null);
     const chartDragOverItem = useRef(null);
 
@@ -296,9 +298,9 @@ const AdminPage = ({ onLogout, currentUser }) => {
     };
 
     const handlePrintMonthlyReport = () => {
-        const today = new Date();
-        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+        const selectedDate = new Date(reportYear, reportMonth, 1);
+        const startOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+        const endOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0, 23, 59, 59, 999);
 
         const monthlySales = salesHistory.filter(sale => {
             if (!sale || !sale.date) return false;
@@ -307,7 +309,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
         });
 
         if (monthlySales.length === 0) {
-            toast.error("Nenhuma venda encontrada para o mês atual.");
+            toast.error("Nenhuma venda encontrada para o período selecionado.");
             return;
         }
         //faz a somatoria do total vendido no mês
@@ -326,7 +328,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
 
         setMonthlySalesReport({
             sales: monthlySales.sort((a, b) => new Date(a.date) - new Date(b.date)),
-            month: today.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }),
+            month: selectedDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }),
             totalVendido,
             totalVendas,
             totalsByPaymentMethod,
@@ -992,6 +994,30 @@ const AdminPage = ({ onLogout, currentUser }) => {
                         Limpar Filtros
                     </button>
                     <button 
+                        onClick={handlePrintMonthlyReport}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                        <Printer size={16} /> Imprimir Relatório do Mês
+                    </button>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-4 mb-6 p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="reportMonth" className="text-sm font-medium">Mês:</label>
+                        <select id="reportMonth" value={reportMonth} onChange={e => setReportMonth(Number(e.target.value))} className="p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm">
+                            {Array.from({ length: 12 }, (_, i) => (
+                                <option key={i} value={i}>{new Date(0, i).toLocaleString('pt-BR', { month: 'long' })}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="reportYear" className="text-sm font-medium">Ano:</label>
+                        <select id="reportYear" value={reportYear} onChange={e => setReportYear(Number(e.target.value))} className="p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm">
+                            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                                <option key={year} value={year}>{year}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <button
                         onClick={handlePrintMonthlyReport}
                         className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded-lg transition-colors"
                     >
