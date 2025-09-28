@@ -117,6 +117,8 @@ const AdminPage = ({ onLogout, currentUser }) => {
     const chartDragItem = useRef(null);
     const chartDragOverItem = useRef(null);
 
+    const API_URL = import.meta.env.VITE_API_URL || '';
+
     const initialChartsConfig = [
         { id: 'evolution', title: 'Evolução do Valor do Estoque (Custo)', visible: true, width: 'full' },
         { id: 'salesPeriod', title: 'Vendas por Período', visible: true, width: 'full' },
@@ -356,7 +358,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
                 return;
             }
     
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reports/sales-by-user?userId=${userSalesReportUserId}&startDate=${userSalesReportStartDate}&endDate=${userSalesReportEndDate}`, {
+            const response = await fetch(`${API_URL}/api/reports/sales-by-user?userId=${userSalesReportUserId}&startDate=${userSalesReportStartDate}&endDate=${userSalesReportEndDate}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -402,7 +404,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
         setDreData(null);
         try {
             const token = localStorage.getItem('boycell-token');
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reports/dre?startDate=${dreStartDate}&endDate=${dreEndDate}`, {
+            const response = await fetch(`${API_URL}/api/reports/dre?startDate=${dreStartDate}&endDate=${dreEndDate}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
