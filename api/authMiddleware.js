@@ -45,6 +45,12 @@ const hasPermission = (permission) => async (req, res, next) => {
         return next();
     }
 
+    // Otimização: Verifica primeiro se a permissão já existe no token JWT.
+    // Isso evita uma consulta desnecessária ao banco de dados na maioria das requisições.
+    if (req.user.permissions && req.user.permissions[permission]) {
+        return next();
+    }
+
     try {
         const { rows } = await db.query('SELECT permissions FROM users WHERE id = $1', [req.user.id]);
         if (rows.length === 0) {

@@ -264,12 +264,6 @@ const VendasPage = ({ onLogout, currentUser }) => {
              return;
         }
 
-        if (!validatePhone(customerPhone)) {
-            toast.error("Telefone inválido. Por favor, verifique. Use o formato (XX) 9XXXX-XXXX.");
-            setIsPhoneValid(false);
-            return;
-        }
-
         const saleDetails = {
             items: [...carrinho],
             subtotal: subtotalCarrinho,

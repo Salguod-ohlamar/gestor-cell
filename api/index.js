@@ -871,82 +871,48 @@ app.get('/api/clients/search', protect, async (req, res) => {
 app.get('/api/sales', protect, async (req, res) => {
     try {
         const { role, name } = req.user;
-        let query;
+        let query = `
+            SELECT
+                s.id,
+                s.receipt_code AS "receiptCode",
+                s.client_id AS "clienteId",
+                c.name AS "customer",
+                c.cpf AS "customerCpf",
+                c.phone AS "customerPhone",
+                c.email AS "customerEmail",
+                s.user_id AS "userId",
+                s.vendedor_name AS "vendedor",
+                s.subtotal,
+                s.discount_percentage AS "discountPercentage",
+                s.discount_value AS "discountValue",
+                s.total,
+                s.payment_method AS "paymentMethod",
+                s.sale_date AS "date",
+                json_agg(json_build_object(
+                    'id', COALESCE(si.product_id, si.service_id),
+                    'type', si.item_type,
+                    'nome', si.item_name,
+                    'servico', si.item_name,
+                    'quantity', si.quantity,
+                    'precoFinal', si.unit_price,
+                    'tempoDeGarantia', COALESCE(p.tempo_de_garantia, sv.tempo_de_garantia, 0)
+                )) AS items
+            FROM sales s
+            JOIN sale_items si ON s.id = si.sale_id
+            LEFT JOIN clients c ON s.client_id = c.id
+            LEFT JOIN products p ON si.product_id = p.id
+            LEFT JOIN services sv ON si.service_id = sv.id
+        `;
         const queryParams = [];
 
         if (role === 'admin' || role === 'root') {
-            query = `
-            SELECT
-                s.id,
-                s.receipt_code AS "receiptCode",
-                s.client_id AS "clienteId",
-                c.name AS "customer",
-                c.cpf AS "customerCpf",
-                c.phone AS "customerPhone",
-                c.email AS "customerEmail",
-                s.user_id AS "userId",
-                s.vendedor_name AS "vendedor",
-                s.subtotal,
-                s.discount_percentage AS "discountPercentage",
-                s.discount_value AS "discountValue",
-                s.total,
-                s.payment_method AS "paymentMethod",
-                s.sale_date AS "date",
-                json_agg(json_build_object(
-                    'id', COALESCE(si.product_id, si.service_id),
-                    'type', si.item_type,
-                    'nome', si.item_name,
-                    'servico', si.item_name,
-                    'quantity', si.quantity,
-                    'precoFinal', si.unit_price,
-                    'tempoDeGarantia', COALESCE(p.tempo_de_garantia, sv.tempo_de_garantia, 0)
-                )) AS items
-            FROM sales s
-            JOIN sale_items si ON s.id = si.sale_id
-            LEFT JOIN clients c ON s.client_id = c.id
-            LEFT JOIN products p ON si.product_id = p.id
-            LEFT JOIN services sv ON si.service_id = sv.id
-            GROUP BY s.id, c.id
-            ORDER BY s.sale_date DESC;
-        `;
+            // Nenhuma condição extra para admin/root
         } else {
-            query = `
-            SELECT
-                s.id,
-                s.receipt_code AS "receiptCode",
-                s.client_id AS "clienteId",
-                c.name AS "customer",
-                c.cpf AS "customerCpf",
-                c.phone AS "customerPhone",
-                c.email AS "customerEmail",
-                s.user_id AS "userId",
-                s.vendedor_name AS "vendedor",
-                s.subtotal,
-                s.discount_percentage AS "discountPercentage",
-                s.discount_value AS "discountValue",
-                s.total,
-                s.payment_method AS "paymentMethod",
-                s.sale_date AS "date",
-                json_agg(json_build_object(
-                    'id', COALESCE(si.product_id, si.service_id),
-                    'type', si.item_type,
-                    'nome', si.item_name,
-                    'servico', si.item_name,
-                    'quantity', si.quantity,
-                    'precoFinal', si.unit_price,
-                    'tempoDeGarantia', COALESCE(p.tempo_de_garantia, sv.tempo_de_garantia, 0)
-                )) AS items
-            FROM sales s
-            JOIN sale_items si ON s.id = si.sale_id
-            LEFT JOIN clients c ON s.client_id = c.id
-            LEFT JOIN products p ON si.product_id = p.id
-            LEFT JOIN services sv ON si.service_id = sv.id
-            WHERE s.vendedor_name = $1
-            GROUP BY s.id, c.id
-            ORDER BY s.sale_date DESC;
-        `;
+            query += ' WHERE s.vendedor_name = $1';
             queryParams.push(name);
         }
+
+        query += ' GROUP BY s.id, c.id ORDER BY s.sale_date DESC;';
 
         const { rows } = await db.query(query, queryParams);
         res.json(rows);
