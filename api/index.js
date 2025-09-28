@@ -925,16 +925,18 @@ app.post('/api/sales', protect, async (req, res) => {
         return res.status(400).json({ message: 'O carrinho não pode estar vazio.' });
     }
 
-    const dbClient = await db.query('BEGIN');
+    const client = await db.getClient();
 
     try {
+        await client.query('BEGIN');
+
         let clientId;
-        const { rows: existingClients } = await db.query('SELECT id FROM clients WHERE cpf = $1', [customerCpf]);
+        const { rows: existingClients } = await client.query('SELECT id FROM clients WHERE cpf = $1', [customerCpf]);
         if (existingClients.length > 0) {
             clientId = existingClients[0].id;
-            await db.query('UPDATE clients SET last_purchase = NOW(), phone = $1, email = $2, name = $3 WHERE id = $4', [customerPhone, customerEmail, customer, clientId]);
+            await client.query('UPDATE clients SET last_purchase = NOW(), phone = $1, email = $2, name = $3 WHERE id = $4', [customerPhone, customerEmail, customer, clientId]);
         } else {
-            const { rows: newClient } = await db.query(
+            const { rows: newClient } = await client.query(
                 'INSERT INTO clients (name, cpf, phone, email, last_purchase) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
                 [customer, customerCpf, customerPhone, customerEmail]
             );
@@ -948,7 +950,7 @@ app.post('/api/sales', protect, async (req, res) => {
             RETURNING id, sale_date;
         `;
         const saleValues = [receiptCode, clientId, userId, vendedor, subtotal, discountPercentage, discountValue, total, paymentMethod];
-        const { rows: newSale } = await db.query(saleQuery, saleValues);
+        const { rows: newSale } = await client.query(saleQuery, saleValues);
         const saleId = newSale[0].id;
         const saleDate = newSale[0].sale_date;
 
@@ -966,10 +968,10 @@ app.post('/api/sales', protect, async (req, res) => {
                 item.nome || item.servico,
                 item.precoFinal
             ];
-            await db.query(saleItemQuery, saleItemValues);
+            await client.query(saleItemQuery, saleItemValues);
 
             if (item.type === 'produto') {
-                const productInDb = await db.query('SELECT em_estoque FROM products WHERE id = $1 FOR UPDATE', [item.id]);
+                const productInDb = await client.query('SELECT em_estoque FROM products WHERE id = $1 FOR UPDATE', [item.id]);
                 if (productInDb.rows[0].em_estoque < item.quantity) {
                     throw new Error(`Estoque insuficiente para o produto "${item.nome || item.servico}".`);
                 }
@@ -981,11 +983,11 @@ app.post('/api/sales', protect, async (req, res) => {
                     acao: 'Venda Realizada',
                     detalhes: `Venda de ${item.quantity} unidade(s). Venda Cód: ${receiptCode}.`
                 };
-                await db.query(updateStockQuery, [item.quantity, JSON.stringify(historyEntry), item.id]);
+                await client.query(updateStockQuery, [item.quantity, JSON.stringify(historyEntry), item.id]);
             }
         }
 
-        await db.query('COMMIT');
+        await client.query('COMMIT');
 
         res.status(201).json({
             id: saleId,
@@ -996,9 +998,11 @@ app.post('/api/sales', protect, async (req, res) => {
         });
 
     } catch (err) {
-        await db.query('ROLLBACK');
+        await client.query('ROLLBACK');
         console.error('Sale creation error:', err);
         res.status(500).json({ message: err.message || 'Erro no servidor ao finalizar a venda.' });
+    } finally {
+        client.release();
     }
 });
 
