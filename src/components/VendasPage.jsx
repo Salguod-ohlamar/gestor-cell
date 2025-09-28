@@ -172,8 +172,8 @@ const VendasPage = ({ onLogout, currentUser }) => {
         });
 
 
-        const totalVendidoHoje = vendasHoje.reduce((acc, sale) => acc + sale.total, 0);
-        const totalVendidoMes = vendasMes.reduce((acc, sale) => acc + sale.total, 0);
+        const totalVendidoHoje = vendasHoje.reduce((acc, sale) => acc + Number(sale.total || 0), 0);
+        const totalVendidoMes = vendasMes.reduce((acc, sale) => acc + Number(sale.total || 0), 0);
 
         return { totalVendidoHoje, vendasHoje: vendasHoje.length, totalVendidoMes };
     }, [salesHistory, currentUser]
