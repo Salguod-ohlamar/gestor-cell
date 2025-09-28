@@ -521,7 +521,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     // Create JWT
     const token = jwt.sign(
-      { id: user.id, role: user.role, name: user.name },
+      { id: user.id, role: user.role, name: user.name, permissions: finalPermissions },
       process.env.JWT_SECRET,
       { expiresIn: '8h' } // Token expires in 8 hours
     );
