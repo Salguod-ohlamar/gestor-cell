@@ -17,12 +17,12 @@ import { PERMISSION_GROUPS, getDefaultPermissions } from './components/useEstoqu
 const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue, onToggle }) => {
   const Icon = icon;
   return (
-    <div className={`bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-xl flex items-center gap-4 border-l-4 ${colorClass}`}>
+    <div className={`bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-xl flex items-center gap-6 border-l-4 ${colorClass}`}>
       <Icon size={32} className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
-      <div className="flex-grow">
+      <div>
         <p className="text-sm text-gray-600 dark:text-gray-400">{title}</p>
         <div className="flex items-center gap-2">
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white whitespace-nowrap">{value}</p>
           {isToggleable && (
              <button onClick={onToggle} className="text-gray-500 hover:text-gray-900 dark:hover:text-white" title={showValue ? "Ocultar Valor" : "Mostrar Valor"}>
               {showValue ? <Eye size={20} /> : <EyeOff size={20} />}
