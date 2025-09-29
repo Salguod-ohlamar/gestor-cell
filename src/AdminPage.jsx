@@ -24,8 +24,9 @@ const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue
         <div className="flex items-center gap-2">
           <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
           {isToggleable && (
-            <button onClick={onToggle} className="text-gray-500 hover:text-gray-900 dark:hover:text-white" title={showValue ? "Ocultar Valor" : "Mostrar Valor"}>
+             <button onClick={onToggle} className="text-gray-500 hover:text-gray-900 dark:hover:text-white" title={showValue ? "Ocultar Valor" : "Mostrar Valor"}>
               {showValue ? <Eye size={20} /> : <EyeOff size={20} />}
+           
             </button>
           )}
         </div>
