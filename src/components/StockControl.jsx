@@ -183,11 +183,11 @@ const StockControl = ({ onLogout, currentUser }) => {
         {currentColumns.map(col => {
           switch (col.id) {
             case 'imagem':
-              return <td key={col.id} className={`p-2 printable-hidden text-${col.align}`}><img src={item.imagem || 'https://via.placeholder.com/40'} alt={item.nome} className="w-12 h-12 object-cover rounded-md bg-gray-200 dark:bg-gray-700" /></td>;
+              return <td key={col.id} className={`p-2 printable-hidden text-${col.align || 'left'}`}><img src={item.imagem || 'https://via.placeholder.com/40'} alt={item.nome} className="w-12 h-12 object-cover rounded-md bg-gray-200 dark:bg-gray-700" /></td>;
             case 'nome':
-              return <td key={col.id} className={`p-4 font-medium text-${col.align}`}>{item.nome}</td>;
+              return <td key={col.id} className={`p-4 font-medium text-${col.align || 'left'}`}>{item.nome}</td>;
             case 'emEstoque':
-              return <td key={col.id} className={`p-4 font-semibold text-${col.align} ${isLowStock ? 'text-red-500 dark:text-red-400' : ''}`}>{item.emEstoque}</td>;
+              return <td key={col.id} className={`p-4 font-semibold text-${col.align || 'left'} ${isLowStock ? 'text-red-500 dark:text-red-400' : ''}`}>{item.emEstoque}</td>;
             case 'preco':
               return <td key={col.id} className={`p-4 text-${col.align}`}>{item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
             case 'precoFinal':
@@ -203,7 +203,7 @@ const StockControl = ({ onLogout, currentUser }) => {
                 </td>
               );
             default:
-              return <td key={col.id} className={`p-4 text-${col.align} ${col.printable === false ? 'printable-hidden' : ''}`}>{item[col.id]}</td>;
+              return <td key={col.id} className={`p-4 text-${col.align || 'left'} ${col.printable === false ? 'printable-hidden' : ''}`}>{item[col.id]}</td>;
           }
         })}
       </tr>
