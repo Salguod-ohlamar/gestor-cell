@@ -965,66 +965,44 @@ const AdminPage = ({ onLogout, currentUser }) => {
 
             <Modal isOpen={isSalesHistoryModalOpen} onClose={handleCloseSalesHistoryModal} size="xl">
                 <h2 className="text-2xl font-bold text-center text-yellow-600 dark:text-yellow-400 mb-6">Histórico de Vendas</h2>
-                <div className="flex flex-wrap items-center justify-center gap-4 mb-6 p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                        <label htmlFor="startDate" className="text-sm font-medium text-gray-700 dark:text-gray-300">De:</label>
-                        <input 
-                            type="date" 
-                            id="startDate"
-                            value={salesHistoryStartDate}
-                            onChange={e => setSalesHistoryStartDate(e.target.value)}
-                            className="p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
-                        />
+                <div className="space-y-6">
+                    <div className="p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
+                        <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Filtrar por Período</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                            <div>
+                                <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">De:</label>
+                                <input type="date" id="startDate" value={salesHistoryStartDate} onChange={e => setSalesHistoryStartDate(e.target.value)} className="w-full p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm" />
+                            </div>
+                            <div>
+                                <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Até:</label>
+                                <input type="date" id="endDate" value={salesHistoryEndDate} onChange={e => setSalesHistoryEndDate(e.target.value)} className="w-full p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm" />
+                            </div>
+                            <button onClick={() => { setSalesHistoryStartDate(''); setSalesHistoryEndDate(''); }} className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white text-sm font-medium rounded-lg transition-colors">
+                                Limpar Datas
+                            </button>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <label htmlFor="endDate" className="text-sm font-medium text-gray-700 dark:text-gray-300">Até:</label>
-                        <input 
-                            type="date" 
-                            id="endDate"
-                            value={salesHistoryEndDate}
-                            onChange={e => setSalesHistoryEndDate(e.target.value)}
-                            className="p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
-                        />
+
+                    <div className="p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
+                        <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Imprimir Relatório Mensal</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                            <div>
+                                <label htmlFor="reportMonth" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mês:</label>
+                                <select id="reportMonth" value={reportMonth} onChange={e => setReportMonth(Number(e.target.value))} className="w-full p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm">
+                                    {Array.from({ length: 12 }, (_, i) => (<option key={i} value={i}>{new Date(0, i).toLocaleString('pt-BR', { month: 'long' })}</option>))}
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="reportYear" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ano:</label>
+                                <select id="reportYear" value={reportYear} onChange={e => setReportYear(Number(e.target.value))} className="w-full p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm">
+                                    {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (<option key={year} value={year}>{year}</option>))}
+                                </select>
+                            </div>
+                            <button onClick={handlePrintMonthlyReport} className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded-lg transition-colors">
+                                <Printer size={16} /> Imprimir
+                            </button>
+                        </div>
                     </div>
-                    <button 
-                        onClick={() => {
-                            setSalesHistoryStartDate('');
-                            setSalesHistoryEndDate('');
-                        }}
-                        className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
-                        Limpar Filtros
-                    </button>
-                    <button 
-                        onClick={handlePrintMonthlyReport}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
-                        <Printer size={16} /> Imprimir Relatório do Mês
-                    </button>
-                </div>
-                <div className="flex flex-wrap items-center justify-center gap-4 mb-6 p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                        <label htmlFor="reportMonth" className="text-sm font-medium">Mês:</label>
-                        <select id="reportMonth" value={reportMonth} onChange={e => setReportMonth(Number(e.target.value))} className="p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm">
-                            {Array.from({ length: 12 }, (_, i) => (
-                                <option key={i} value={i}>{new Date(0, i).toLocaleString('pt-BR', { month: 'long' })}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <label htmlFor="reportYear" className="text-sm font-medium">Ano:</label>
-                        <select id="reportYear" value={reportYear} onChange={e => setReportYear(Number(e.target.value))} className="p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm">
-                            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                                <option key={year} value={year}>{year}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <button
-                        onClick={handlePrintMonthlyReport}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
-                        <Printer size={16} /> Imprimir Relatório do Mês
-                    </button>
                 </div>
 
                 <div className="relative mb-6">
