@@ -19,7 +19,7 @@ const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue
   return (
     <div className={`bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-xl flex items-center gap-4 border-l-4 ${colorClass}`}>
       <Icon size={32} className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
-      <div className="flex-grow">
+      <div className="flex-grow flex flex-col justify-center">
         <p className="text-sm text-gray-600 dark:text-gray-400 min-h-[2.5rem]">{title}</p>
         <div className="flex items-center gap-2">
           <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
