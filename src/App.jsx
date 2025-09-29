@@ -13,6 +13,7 @@ const HomePage = lazy(() => import('./HomePage.jsx'));
 const StockControl = lazy(() => import('./components/StockControl.jsx'));
 const VendasPage = lazy(() => import('./components/VendasPage.jsx'));
 const ClientesPage = lazy(() => import('./components/ClientesPage.jsx'));
+const AgendamentosPage = lazy(() => import('./components/AgendamentosPage.jsx'));
 const AdminPage = lazy(() => import('./AdminPage.jsx'));
 
 const AppContent = () => {
@@ -58,6 +59,12 @@ const AppContent = () => {
                             {/* Acessível por todos os usuários logados */}
                             <Route path="/vendas" element={
                                 <VendasPage
+                                    onLogout={handleLogout}
+                                    currentUser={currentUser}
+                                />
+                            } />
+                            <Route path="/agendamentos" element={
+                                <AgendamentosPage
                                     onLogout={handleLogout}
                                     currentUser={currentUser}
                                 />
