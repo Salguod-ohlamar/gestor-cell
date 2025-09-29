@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, LogOut, PlusCircle, Search, Edit, FileDown, Printer, History, Trash2, ShoppingCart, Settings, Sun, Moon } from 'lucide-react';
+import { ArrowLeft, LogOut, PlusCircle, Search, Edit, FileDown, Printer, History, Trash2, ShoppingCart, Settings, Sun, Moon, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Modal from './Modal.jsx';
@@ -187,7 +187,7 @@ const StockControl = ({ onLogout, currentUser }) => {
             case 'nome':
               return <td key={col.id} className={`p-4 font-medium text-${col.align || 'left'}`}>{item.nome}</td>;
             case 'emEstoque':
-              return <td key={col.id} className={`p-4 font-semibold text-${col.align || 'center'} ${isLowStock ? 'text-red-500 dark:text-red-400' : ''}`}>{item.emEstoque}</td>;
+              return <td key={col.id} className={`p-4 font-semibold text-${col.align || 'left'} ${isLowStock ? 'text-red-500 dark:text-red-400' : ''}`}>{item.emEstoque}</td>;
             case 'preco':
               return <td key={col.id} className={`p-4 text-${col.align}`}>{item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
             case 'precoFinal':
@@ -277,6 +277,10 @@ const StockControl = ({ onLogout, currentUser }) => {
             <button onClick={() => navigate('/vendas')} className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors mr-4" title="Página de Vendas">
               <ShoppingCart size={20} />
               <span className="hidden sm:inline">Página de Vendas</span>
+            </button>
+            <button onClick={() => navigate('/agendamentos')} className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300 transition-colors mr-4" title="Página de Agendamentos">
+              <Calendar size={20} />
+              <span className="hidden sm:inline">Agendamentos</span>
             </button>
             <a href="/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors mr-4" title="Ver Site">
               <ArrowLeft size={20} />

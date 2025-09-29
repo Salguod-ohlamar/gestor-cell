@@ -46,6 +46,11 @@ export const PERMISSION_GROUPS = {
             viewServiceHistory: { label: 'Visualizar Histórico do Serviço', roles: ['root', 'admin'] },
         }
     },
+    appointments: {
+        title: 'Agendamentos',
+        permissions: {
+        }
+    },
     siteContent: {
         title: 'Conteúdo do Site',
         permissions: {
@@ -280,6 +285,29 @@ export const useEstoque = (currentUser) => {
             setClientes([]); // Limpa clientes no logout
         }
     }, [currentUser]); // Re-executa quando o usuário muda
+
+    // ===================================================================
+    // APPOINTMENTS STATE
+    // ===================================================================
+    const [agendamentos, setAgendamentos] = useState([]);
+
+    useEffect(() => {
+        const fetchAgendamentos = async () => {
+            try {
+                const token = localStorage.getItem('boycell-token');
+                if (!token) return;
+                const response = await fetch(`${API_URL}/api/appointments`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) throw new Error('Falha ao buscar agendamentos.');
+                const data = await response.json();
+                setAgendamentos(data);
+            } catch (error) {
+                console.error("Erro ao buscar agendamentos da API:", error);
+            }
+        };
+        if (currentUser) fetchAgendamentos();
+    }, [currentUser]);
 
     // ===================================================================
     // USERS STATE
@@ -1446,6 +1474,67 @@ export const useEstoque = (currentUser) => {
         }
     };
 
+    // ===================================================================
+    // APPOINTMENT CRUD HANDLERS
+    // ===================================================================
+    const handleAdicionarAgendamento = async (agendamentoData) => {
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/appointments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(agendamentoData)
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao criar agendamento.');
+            setAgendamentos(prev => [...prev, data]);
+            toast.success('Agendamento criado com sucesso!');
+            return true;
+        } catch (error) {
+            toast.error(error.message);
+            return false;
+        }
+    };
+
+    const handleAtualizarAgendamento = async (agendamentoData) => {
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/appointments/${agendamentoData.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(agendamentoData)
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao atualizar agendamento.');
+            
+            setAgendamentos(prev => prev.map(ag => ag.id === data.id ? { ...ag, ...data } : ag));
+            toast.success('Agendamento atualizado com sucesso!');
+            return true;
+        } catch (error) {
+            toast.error(error.message);
+            return false;
+        }
+    };
+
+    const handleExcluirAgendamento = async (id) => {
+        if (window.confirm('Tem certeza que deseja excluir este agendamento?')) {
+            try {
+                const token = localStorage.getItem('boycell-token');
+                const response = await fetch(`${API_URL}/api/appointments/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Erro ao excluir agendamento.');
+                setAgendamentos(prev => prev.filter(ag => ag.id !== id));
+                toast.success(data.message);
+            } catch (error) {
+                toast.error(error.message);
+            }
+        }
+    };
+
+
     return {
         estoque,
         servicos,
@@ -1519,5 +1608,10 @@ export const useEstoque = (currentUser) => {
         handleAddBanner,
         handleUpdateBanner,
         handleDeleteBanner,
+        // Appointments
+        agendamentos,
+        handleAdicionarAgendamento,
+        handleAtualizarAgendamento,
+        handleExcluirAgendamento,
     };
 };

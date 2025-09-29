@@ -864,6 +864,116 @@ app.get('/api/clients/search', protect, async (req, res) => {
 });
 
 // ==================
+// APPOINTMENT MANAGEMENT ROUTES
+// ==================
+
+// Rota para buscar todos os agendamentos
+app.get('/api/appointments', protect, async (req, res) => {
+    try {
+        const query = `
+            SELECT
+                a.id,
+                a.client_id AS "clientId",
+                cl.name AS "clientName",
+                a.service_id AS "serviceId",
+                s.servico AS "serviceName",
+                cl.phone AS "clientPhone",
+                a.user_id AS "userId",
+                u.name AS "userName",
+                a.scheduled_for AS "scheduledFor",
+                a.status,
+                a.notes
+            FROM appointments a
+            JOIN clients cl ON a.client_id = cl.id
+            JOIN services s ON a.service_id = s.id
+            LEFT JOIN users u ON a.user_id = u.id
+            ORDER BY a.scheduled_for DESC;
+        `;
+        const { rows } = await db.query(query);
+        res.json(rows);
+    } catch (err) {
+        console.error('Error fetching appointments:', err);
+        res.status(500).send('Erro no servidor ao buscar agendamentos.');
+    }
+});
+
+// Rota para criar um novo agendamento
+app.post('/api/appointments', protect, async (req, res) => {
+    const { clientId, serviceId, scheduledFor, dueDate, status, notes } = req.body;
+    const userId = req.user.id;
+
+    if (!clientId || !serviceId || !scheduledFor) {
+        return res.status(400).json({ message: 'Cliente, serviço e data/hora são obrigatórios.' });
+    }
+
+    try {
+        const query = `
+            INSERT INTO appointments (client_id, service_id, user_id, scheduled_for, due_date, status, notes)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING *;
+        `;
+        const values = [clientId, serviceId, userId, scheduledFor, dueDate, status || 'scheduled', notes];
+        const { rows } = await db.query(query, values);
+
+        // Fetch related names for the response
+        const resultQuery = `
+            SELECT
+                a.id,
+                a.client_id AS "clientId",
+                cl.name AS "clientName",
+                a.service_id AS "serviceId",
+                cl.phone AS "clientPhone",
+                s.servico AS "serviceName",
+                a.user_id AS "userId",
+                u.name AS "userName",
+                a.due_date as "dueDate",
+                a.scheduled_for AS "scheduledFor",
+                a.status,
+                a.notes
+            FROM appointments a
+            JOIN clients cl ON a.client_id = cl.id
+            JOIN services s ON a.service_id = s.id
+            LEFT JOIN users u ON a.user_id = u.id
+            WHERE a.id = $1;
+        `;
+        const finalResult = await db.query(resultQuery, [rows[0].id]);
+
+        res.status(201).json(finalResult.rows[0]);
+    } catch (err) {
+        console.error('Create appointment error:', err);
+        res.status(500).send('Erro no servidor ao criar agendamento.');
+    }
+});
+
+// Rota para atualizar um agendamento
+app.put('/api/appointments/:id', protect, async (req, res) => {
+    const { id } = req.params;
+    const { scheduledFor, dueDate, status, notes } = req.body;
+
+    try {
+        const query = `
+            UPDATE appointments SET scheduled_for = $1, due_date = $2, status = $3, notes = $4, updated_at = NOW()
+            WHERE id = $5 RETURNING *;
+        `;
+        const values = [scheduledFor, dueDate, status, notes, id];
+        const { rows } = await db.query(query, values);
+        if (rows.length === 0) return res.status(404).json({ message: 'Agendamento não encontrado.' });
+        res.json(rows[0]);
+    } catch (err) {
+        console.error('Update appointment error:', err);
+        res.status(500).send('Erro no servidor ao atualizar agendamento.');
+    }
+});
+
+// Rota para excluir um agendamento
+app.delete('/api/appointments/:id', protect, async (req, res) => {
+    const { id } = req.params;
+    const result = await db.query('DELETE FROM appointments WHERE id = $1', [id]);
+    if (result.rowCount === 0) return res.status(404).json({ message: 'Agendamento não encontrado.' });
+    res.status(200).json({ message: 'Agendamento excluído com sucesso.' });
+});
+
+// ==================
 // SALES ROUTES
 // ==================
 
