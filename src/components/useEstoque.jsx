@@ -976,7 +976,7 @@ export const useEstoque = (currentUser) => {
             return acc;
         }, {});
 
-        const totalVendas = salesHistory.reduce((acc, sale) => acc + sale.total, 0);
+        const totalVendas = salesHistory.reduce((acc, sale) => acc + Number(sale.total || 0), 0);
 
         const paymentMethodDistribution = salesHistory.reduce((acc, sale) => {
             const method = sale.paymentMethod || 'Não definido';
