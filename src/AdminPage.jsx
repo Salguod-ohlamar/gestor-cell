@@ -37,7 +37,7 @@ const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue
 const ChartContainer = ({ title, show, onToggle, children, onDragStart, onDragEnter, onDragEnd }) => (
   <div 
     className="bg-gray-100 dark:bg-gray-800/50 p-6 rounded-xl flex flex-col transition-shadow duration-300 shadow-lg hover:shadow-cyan-500/20"
-    draggable
+    draggable={true}
     onDragStart={onDragStart}
     onDragEnter={onDragEnter}
     onDragEnd={onDragEnd}
@@ -1056,7 +1056,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
                 <div className="max-h-[80vh] overflow-y-auto p-2">
                     <div className="bg-gray-200 dark:bg-gray-900/50 p-6 rounded-2xl mb-8">
                         <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Resumo Geral</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
                         <DashboardCard 
                             icon={DollarSign} 
                             title="Valor Total do Estoque"
@@ -1073,7 +1073,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {chartsConfig.map((chart, index) => {
                         const chartWidthClass = chart.width === 'full' ? 'w-full' : 'w-full lg:w-[calc(50%-1rem)]';
                         let chartContent = null;
@@ -1111,7 +1111,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
                         }
 
                         return (
-                        <div key={chart.id} className={chartWidthClass}>
+                        <div key={chart.id} className={chart.width === 'full' ? 'lg:col-span-2' : ''}>
                             <ChartContainer
                             title={chart.title}
                             show={chart.visible}
