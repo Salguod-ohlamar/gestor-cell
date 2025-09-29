@@ -1088,7 +1088,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
                             showValue={showTotalValue}
                             onToggle={() => setShowTotalValue(!showTotalValue)}
                         />
-                        <DashboardCard icon={TrendingUp} title="Total Faturado" value={dashboardData.totalVendas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} colorClass="border-yellow-500" />
+                        <DashboardCard icon={TrendingUp} title="Total Faturado" value={Number(dashboardData.totalVendas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} colorClass="border-yellow-500" />
                         <DashboardCard icon={ShoppingBag} title="Número de Vendas" value={dashboardData.numeroVendas} colorClass="border-pink-500" />
                         <DashboardCard icon={Package} title="Total de Itens no Estoque" value={dashboardData.totalItems} colorClass="border-blue-500" />
                         <DashboardCard icon={Layers} title="Produtos Diferentes" value={dashboardData.totalProdutos} colorClass="border-purple-500" />

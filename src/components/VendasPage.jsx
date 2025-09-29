@@ -112,6 +112,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
         if (cleanedCpf.length < 11) return;
     
         if (!validateCPF(customerCpf)) {
+        if (!validateCPF(customer.cpf)) {
             setIsCpfValid(false);
             return;
         }

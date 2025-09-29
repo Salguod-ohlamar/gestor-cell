@@ -919,7 +919,12 @@ app.get('/api/sales', protect, async (req, res) => {
         query += ' GROUP BY s.id, c.id ORDER BY s.sale_date DESC;';
 
         const { rows } = await db.query(query, queryParams);
-        res.json(rows);
+        // Garante que o total seja um número para evitar problemas de concatenação no frontend
+        const salesWithNumericTotal = rows.map(sale => ({
+            ...sale,
+            total: parseFloat(sale.total)
+        }));
+        res.json(salesWithNumericTotal);
     } catch (err) {
         console.error('Error fetching sales history:', err);
         res.status(500).send('Erro no servidor ao buscar histórico de vendas.');
