@@ -187,7 +187,7 @@ const StockControl = ({ onLogout, currentUser }) => {
             case 'nome':
               return <td key={col.id} className={`p-4 font-medium text-${col.align || 'left'}`}>{item.nome}</td>;
             case 'emEstoque':
-              return <td key={col.id} className={`p-4 font-semibold text-${col.align || 'left'} ${isLowStock ? 'text-red-500 dark:text-red-400' : ''}`}>{item.emEstoque}</td>;
+              return <td key={col.id} className={`p-4 font-semibold text-${col.align || 'center'} ${isLowStock ? 'text-red-500 dark:text-red-400' : ''}`}>{item.emEstoque}</td>;
             case 'preco':
               return <td key={col.id} className={`p-4 text-${col.align}`}>{item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
             case 'precoFinal':
