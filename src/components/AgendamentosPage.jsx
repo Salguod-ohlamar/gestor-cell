@@ -1,10 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ArrowLeft, LogOut, Search, Edit, Trash2, PlusCircle, Calendar, Clock, User, Tool, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
+import { ArrowLeft, LogOut, Search, Edit, Trash2, PlusCircle, Calendar as CalendarIcon, ChevronLeft, ChevronRight, MessageSquare, List, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import Modal from './Modal.jsx';
 import { useEstoqueContext } from './EstoqueContext.jsx';
-import DataTable from './DataTable.jsx';
+import { Calendar, momentLocalizer } from 'react-big-calendar';
+import moment from 'moment';
+import 'moment/locale/pt-br';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 const AgendamentosPage = ({ onLogout, currentUser }) => {
     const navigate = useNavigate();
@@ -15,6 +18,7 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
         handleAdicionarAgendamento,
         handleAtualizarAgendamento,
         handleExcluirAgendamento,
+        handleAdicionarCliente,
     } = useEstoqueContext();
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -22,6 +26,7 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingAgendamento, setEditingAgendamento] = useState(null);
+    const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar'
     const [newAgendamento, setNewAgendamento] = useState({
         clientId: '',
         serviceId: '',
@@ -31,6 +36,14 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
         status: 'scheduled',
         notes: ''
     });
+    const [isAddClientModalOpen, setIsAddClientModalOpen] = useState(false);
+    const [newClient, setNewClient] = useState({ name: '', cpf: '', phone: '', email: '' });
+
+    // Configuração do react-big-calendar
+    moment.locale('pt-br');
+    const localizer = momentLocalizer(moment);
+    const calendarMessages = { previous: 'Anterior', next: 'Próximo', today: 'Hoje', month: 'Mês', week: 'Semana', day: 'Dia', agenda: 'Agenda' };
+
 
     const itemsPerPage = 10;
 
@@ -49,6 +62,23 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
         return filteredAgendamentos.slice(startIndex, startIndex + itemsPerPage);
     }, [filteredAgendamentos, currentPage]);
 
+    const calendarEvents = useMemo(() => {
+        return filteredAgendamentos.map(ag => ({
+            id: ag.id,
+            title: `${ag.clientName} - ${ag.serviceName}`,
+            start: new Date(ag.scheduledFor),
+            end: new Date(ag.scheduledFor), // Pode ajustar se tiver duração
+            allDay: false,
+            resource: ag, // Armazena o objeto completo do agendamento
+        }));
+    }, [filteredAgendamentos]);
+
+    const eventStyleGetter = (event) => {
+        const statusColor = { scheduled: '#3b82f6', confirmed: '#f59e0b', completed: '#22c55e', canceled: '#ef4444' };
+        const backgroundColor = statusColor[event.resource.status] || '#6b7280';
+        return { style: { backgroundColor, borderColor: backgroundColor } };
+    };
+
     const handleOpenAddModal = () => setIsAddModalOpen(true);
     const handleCloseAddModal = () => {
         setIsAddModalOpen(false);
@@ -56,10 +86,12 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
     };
 
     const handleOpenEditModal = (agendamento) => {
-        const scheduledDateTime = new Date(agendamento.scheduledFor);
+        // Se o evento vier do calendário, o agendamento está em `agendamento.resource`
+        const agData = agendamento.resource || agendamento;
+        const scheduledDateTime = new Date(agData.scheduledFor);
         setEditingAgendamento({
-            ...agendamento,
-            dueDate: agendamento.dueDate ? new Date(agendamento.dueDate).toISOString().split('T')[0] : '',
+            ...agData,
+            dueDate: agData.dueDate ? new Date(agData.dueDate).toISOString().split('T')[0] : '',
             scheduledForDate: scheduledDateTime.toISOString().split('T')[0],
             scheduledForTime: scheduledDateTime.toTimeString().split(' ')[0].substring(0, 5),
         });
@@ -85,7 +117,27 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
         const scheduledFor = new Date(`${scheduledForDate}T${scheduledForTime}:00`).toISOString();
         const success = await handler({ ...data, scheduledFor, dueDate: data.dueDate || null });
         if (success) {
-            handleCloseAddModal();
+            closeFn();
+        }
+    };
+
+    const handleOpenAddClientModal = () => setIsAddClientModalOpen(true);
+    const handleCloseAddClientModal = () => {
+        setIsAddClientModalOpen(false);
+        setNewClient({ name: '', cpf: '', phone: '', email: '' });
+    };
+
+    const handleClientInputChange = (e) => {
+        const { name, value } = e.target;
+        setNewClient(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleAddClientSubmit = async (e) => {
+        e.preventDefault();
+        const addedClient = await handleAdicionarCliente(newClient, currentUser.name, true);
+        if (addedClient) {
+            setNewAgendamento(prev => ({ ...prev, clientId: addedClient.id })); // Pré-seleciona o cliente recém-criado
+            handleCloseAddClientModal();
         }
     };
 
@@ -140,15 +192,28 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
         </tr>
     );
 
-    const renderEditFormFields = (data, handler, isEditing = false) => (
+    const renderFormFields = (data, handler, isEditing = false) => (
         <>
-            {isEditing && (
-                 <div className="md:col-span-2">
+            <div className="md:col-span-2">
+                {isEditing ? (
+                    <div>
                     <label htmlFor="clientId" className="block text-sm font-medium text-gray-300">Cliente</label>
                     <input id="clientId" value={data.clientName || ''} readOnly disabled className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg cursor-not-allowed" />
-                </div>
-            )}
-            <div className="md:col-span-2">
+                    </div>
+                ) : (
+                    <div className="flex items-end gap-2">
+                        <div className="flex-grow">
+                            <label htmlFor="clientId" className="block text-sm font-medium text-gray-300">Cliente</label>
+                            <select id="clientId" name="clientId" value={data.clientId} onChange={(e) => handler(e, setNewAgendamento)} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                                <option value="">Selecione um cliente</option>
+                                {clientes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                        </div>
+                        <button type="button" onClick={handleOpenAddClientModal} className="p-3 bg-green-600 hover:bg-green-700 text-white rounded-lg" title="Novo Cliente"><UserPlus size={20} /></button>
+                    </div>
+                )}
+            </div>
+            <div className={`md:col-span-2 ${isEditing ? 'cursor-not-allowed' : ''}`}>
                 <label htmlFor="serviceId" className="block text-sm font-medium text-gray-300">Serviço</label>
                 <select id="serviceId" name="serviceId" value={data.serviceId} onChange={(e) => handler(e, data === newAgendamento ? setNewAgendamento : setEditingAgendamento)} required disabled={isEditing} className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 disabled:cursor-not-allowed disabled:opacity-70">
                     <option value="">Selecione um serviço</option>
@@ -285,7 +350,7 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
                     className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"
                     onSubmit={(e) => handleSubmit(e, handleAdicionarAgendamento, newAgendamento, handleCloseAddModal)}
                 >
-                    {renderFormFields(newAgendamento, handleInputChange)}
+                    {renderFormFields(newAgendamento, handleInputChange, false)}
                     <button type="submit" className="w-full md:col-span-2 mt-4 px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors">
                         Salvar Agendamento
                     </button>
@@ -300,12 +365,43 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
                         className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"
                         onSubmit={(e) => handleSubmit(e, handleAtualizarAgendamento, editingAgendamento, handleCloseEditModal)}
                     >
-                        {renderFormFields(editingAgendamento, handleInputChange)}
+                        {renderFormFields(editingAgendamento, handleInputChange, true)}
                         <button type="submit" className="w-full md:col-span-2 mt-4 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
                             Salvar Alterações
                         </button>
                     </form>
                 )}
+            </Modal>
+
+            {/* Modal Adicionar Cliente */}
+            <Modal isOpen={isAddClientModalOpen} onClose={handleCloseAddClientModal}>
+                <h2 className="text-2xl font-bold text-center text-green-400 mb-6">Novo Cliente</h2>
+                <form className="space-y-4" onSubmit={handleAddClientSubmit}>
+                    <div>
+                        <label htmlFor="new-client-name" className="block text-sm font-medium text-gray-300">Nome <span className="text-red-500">*</span></label>
+                        <input id="new-client-name" name="name" type="text" value={newClient.name} onChange={handleClientInputChange} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    </div>
+                    <div>
+                        <label htmlFor="new-client-phone" className="block text-sm font-medium text-gray-300">Telefone <span className="text-red-500">*</span></label>
+                        <input id="new-client-phone" name="phone" type="text" value={newClient.phone} onChange={handleClientInputChange} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    </div>
+                    <div>
+                        <label htmlFor="new-client-cpf" className="block text-sm font-medium text-gray-300">CPF/CNPJ (Opcional)</label>
+                        <input id="new-client-cpf" name="cpf" type="text" value={newClient.cpf} onChange={handleClientInputChange} className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    </div>
+                    <div>
+                        <label htmlFor="new-client-email" className="block text-sm font-medium text-gray-300">Email (Opcional)</e-mail></label>
+                        <input id="new-client-email" name="email" type="email" value={newClient.email} onChange={handleClientInputChange} className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    </div>
+                    <div className="flex justify-end gap-4 pt-4">
+                        <button type="button" onClick={handleCloseAddClientModal} className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white font-medium rounded-lg">
+                            Cancelar
+                        </button>
+                        <button type="submit" className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg">
+                            Salvar Cliente
+                        </button>
+                    </div>
+                </form>
             </Modal>
         </div>
     );
