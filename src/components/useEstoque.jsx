@@ -1308,11 +1308,11 @@ export const useEstoque = (currentUser) => {
         try {
             const token = localStorage.getItem('boycell-token');
             const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
-            if (skipPermissionCheck) headers['X-Skip-Permissions'] = 'true';
+            if (skipPermissionCheck) headers['x-skip-permissions'] = 'true';
 
             const response = await fetch(`${API_URL}/api/clients`, {
                 method: 'POST',
-                headers,
+                headers: headers,
                 body: JSON.stringify(clienteData)
             });
 
