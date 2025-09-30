@@ -1122,8 +1122,17 @@ export const useEstoque = (currentUser) => {
                 return newEstoque;
             });
     
-            // 3. Refetch clients list to get the most up-to-date data from the DB
-            await fetchClients();
+            // 3. Update clients list locally
+            const clientData = {
+                id: data.clienteId,
+                name: data.customer,
+                cpf: data.customerCpf,
+                phone: data.customerPhone,
+                email: data.customerEmail,
+                lastPurchase: data.date,
+                isActive: true, // Assume active on new/updated sale
+            };
+            setClientes(prev => prev.map(c => c.id === data.clienteId ? { ...c, ...clientData } : c));
 
             return data; // Return the complete sale object from the backend
         } catch (error) {
