@@ -748,7 +748,7 @@ app.get('/api/clients', protect, async (req, res) => {
             phone: c.phone,
             email: c.email,
             lastPurchase: c.last_purchase || null, // Garante que o campo exista, mesmo que seja nulo
-            isActive: c.is_active,
+            isActive: c.is_active !== undefined ? c.is_active : true, // Garante um valor padrão
             createdAt: c.created_at || null
         }));
         res.json(clients);
