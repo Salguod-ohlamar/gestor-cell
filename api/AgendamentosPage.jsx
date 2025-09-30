@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ArrowLeft, LogOut, Search, Edit, Trash2, PlusCircle, ChevronLeft, ChevronRight, MessageSquare, UserPlus, Building2, Calendar, Clock } from 'lucide-react';
+import { ArrowLeft, LogOut, Search, Edit, Trash2, PlusCircle, Calendar, Clock, User, Tool, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import Modal from './Modal.jsx';
@@ -140,17 +140,18 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
         </tr>
     );
 
-    const renderEditFormFields = (data, handler, isEditing = false) => (
+    const renderFormFields = (data, handler) => (
         <>
-            {isEditing && (
-                 <div className="md:col-span-2">
-                    <label htmlFor="clientId" className="block text-sm font-medium text-gray-300">Cliente</label>
-                    <input id="clientId" value={data.clientName || ''} readOnly disabled className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg cursor-not-allowed" />
-                </div>
-            )}
+            <div className="md:col-span-2">
+                <label htmlFor="clientId" className="block text-sm font-medium text-gray-300">Cliente</label>
+                <select id="clientId" name="clientId" value={data.clientId} onChange={(e) => handler(e, data === newAgendamento ? setNewAgendamento : setEditingAgendamento)} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <option value="">Selecione um cliente</option>
+                    {clientes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+            </div>
             <div className="md:col-span-2">
                 <label htmlFor="serviceId" className="block text-sm font-medium text-gray-300">Serviço</label>
-                <select id="serviceId" name="serviceId" value={data.serviceId} onChange={(e) => handler(e, data === newAgendamento ? setNewAgendamento : setEditingAgendamento)} required disabled={isEditing} className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 disabled:cursor-not-allowed disabled:opacity-70">
+                <select id="serviceId" name="serviceId" value={data.serviceId} onChange={(e) => handler(e, data === newAgendamento ? setNewAgendamento : setEditingAgendamento)} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
                     <option value="">Selecione um serviço</option>
                     {servicos.map(s => <option key={s.id} value={s.id}>{s.servico}</option>)}
                 </select>
