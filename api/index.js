@@ -740,11 +740,16 @@ app.get('/api/clients', protect, async (req, res) => {
     try {
         const query = includeInactive === 'true' ? 'SELECT * FROM clients ORDER BY name ASC' : 'SELECT * FROM clients WHERE is_active = TRUE ORDER BY name ASC';
         const { rows } = await db.query(query);
-        // Garantir que todos os campos, incluindo is_active, sejam retornados
+        // Converte o padrão snake_case do DB para camelCase do JS para consistência
         const clients = rows.map(c => ({
-            ...c,
-            last_purchase: c.last_purchase, // Mantém o formato do banco
-            is_active: c.is_active
+            id: c.id,
+            name: c.name,
+            cpf: c.cpf,
+            phone: c.phone,
+            email: c.email,
+            lastPurchase: c.last_purchase,
+            isActive: c.is_active,
+            createdAt: c.created_at
         }));
         res.json(clients);
     } catch (err) {

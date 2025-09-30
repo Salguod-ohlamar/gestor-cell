@@ -117,7 +117,7 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
         const scheduledFor = new Date(`${scheduledForDate}T${scheduledForTime}:00`).toISOString();
         const success = await handler({ ...data, scheduledFor, dueDate: data.dueDate || null });
         if (success) {
-            closeFn();
+            closeFn(); // Fecha o modal apenas se a operação for bem-sucedida
         }
     };
 
