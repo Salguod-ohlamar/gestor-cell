@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ArrowLeft, LogOut, Search, Edit, Trash2, PlusCircle, ChevronLeft, ChevronRight, MessageSquare, UserPlus, Building2 } from 'lucide-react';
+import { ArrowLeft, LogOut, Search, Edit, Trash2, PlusCircle, Calendar, Clock, User, Tool, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import Modal from './Modal.jsx';
 import { useEstoqueContext } from './EstoqueContext.jsx';
-import { validateCPF, validatePhone } from './formatters.js';
+import DataTable from './DataTable.jsx';
 
 const AgendamentosPage = ({ onLogout, currentUser }) => {
     const navigate = useNavigate();
@@ -15,7 +15,6 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
         handleAdicionarAgendamento,
         handleAtualizarAgendamento,
         handleExcluirAgendamento,
-        handleAdicionarCliente,
     } = useEstoqueContext();
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -23,15 +22,6 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingAgendamento, setEditingAgendamento] = useState(null);
-
-    // State for the new multi-step modal
-    const [modalStep, setModalStep] = useState(1); // 1: Client, 2: Appointment
-    const [selectedClient, setSelectedClient] = useState(null);
-    const [clientSearchTerm, setClientSearchTerm] = useState('');
-    const [showNewClientForm, setShowNewClientForm] = useState(false);
-    const [newClient, setNewClient] = useState({ name: '', cpf: '', phone: '', email: '' });
-    const [formErrors, setFormErrors] = useState({});
-
     const [newAgendamento, setNewAgendamento] = useState({
         clientId: '',
         serviceId: '',
@@ -62,13 +52,6 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
     const handleOpenAddModal = () => setIsAddModalOpen(true);
     const handleCloseAddModal = () => {
         setIsAddModalOpen(false);
-        // Reset all states for the add modal
-        setTimeout(() => {
-            setModalStep(1);
-            setSelectedClient(null);
-            setShowNewClientForm(false);
-            setNewClient({ name: '', cpf: '', phone: '', email: '' });
-        }, 300); // Delay to allow modal to close before state reset
         setNewAgendamento({ clientId: '', serviceId: '', scheduledForDate: '', scheduledForTime: '', dueDate: '', status: 'scheduled', notes: '' });
     };
 
@@ -92,17 +75,17 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
         setter(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleAppointmentSubmit = async (e) => {
+    const handleSubmit = async (e, handler, data, closeFn) => {
         e.preventDefault();
-        const { serviceId, scheduledForDate, scheduledForTime } = newAgendamento;
-        if (!selectedClient?.id || !serviceId || !scheduledForDate || !scheduledForTime) {
+        const { clientId, serviceId, scheduledForDate, scheduledForTime } = data;
+        if (!clientId || !serviceId || !scheduledForDate || !scheduledForTime) {
             toast.error('Por favor, preencha cliente, serviço, data e hora.');
             return;
         }
         const scheduledFor = new Date(`${scheduledForDate}T${scheduledForTime}:00`).toISOString();
-        const success = await handleAdicionarAgendamento({ ...newAgendamento, clientId: selectedClient.id, scheduledFor, dueDate: newAgendamento.dueDate || null });
+        const success = await handler({ ...data, scheduledFor, dueDate: data.dueDate || null });
         if (success) {
-            closeFn();
+            handleCloseAddModal();
         }
     };
 
@@ -157,18 +140,17 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
         </tr>
     );
 
-    const renderEditFormFields = (data, handler) => (
+    const renderEditFormFields = (data, handler, isEditing = false) => (
         <>
-            <div className="md:col-span-2">
-                <label htmlFor="clientId" className="block text-sm font-medium text-gray-300">Cliente</label>
-                <select id="clientId" name="clientId" value={data.clientId} onChange={(e) => handler(e, data === newAgendamento ? setNewAgendamento : setEditingAgendamento)} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-                    <option value="">Selecione um cliente</option>
-                    {clientes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-            </div>
+            {isEditing && (
+                 <div className="md:col-span-2">
+                    <label htmlFor="clientId" className="block text-sm font-medium text-gray-300">Cliente</label>
+                    <input id="clientId" value={data.clientName || ''} readOnly disabled className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg cursor-not-allowed" />
+                </div>
+            )}
             <div className="md:col-span-2">
                 <label htmlFor="serviceId" className="block text-sm font-medium text-gray-300">Serviço</label>
-                <select id="serviceId" name="serviceId" value={data.serviceId} onChange={(e) => handler(e, data === newAgendamento ? setNewAgendamento : setEditingAgendamento)} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                <select id="serviceId" name="serviceId" value={data.serviceId} onChange={(e) => handler(e, data === newAgendamento ? setNewAgendamento : setEditingAgendamento)} required disabled={isEditing} className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 disabled:cursor-not-allowed disabled:opacity-70">
                     <option value="">Selecione um serviço</option>
                     {servicos.map(s => <option key={s.id} value={s.id}>{s.servico}</option>)}
                 </select>
@@ -199,126 +181,6 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
                 <textarea id="notes" name="notes" value={data.notes} onChange={(e) => handler(e, data === newAgendamento ? setNewAgendamento : setEditingAgendamento)} rows="3" className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"></textarea>
             </div>
         </>
-    );
-
-    // New Client Form Validation
-    const validateNewClient = () => {
-        const errors = {};
-        if (!newClient.name) errors.name = 'Nome é obrigatório.';
-        if (!newClient.phone) errors.phone = 'Telefone é obrigatório.';
-        else if (!validatePhone(newClient.phone)) errors.phone = 'Telefone inválido.';
-        if (newClient.cpf && !validateCPF(newClient.cpf)) errors.cpf = 'CPF/CNPJ inválido.';
-        setFormErrors(errors);
-        return Object.keys(errors).length === 0;
-    };
-
-    const handleNewClientSubmit = async (e) => {
-        e.preventDefault();
-        if (!validateNewClient()) {
-            toast.error('Por favor, corrija os erros no formulário.');
-            return;
-        }
-        const createdClient = await handleAdicionarCliente(newClient, currentUser.name);
-        if (createdClient) {
-            setSelectedClient(createdClient);
-            setModalStep(2);
-            setShowNewClientForm(false);
-            setNewClient({ name: '', cpf: '', phone: '', email: '' });
-        }
-    };
-
-    const filteredClients = useMemo(() => {
-        if (!clientSearchTerm) return clientes;
-        return clientes.filter(c =>
-            c.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-            c.cpf?.includes(clientSearchTerm)
-        );
-    }, [clientes, clientSearchTerm]);
-
-    const renderClientStep = () => (
-        <div>
-            <h3 className="text-xl font-bold text-center text-gray-200 mb-4">Etapa 1: Selecione o Cliente</h3>
-            
-            {!showNewClientForm ? (
-                <>
-                    <div className="relative mb-4">
-                        <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                        <input
-                            type="text"
-                            placeholder="Buscar cliente por nome ou CPF..."
-                            value={clientSearchTerm}
-                            onChange={(e) => setClientSearchTerm(e.target.value)}
-                            className="w-full p-3 pl-10 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                        />
-                    </div>
-                    <div className="max-h-60 overflow-y-auto space-y-2 pr-2">
-                        {filteredClients.map(client => (
-                            <button
-                                key={client.id}
-                                onClick={() => { setSelectedClient(client); setModalStep(2); }}
-                                className="w-full text-left p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
-                            >
-                                <p className="font-semibold">{client.name}</p>
-                                <p className="text-sm text-gray-400">{client.cpf || 'CPF não informado'}</p>
-                            </button>
-                        ))}
-                    </div>
-                    <div className="mt-6 text-center">
-                        <button onClick={() => setShowNewClientForm(true)} className="inline-flex items-center gap-2 text-green-400 hover:text-green-300">
-                            <UserPlus size={18} /> Cadastrar Novo Cliente
-                        </button>
-                    </div>
-                </>
-            ) : (
-                <form onSubmit={handleNewClientSubmit} className="space-y-4">
-                    <div>
-                        <label htmlFor="new-client-name" className="block text-sm font-medium text-gray-300">Nome Completo</label>
-                        <input id="new-client-name" name="name" type="text" value={newClient.name} onChange={(e) => handleInputChange(e, setNewClient)} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg" />
-                        {formErrors.name && <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>}
-                    </div>
-                    <div>
-                        <label htmlFor="new-client-cpf" className="block text-sm font-medium text-gray-300">CPF/CNPJ</label>
-                        <input id="new-client-cpf" name="cpf" type="text" value={newClient.cpf} onChange={(e) => handleInputChange(e, setNewClient)} className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg" />
-                        {formErrors.cpf && <p className="text-red-500 text-xs mt-1">{formErrors.cpf}</p>}
-                    </div>
-                    <div>
-                        <label htmlFor="new-client-phone" className="block text-sm font-medium text-gray-300">Telefone</label>
-                        <input id="new-client-phone" name="phone" type="text" value={newClient.phone} onChange={(e) => handleInputChange(e, setNewClient)} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg" />
-                        {formErrors.phone && <p className="text-red-500 text-xs mt-1">{formErrors.phone}</p>}
-                    </div>
-                    <div>
-                        <label htmlFor="new-client-email" className="block text-sm font-medium text-gray-300">Email</label>
-                        <input id="new-client-email" name="email" type="email" value={newClient.email} onChange={(e) => handleInputChange(e, setNewClient)} className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg" />
-                    </div>
-                    <div className="flex gap-4 pt-4">
-                        <button type="button" onClick={() => setShowNewClientForm(false)} className="w-full px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg">Voltar</button>
-                        <button type="submit" className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg">Salvar e Continuar</button>
-                    </div>
-                </form>
-            )}
-        </div>
-    );
-
-    const renderAppointmentStep = () => (
-        <div>
-            <div className="flex items-center justify-between mb-4">
-                <button onClick={() => setModalStep(1)} className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white">
-                    <ChevronLeft size={16} /> Voltar
-                </button>
-                <h3 className="text-xl font-bold text-center text-gray-200">Etapa 2: Detalhes do Serviço</h3>
-                <div></div>
-            </div>
-            <div className="p-3 mb-4 bg-gray-800 rounded-lg flex items-center gap-3">
-                <Building2 className="text-green-400" />
-                <p className="font-semibold">{selectedClient?.name}</p>
-            </div>
-            <form className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4" onSubmit={handleAppointmentSubmit}>
-                {renderEditFormFields(newAgendamento, (e) => handleInputChange(e, setNewAgendamento))}
-                <button type="submit" className="w-full md:col-span-2 mt-4 px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors">
-                    Salvar Agendamento
-                </button>
-            </form>
-        </div>
     );
 
     return (
@@ -355,39 +217,62 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <button onClick={handleOpenAddModal} className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors">
-                            <PlusCircle size={18} /> Novo Agendamento
-                        </button>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="border-b border-gray-700">
-                                <tr>
-                                    {columns.map(col => (
-                                        <th key={col.id} className="p-4 font-semibold">{col.label}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {paginatedAgendamentos.length > 0 ? paginatedAgendamentos.map(renderRow) : (
-                                    <tr>
-                                        <td colSpan={columns.length} className="p-8 text-center text-gray-500">Nenhum agendamento encontrado.</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {totalPages > 1 && (
-                        <div className="mt-6 flex justify-between items-center">
-                            <span className="text-sm text-gray-400">
-                                Página {currentPage} de {totalPages}
-                            </span>
-                            <div className="flex items-center gap-2">
-                                <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700"><ChevronLeft size={20} /></button>
-                                <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700"><ChevronRight size={20} /></button>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center bg-gray-800 rounded-lg p-1">
+                                <button onClick={() => setViewMode('list')} className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${viewMode === 'list' ? 'bg-green-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}><List size={16} className="inline mr-1" /> Lista</button>
+                                <button onClick={() => setViewMode('calendar')} className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${viewMode === 'calendar' ? 'bg-green-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}><CalendarIcon size={16} className="inline mr-1" /> Calendário</button>
                             </div>
+                            <button onClick={handleOpenAddModal} className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors">
+                                <PlusCircle size={18} /> Novo Agendamento
+                            </button>
+                        </div>
+                    </div>
+
+                    {viewMode === 'list' ? (
+                        <>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead className="border-b border-gray-700">
+                                        <tr>
+                                            {columns.map(col => (
+                                                <th key={col.id} className="p-4 font-semibold">{col.label}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {paginatedAgendamentos.length > 0 ? paginatedAgendamentos.map(renderRow) : (
+                                            <tr>
+                                                <td colSpan={columns.length} className="p-8 text-center text-gray-500">Nenhum agendamento encontrado.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {totalPages > 1 && (
+                                <div className="mt-6 flex justify-between items-center">
+                                    <span className="text-sm text-gray-400">
+                                        Página {currentPage} de {totalPages}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700"><ChevronLeft size={20} /></button>
+                                        <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700"><ChevronRight size={20} /></button>
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <div className="h-[70vh] text-white rbc-calendar">
+                            <Calendar
+                                localizer={localizer}
+                                events={calendarEvents}
+                                startAccessor="start"
+                                endAccessor="end"
+                                messages={calendarMessages}
+                                onSelectEvent={handleOpenEditModal}
+                                eventPropGetter={eventStyleGetter}
+                                culture="pt-BR"
+                            />
                         </div>
                     )}
                 </div>
@@ -395,20 +280,27 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
 
             {/* Modal Adicionar Agendamento */}
             <Modal isOpen={isAddModalOpen} onClose={handleCloseAddModal}>
-                <h2 className="text-2xl font-bold text-center text-green-400 mb-6">Novo Agendamento de Serviço</h2>
-                {modalStep === 1 ? renderClientStep() : renderAppointmentStep()}
+                <h2 className="text-2xl font-bold text-center text-green-400 mb-6">Novo Agendamento</h2>
+                <form
+                    className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"
+                    onSubmit={(e) => handleSubmit(e, handleAdicionarAgendamento, newAgendamento, handleCloseAddModal)}
+                >
+                    {renderFormFields(newAgendamento, handleInputChange)}
+                    <button type="submit" className="w-full md:col-span-2 mt-4 px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors">
+                        Salvar Agendamento
+                    </button>
+                </form>
             </Modal>
 
             {/* Modal Editar Agendamento */}
             <Modal isOpen={isEditModalOpen} onClose={handleCloseEditModal}>
                 <h2 className="text-2xl font-bold text-center text-blue-400 mb-6">Editar Agendamento</h2>
                 {editingAgendamento && (
-                    <form className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4" onSubmit={async (e) => {
-                        e.preventDefault();
-                        const success = await handleAtualizarAgendamento(editingAgendamento);
-                        if (success) handleCloseEditModal();
-                    }}>
-                        {renderEditFormFields(editingAgendamento, (e) => handleInputChange(e, setEditingAgendamento))}
+                    <form
+                        className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"
+                        onSubmit={(e) => handleSubmit(e, handleAtualizarAgendamento, editingAgendamento, handleCloseEditModal)}
+                    >
+                        {renderFormFields(editingAgendamento, handleInputChange)}
                         <button type="submit" className="w-full md:col-span-2 mt-4 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
                             Salvar Alterações
                         </button>
