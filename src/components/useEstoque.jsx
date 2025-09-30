@@ -255,30 +255,30 @@ export const useEstoque = (currentUser) => {
     // ===================================================================
     const [clientes, setClientes] = useState([]);
 
-    useEffect(() => {
-        const fetchClients = async () => {
-            try {
-                const token = localStorage.getItem('boycell-token');
-                if (!token) {
-                    setClientes([]); // Limpa clientes se não houver token
-                    return;
-                }
-                const response = await fetch(`${API_URL}/api/clients`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (!response.ok) throw new Error('Falha ao buscar clientes.');
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(errorText || 'Falha ao buscar clientes.');
-                }
-                const data = await response.json();
-                setClientes(data);
-            } catch (error) {
-                console.error("Erro ao buscar clientes da API:", error);
-                console.log('Info: Não foi possível carregar os clientes. Isso pode ocorrer se não houver clientes cadastrados ou por um erro de conexão.');
-                setClientes([]); // Limpa em caso de erro
+    const fetchClients = async () => {
+        try {
+            const token = localStorage.getItem('boycell-token');
+            if (!token) {
+                setClientes([]); // Limpa clientes se não houver token
+                return;
             }
-        };
+            const response = await fetch(`${API_URL}/api/clients`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Falha ao buscar clientes.');
+            }
+            const data = await response.json();
+            setClientes(data);
+        } catch (error) {
+            console.error("Erro ao buscar clientes da API:", error);
+            console.log('Info: Não foi possível carregar os clientes. Isso pode ocorrer se não houver clientes cadastrados ou por um erro de conexão.');
+            setClientes([]); // Limpa em caso de erro
+        }
+    };
+
+    useEffect(() => {
         if (currentUser) { // Só busca se o usuário estiver logado
             fetchClients();
         } else {
@@ -1120,17 +1120,9 @@ export const useEstoque = (currentUser) => {
                 return newEstoque;
             });
     
-            // 3. Update clients list
-            setClientes(currentClientes => {
-                const existingClient = currentClientes.find(c => c.id === data.clienteId);
-                const clientData = { id: data.clienteId, name: data.customer, cpf: data.customerCpf, phone: data.customerPhone, email: data.customerEmail, lastPurchase: data.date };
-                if (existingClient) {
-                    return currentClientes.map(c => c.id === data.clienteId ? { ...c, ...clientData } : c);
-                } else {
-                    return [...currentClientes, clientData];
-                }
-            });
-    
+            // 3. Refetch clients list to get the most up-to-date data from the DB
+            await fetchClients();
+
             return data; // Return the complete sale object from the backend
         } catch (error) {
             toast.error(error.message);
