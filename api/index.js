@@ -977,8 +977,33 @@ app.put('/api/appointments/:id', protect, async (req, res) => {
         `;
         const values = [scheduledFor, dueDate, status, notes, id];
         const { rows } = await db.query(query, values);
+
         if (rows.length === 0) return res.status(404).json({ message: 'Agendamento não encontrado.' });
-        res.json(rows[0]);
+
+        // Após atualizar, busca o agendamento completo com os nomes para retornar ao frontend.
+        // Isso garante que a interface tenha todos os dados necessários para renderizar a linha atualizada.
+        const resultQuery = `
+            SELECT
+                a.id,
+                a.client_id AS "clientId",
+                cl.name AS "clientName",
+                a.service_id AS "serviceId",
+                cl.phone AS "clientPhone",
+                s.servico AS "serviceName",
+                a.user_id AS "userId",
+                u.name AS "userName",
+                a.due_date as "dueDate",
+                a.scheduled_for AS "scheduledFor",
+                a.status,
+                a.notes
+            FROM appointments a
+            JOIN clients cl ON a.client_id = cl.id
+            JOIN services s ON a.service_id = s.id
+            LEFT JOIN users u ON a.user_id = u.id
+            WHERE a.id = $1;
+        `;
+        const finalResult = await db.query(resultQuery, [rows[0].id]);
+        res.json(finalResult.rows[0]);
     } catch (err) {
         console.error('Update appointment error:', err);
         res.status(500).send('Erro no servidor ao atualizar agendamento.');
