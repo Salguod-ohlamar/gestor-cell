@@ -751,8 +751,8 @@ app.get('/api/clients', protect, async (req, res) => {
 app.post('/api/clients', protect, hasPermission('manageClients'), async (req, res) => {
     const { name, cpf, phone, email } = req.body;
 
-    if (!name || !cpf || !phone) {
-        return res.status(400).json({ message: 'Nome, CPF/CNPJ e Telefone são obrigatórios.' });
+    if (!name || !phone) {
+        return res.status(400).json({ message: 'Nome e Telefone são obrigatórios.' });
     }
 
     try {

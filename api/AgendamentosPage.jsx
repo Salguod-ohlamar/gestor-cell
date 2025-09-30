@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ArrowLeft, LogOut, Search, Edit, Trash2, PlusCircle, Calendar, Clock, User, Tool, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, LogOut, Search, Edit, Trash2, PlusCircle, ChevronLeft, ChevronRight, MessageSquare, UserPlus, Building2, Calendar, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import Modal from './Modal.jsx';
@@ -27,6 +27,7 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
         serviceId: '',
         scheduledForDate: '',
         scheduledForTime: '',
+        dueDate: '',
         status: 'scheduled',
         notes: ''
     });
@@ -51,13 +52,14 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
     const handleOpenAddModal = () => setIsAddModalOpen(true);
     const handleCloseAddModal = () => {
         setIsAddModalOpen(false);
-        setNewAgendamento({ clientId: '', serviceId: '', scheduledForDate: '', scheduledForTime: '', status: 'scheduled', notes: '' });
+        setNewAgendamento({ clientId: '', serviceId: '', scheduledForDate: '', scheduledForTime: '', dueDate: '', status: 'scheduled', notes: '' });
     };
 
     const handleOpenEditModal = (agendamento) => {
         const scheduledDateTime = new Date(agendamento.scheduledFor);
         setEditingAgendamento({
             ...agendamento,
+            dueDate: agendamento.dueDate ? new Date(agendamento.dueDate).toISOString().split('T')[0] : '',
             scheduledForDate: scheduledDateTime.toISOString().split('T')[0],
             scheduledForTime: scheduledDateTime.toTimeString().split(' ')[0].substring(0, 5),
         });
@@ -81,9 +83,9 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
             return;
         }
         const scheduledFor = new Date(`${scheduledForDate}T${scheduledForTime}:00`).toISOString();
-        const success = await handler({ ...data, scheduledFor });
+        const success = await handler({ ...data, scheduledFor, dueDate: data.dueDate || null });
         if (success) {
-            closeFn();
+            handleCloseAddModal();
         }
     };
 
@@ -91,17 +93,30 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
         { id: 'clientName', label: 'Cliente', sortable: true },
         { id: 'serviceName', label: 'Serviço', sortable: true },
         { id: 'scheduledFor', label: 'Entrada', sortable: true },
+        { id: 'dueDate', label: 'Entrega', sortable: true },
         { id: 'status', label: 'Status', sortable: true },
         { id: 'userName', label: 'Agendado por', sortable: true },
         { id: 'acoes', label: 'Ações', sortable: false, align: 'right' },
-
     ];
+
+    const handleWhatsAppClick = (agendamento) => {
+        if (!agendamento.clientPhone) {
+            toast.error('Cliente sem número de telefone cadastrado.');
+            return;
+        }
+        const cleanPhone = agendamento.clientPhone.replace(/\D/g, '');
+        const entryDate = new Date(agendamento.scheduledFor).toLocaleDateString('pt-BR');
+        const message = `Olá! O requerimento efetuado no dia ${entryDate} encontra-se disponível para retirada.`;
+        const url = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank', 'noopener,noreferrer');
+    };
 
     const renderRow = (ag) => (
         <tr key={ag.id} className="border-b border-gray-800 hover:bg-gray-800/50">
             <td className="p-4 font-medium">{ag.clientName}</td>
             <td className="p-4">{ag.serviceName}</td>
             <td className="p-4">{new Date(ag.scheduledFor).toLocaleString('pt-BR')}</td>
+            <td className="p-4">{ag.dueDate ? new Date(ag.dueDate).toLocaleDateString('pt-BR') : 'N/A'}</td>
             <td className="p-4">
                 <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
                     ag.status === 'completed' ? 'bg-green-500/20 text-green-300' :
@@ -115,6 +130,9 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
             <td className="p-4">{ag.userName}</td>
             <td className="p-4 text-right">
                 <div className="flex items-center justify-end gap-4">
+                    {ag.status === 'completed' && (
+                        <button onClick={() => handleWhatsAppClick(ag)} className="text-green-400 hover:text-green-300" title="Notificar Cliente no WhatsApp"><MessageSquare size={18} /></button>
+                    )}
                     <button onClick={() => handleOpenEditModal(ag)} className="text-blue-400 hover:text-blue-300" title="Editar Agendamento"><Edit size={18} /></button>
                     <button onClick={() => handleExcluirAgendamento(ag.id)} className="text-red-400 hover:text-red-300" title="Excluir Agendamento"><Trash2 size={18} /></button>
                 </div>
@@ -122,31 +140,34 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
         </tr>
     );
 
-    const renderFormFields = (data, handler) => (
+    const renderEditFormFields = (data, handler, isEditing = false) => (
         <>
-            <div className="md:col-span-2">
-                <label htmlFor="clientId" className="block text-sm font-medium text-gray-300">Cliente</label>
-                <select id="clientId" name="clientId" value={data.clientId} onChange={(e) => handler(e, data === newAgendamento ? setNewAgendamento : setEditingAgendamento)} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
-                    <option value="">Selecione um cliente</option>
-                    {clientes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-            </div>
+            {isEditing && (
+                 <div className="md:col-span-2">
+                    <label htmlFor="clientId" className="block text-sm font-medium text-gray-300">Cliente</label>
+                    <input id="clientId" value={data.clientName || ''} readOnly disabled className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg cursor-not-allowed" />
+                </div>
+            )}
             <div className="md:col-span-2">
                 <label htmlFor="serviceId" className="block text-sm font-medium text-gray-300">Serviço</label>
-                <select id="serviceId" name="serviceId" value={data.serviceId} onChange={(e) => handler(e, data === newAgendamento ? setNewAgendamento : setEditingAgendamento)} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                <select id="serviceId" name="serviceId" value={data.serviceId} onChange={(e) => handler(e, data === newAgendamento ? setNewAgendamento : setEditingAgendamento)} required disabled={isEditing} className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 disabled:cursor-not-allowed disabled:opacity-70">
                     <option value="">Selecione um serviço</option>
                     {servicos.map(s => <option key={s.id} value={s.id}>{s.servico}</option>)}
                 </select>
             </div>
             <div>
-                <label htmlFor="scheduledForDate" className="block text-sm font-medium text-gray-300">Data</label>
+                <label htmlFor="scheduledForDate" className="block text-sm font-medium text-gray-300">Data de Entrada</label>
                 <input id="scheduledForDate" name="scheduledForDate" type="date" value={data.scheduledForDate} onChange={(e) => handler(e, data === newAgendamento ? setNewAgendamento : setEditingAgendamento)} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
             </div>
             <div>
-                <label htmlFor="scheduledForTime" className="block text-sm font-medium text-gray-300">Hora</label>
+                <label htmlFor="scheduledForTime" className="block text-sm font-medium text-gray-300">Hora de Entrada</label>
                 <input id="scheduledForTime" name="scheduledForTime" type="time" value={data.scheduledForTime} onChange={(e) => handler(e, data === newAgendamento ? setNewAgendamento : setEditingAgendamento)} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
             </div>
-            <div className="md:col-span-2">
+            <div>
+                <label htmlFor="dueDate" className="block text-sm font-medium text-gray-300">Data de Entrega</label>
+                <input id="dueDate" name="dueDate" type="date" value={data.dueDate} onChange={(e) => handler(e, data === newAgendamento ? setNewAgendamento : setEditingAgendamento)} className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+            </div>
+            <div>
                 <label htmlFor="status" className="block text-sm font-medium text-gray-300">Status</label>
                 <select id="status" name="status" value={data.status} onChange={(e) => handler(e, data === newAgendamento ? setNewAgendamento : setEditingAgendamento)} required className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
                     <option value="scheduled">Agendado</option>
@@ -156,7 +177,7 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
                 </select>
             </div>
             <div className="md:col-span-2">
-                <label htmlFor="notes" className="block text-sm font-medium text-gray-300">Notas</label>
+                <label htmlFor="notes" className="block text-sm font-medium text-gray-300">Relato do Cliente / Observações</label>
                 <textarea id="notes" name="notes" value={data.notes} onChange={(e) => handler(e, data === newAgendamento ? setNewAgendamento : setEditingAgendamento)} rows="3" className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"></textarea>
             </div>
         </>
