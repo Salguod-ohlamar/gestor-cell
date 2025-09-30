@@ -390,7 +390,7 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
                         <input id="new-client-cpf" name="cpf" type="text" value={newClient.cpf} onChange={handleClientInputChange} className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
                     </div>
                     <div>
-                        <label htmlFor="new-client-email" className="block text-sm font-medium text-gray-300">Email (Opcional)</e-mail></label>
+                        <label htmlFor="new-client-email" className="block text-sm font-medium text-gray-300">Email (Opcional)</label>
                         <input id="new-client-email" name="email" type="email" value={newClient.email} onChange={handleClientInputChange} className="mt-1 block w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
                     </div>
                     <div className="flex justify-end gap-4 pt-4">
