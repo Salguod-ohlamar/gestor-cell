@@ -34,7 +34,7 @@ const ClientesPage = ({ onLogout, currentUser }) => {
             (cliente.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
             (cliente.cpf?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
             (cliente.phone?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-        ).sort((a, b) => new Date(b.lastPurchase) - new Date(a.lastPurchase));
+        ).sort((a, b) => new Date(b.lastPurchase || 0) - new Date(a.lastPurchase || 0));
     }, [clientes, searchTerm]);
 
     const totalPages = Math.ceil(filteredClientes.length / itemsPerPage);
@@ -201,7 +201,11 @@ const ClientesPage = ({ onLogout, currentUser }) => {
                                         <td className="p-4">{cliente.cpf}</td>
                                         <td className="p-4">{cliente.email || '-'}</td>
                                         <td className="p-4">{cliente.phone}</td>
-                                        <td className="p-4">{new Date(cliente.lastPurchase).toLocaleDateString('pt-BR')}</td>
+                                        <td className="p-4">
+                                            {cliente.lastPurchase && !isNaN(new Date(cliente.lastPurchase))
+                                                ? new Date(cliente.lastPurchase).toLocaleDateString('pt-BR')
+                                                : 'N/A'}
+                                        </td>
                                         <td className="p-4 text-right">
                                             <div className="flex items-center justify-end gap-4">
                                                 <button onClick={() => handleOpenHistoryModal(cliente)} className="text-purple-400 hover:text-purple-300" title="Histórico de Compras">
