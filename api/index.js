@@ -759,14 +759,15 @@ app.get('/api/clients', protect, async (req, res) => {
 });
 
 // Rota para criar um novo cliente (pela tela de gerenciamento)
-app.post('/api/clients', protect, (req, res, next) => {
+app.post('/api/clients', (req, res, next) => {
     // Pula a verificação de permissão se o header especial estiver presente (usado pela tela de vendas)
     // ou se não houver um usuário na requisição (chamada interna do servidor)
     if (req.headers['x-skip-permissions'] === 'true' || !req.user) {
         return next();
     }
-    return hasPermission('manageClients')(req, res, next);
-}, async (req, res) => {
+    // Se não pular, aplica a proteção e a verificação de permissão
+    return protect(req, res, () => hasPermission('manageClients')(req, res, next));
+},async (req, res) => {
     // Se a chamada for interna (da rota de vendas), o corpo da requisição já está formatado.
     const { name, cpf, phone, email } = req.body;
 
@@ -779,8 +780,12 @@ app.post('/api/clients', protect, (req, res, next) => {
         if (cpf) {
             const { rows: existingClient } = await db.query('SELECT id FROM clients WHERE cpf = $1', [cpf]);
             if (existingClient.length > 0) {
-                // Se a chamada for interna, não é um erro, apenas retorna o cliente existente.
-                if (!req.user) return res.status(200).json(existingClient[0]);
+                // Se a chamada for interna (sem um usuário logado na requisição), 
+                // não é um erro, apenas retorna o objeto completo do cliente existente.
+                if (req.headers['x-skip-permissions'] === 'true') {
+                    const { rows: fullClient } = await db.query('SELECT * FROM clients WHERE id = $1', [existingClient[0].id]);
+                    return res.status(200).json(fullClient[0]);
+                }
                 
                 return res.status(409).json({ message: 'Este CPF/CNPJ já está cadastrado.' });
             }
