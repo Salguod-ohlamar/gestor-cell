@@ -740,7 +740,13 @@ app.get('/api/clients', protect, async (req, res) => {
     try {
         const query = includeInactive === 'true' ? 'SELECT * FROM clients ORDER BY name ASC' : 'SELECT * FROM clients WHERE is_active = TRUE ORDER BY name ASC';
         const { rows } = await db.query(query);
-        res.json(rows);
+        // Garantir que todos os campos, incluindo is_active, sejam retornados
+        const clients = rows.map(c => ({
+            ...c,
+            last_purchase: c.last_purchase, // Mantém o formato do banco
+            is_active: c.is_active
+        }));
+        res.json(clients);
     } catch (err) {
         console.error('Error fetching clients:', err);
         res.status(500).send('Erro no servidor ao buscar clientes.');
@@ -749,12 +755,14 @@ app.get('/api/clients', protect, async (req, res) => {
 
 // Rota para criar um novo cliente (pela tela de gerenciamento)
 app.post('/api/clients', protect, (req, res, next) => {
-    // Pula a verificação de permissão se o header especial estiver presente
-    if (req.headers['x-skip-permissions'] === 'true') {
+    // Pula a verificação de permissão se o header especial estiver presente (usado pela tela de vendas)
+    // ou se não houver um usuário na requisição (chamada interna do servidor)
+    if (req.headers['x-skip-permissions'] === 'true' || !req.user) {
         return next();
     }
     return hasPermission('manageClients')(req, res, next);
 }, async (req, res) => {
+    // Se a chamada for interna (da rota de vendas), o corpo da requisição já está formatado.
     const { name, cpf, phone, email } = req.body;
 
     if (!name || !phone) {
@@ -762,14 +770,20 @@ app.post('/api/clients', protect, (req, res, next) => {
     }
 
     try {
-        const { rows: existingClient } = await db.query('SELECT id FROM clients WHERE cpf = $1', [cpf]);
-        if (existingClient.length > 0) {
-            return res.status(409).json({ message: 'Este CPF/CNPJ já está cadastrado.' });
+        // A verificação de CPF duplicado só deve acontecer se o CPF for fornecido
+        if (cpf) {
+            const { rows: existingClient } = await db.query('SELECT id FROM clients WHERE cpf = $1', [cpf]);
+            if (existingClient.length > 0) {
+                // Se a chamada for interna, não é um erro, apenas retorna o cliente existente.
+                if (!req.user) return res.status(200).json(existingClient[0]);
+                
+                return res.status(409).json({ message: 'Este CPF/CNPJ já está cadastrado.' });
+            }
         }
 
         const { rows } = await db.query(
             'INSERT INTO clients (name, cpf, phone, email) VALUES ($1, $2, $3, $4) RETURNING *',
-            [name, cpf, phone, email]
+            [name, cpf || null, phone, email || null] // Garante que campos opcionais vazios sejam salvos como NULL
         );
         res.status(201).json(rows[0]);
     } catch (err) {
@@ -1061,17 +1075,28 @@ app.post('/api/sales', protect, async (req, res) => {
         await client.query('BEGIN');
 
         let clientId;
-        const { rows: existingClients } = await client.query('SELECT id FROM clients WHERE cpf = $1', [customerCpf]);
-        if (existingClients.length > 0) {
-            clientId = existingClients[0].id;
-            await client.query('UPDATE clients SET last_purchase = NOW(), phone = $1, email = $2, name = $3 WHERE id = $4', [customerPhone, customerEmail, customer, clientId]);
+        // Verifica se o cliente já existe pelo CPF
+        const { rows: existingClient } = await client.query('SELECT id FROM clients WHERE cpf = $1', [customerCpf]);
+
+        if (existingClient.length > 0) {
+            clientId = existingClient[0].id;
+            // Se o cliente já existe, atualiza seus dados e a data da última compra
+            await client.query(
+                'UPDATE clients SET name = $1, phone = $2, email = $3, last_purchase = NOW() WHERE id = $4',
+                [customer, customerPhone, customerEmail, clientId]
+            );
         } else {
-            const { rows: newClient } = await client.query(
+            // Se o cliente não existe, cria um novo
+            const newClientResult = await client.query(
                 'INSERT INTO clients (name, cpf, phone, email, last_purchase) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
                 [customer, customerCpf, customerPhone, customerEmail]
             );
-            clientId = newClient[0].id;
+            clientId = newClientResult.rows[0].id;
         }
+
+
+
+
 
         const receiptCode = `BC-${new Date().getFullYear()}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${new Date().getDate().toString().padStart(2, '0')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
         const saleQuery = `
