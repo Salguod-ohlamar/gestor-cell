@@ -263,7 +263,9 @@ export const useEstoque = (currentUser) => {
                 return;
             }
             const response = await fetch(`${API_URL}/api/clients`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             });
             if (!response.ok) {
                 const errorText = await response.text();
