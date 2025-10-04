@@ -59,7 +59,7 @@ app.get('/api/products/search', protect, async (req, res) => {
         const queryText = `
             SELECT * FROM products 
             WHERE nome ILIKE $1 
-            AND em_estoque > qtda_minima 
+            AND em_estoque > 0 
             ORDER BY nome ASC 
             LIMIT 20;
         `;
