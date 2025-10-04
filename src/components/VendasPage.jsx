@@ -110,36 +110,36 @@ const VendasPage = ({ onLogout, currentUser }) => {
     const handleCpfBlur = async () => {
         const cleanedCpf = customerCpf.replace(/[^\d]/g, '');
         if (cleanedCpf.length < 11) return;
-    
+
         if (!validateCPF(customerCpf)) {
-        if (!validateCPF(customer.cpf)) {
             setIsCpfValid(false);
+            toast.error("CPF/CNPJ inválido.");
             return;
         }
         setIsCpfValid(true);
-    
+
         try {
             setIsSearchingClient(true);
             const token = localStorage.getItem('boycell-token');
             const response = await fetch(`${API_URL}/api/clients/search?cpf=${customerCpf}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-    
+
             if (response.status === 404) {
                 toast.success('Cliente não encontrado. Preencha os dados para um novo cadastro.');
                 setCustomerName('');
                 setCustomerPhone('');
                 setCustomerEmail('');
-                return;
             }
-    
-            if (!response.ok) throw new Error('Erro ao buscar cliente.');
-    
-            const clientData = await response.json();
-            setCustomerName(clientData.name);
-            setCustomerPhone(clientData.phone || '');
-            setCustomerEmail(clientData.email || '');
-            toast.success(`Cliente "${clientData.name}" encontrado!`);
+            else if (response.ok) {
+                const clientData = await response.json();
+                setCustomerName(clientData.name);
+                setCustomerPhone(clientData.phone || '');
+                setCustomerEmail(clientData.email || '');
+                toast.success(`Cliente "${clientData.name}" encontrado!`);
+            } else {
+                throw new Error('Erro ao buscar cliente.');
+            }
         } catch (error) {
             toast.error(error.message);
         } finally {
