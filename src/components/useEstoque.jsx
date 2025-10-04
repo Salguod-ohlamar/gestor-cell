@@ -223,7 +223,7 @@ export const useEstoque = (currentUser) => {
                 setSalesHistory(data);
             } catch (error) {
                 console.error("Erro ao buscar histórico de vendas da API:", error);
-                toast.error('Não foi possível carregar o histórico de vendas.');
+                // toast.error('Não foi possível carregar o histórico de vendas.');
                 setSalesHistory([]); // Limpa em caso de erro
             }
         };
@@ -328,7 +328,7 @@ export const useEstoque = (currentUser) => {
                 setUsers(data);
             } catch (error) {
                 console.error("Erro ao buscar usuários da API:", error);
-                toast.error('Não foi possível carregar os usuários.');
+                // toast.error('Não foi possível carregar os usuários.');
             }
         };
 
@@ -360,7 +360,7 @@ export const useEstoque = (currentUser) => {
                     setBanners(data);
                 } catch (error) {
                     console.error("Erro ao buscar banners para o admin:", error);
-                    toast.error('Não foi possível carregar os banners.');
+                    // toast.error('Não foi possível carregar os banners.');
                 }
             }
         };
