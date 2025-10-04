@@ -158,6 +158,7 @@ export const useEstoque = (currentUser) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [showLowStockOnly, setShowLowStockOnly] = useState(false);
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
     // ===================================================================
     // SERVICES STATE
     // ===================================================================
@@ -537,6 +538,8 @@ export const useEstoque = (currentUser) => {
             return;
         }
     
+        setIsSubmitting(true);
+
         try {
             const token = localStorage.getItem('boycell-token');
             const response = await fetch(`${API_URL}/api/products`, {
@@ -565,6 +568,8 @@ export const useEstoque = (currentUser) => {
             handleCloseAddModal();
         } catch (error) {
             toast.error(error.message);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -1515,6 +1520,7 @@ export const useEstoque = (currentUser) => {
         handleBackup,
         handleRestore,
         // Banners
+        isSubmitting,
         banners,
         handleAddBanner,
         handleUpdateBanner,
