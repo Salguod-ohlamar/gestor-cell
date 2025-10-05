@@ -1,12 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, X, Edit, LogOut, ShoppingCart, Mail, Printer, Send, Banknote, CreditCard, QrCode, DollarSign, ShoppingBag, Calendar, Eye, EyeOff, Sun, Moon } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { Toaster, toast } from 'react-hot-toast';
+import { Search, X, ShoppingCart, Mail, Printer, Send, Banknote, CreditCard, QrCode, DollarSign, ShoppingBag, Calendar, Eye, EyeOff } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import ReciboVenda from './ReciboVenda';
 import Modal from './Modal.jsx';
 import { validateCPF, validatePhone } from './formatters.js';
-import { useEstoqueContext } from './EstoqueContext.jsx';
-import { useTheme } from './ThemeContext.jsx';
 
 const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue, onToggle }) => {
     const Icon = icon;
@@ -28,9 +25,7 @@ const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue
     );
   };
 
-const VendasPage = ({ onLogout, currentUser }) => {
-    const navigate = useNavigate();
-    const { theme, toggleTheme } = useTheme();
+const VendasPage = ({ currentUser }) => {
     const {
         handleSale,
         salesHistory,
@@ -428,31 +423,12 @@ const VendasPage = ({ onLogout, currentUser }) => {
     }, [servicos, servicoSearchTerm]);
 
     return (
-        <div className="bg-gray-950 text-gray-100 min-h-screen font-sans">
-            <Toaster position="top-right" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
+        <div>
             <div id="recibo-printable-area" className="hidden">
                 <ReciboVenda saleDetails={lastSaleDetails} />
             </div>
             <div id="vendas-non-printable-area">
-                <header className="bg-gray-900 shadow-lg sticky top-0 z-20">
-                    <nav className="container mx-auto flex items-center justify-between p-4">
-                        <h1 className="text-2xl font-bold text-white">Olá, {currentUser?.name?.split(' ')[0] || 'Vendedor'}!</h1>
-                        <div>
-                            {(currentUser?.role === 'admin' || currentUser?.role === 'root') && (
-                                <button onClick={() => navigate('/estoque')} className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors mr-6" title="Gerenciar Estoque">
-                                    <Edit size={20} />
-                                    <span className="hidden sm:inline">Gerenciar Estoque</span>
-                                </button>
-                            )}
-                            <button onClick={onLogout} className="inline-flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors" title="Sair">
-                                <LogOut size={20} />
-                                <span className="hidden sm:inline">Sair</span>
-                            </button>
-                        </div>
-                    </nav>
-                </header>
-
-                <div className="container mx-auto p-4 mt-8 space-y-8">
+                <div className="space-y-8">
                     {/* Dashboard do Vendedor */}
                     <div id="dashboard-vendedor">
                         <h2 className="text-2xl font-bold text-white mb-4">Seu Desempenho</h2>
@@ -489,7 +465,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Coluna do Carrinho */}
-                        <div className="lg:col-span-1 bg-gray-900 p-6 rounded-2xl shadow-xl flex flex-col h-fit lg:sticky top-24">
+                        <div className="lg:col-span-1 bg-gray-900 p-6 rounded-2xl shadow-xl flex flex-col h-fit lg:sticky top-8">
                             <h2 className="text-2xl font-bold text-blue-400 mb-4 flex items-center gap-2">
                                 <ShoppingCart size={24} />
                                 Carrinho

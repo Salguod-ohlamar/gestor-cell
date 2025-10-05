@@ -1,15 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowLeft, LogOut, Search, Edit, Trash2, ChevronLeft, ChevronRight, History, RefreshCw, Mail, Send, Printer, Settings, Package, Sun, Moon } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { Toaster, toast } from 'react-hot-toast';
+import { Search, Edit, Trash2, ChevronLeft, ChevronRight, History, RefreshCw, Mail, Send, Printer } from 'lucide-react';
 import Modal from './Modal.jsx';
 import { useEstoqueContext } from './EstoqueContext.jsx';
 import ReciboVenda from './ReciboVenda.jsx';
-import { useTheme } from './ThemeContext.jsx';
 
-const ClientesPage = ({ onLogout, currentUser }) => {
-    const { theme, toggleTheme } = useTheme();
-    const navigate = useNavigate();
+const ClientesPage = ({ currentUser }) => {
     const {
         clientes,
         salesHistory,
@@ -141,31 +136,13 @@ const ClientesPage = ({ onLogout, currentUser }) => {
     };
 
     return (
-        <div className="bg-gray-950 text-gray-100 min-h-screen font-sans">
+        <div>
             <div id="recibo-printable-area" className="hidden">
                 <ReciboVenda saleDetails={reprintingSale} />
             </div>
-            <Toaster position="top-right" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
-            <header className="bg-gray-900 shadow-lg sticky top-0 z-20">
-                <nav className="container mx-auto flex items-center justify-between p-4">
-                    <h1 className="text-2xl font-bold text-white">Gerenciar Clientes</h1>
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => navigate('/estoque')} className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors" title="Voltar ao Estoque">
-                            <ArrowLeft size={20} />
-                            <span className="hidden sm:inline">Voltar ao Estoque</span>
-                        </button>
-            <button onClick={toggleTheme} className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300 transition-colors" title={`Alterar para Tema ${theme === 'dark' ? 'Claro' : 'Escuro'}`}>
-                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-                        <button onClick={onLogout} className="inline-flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors" title="Sair">
-                            <LogOut size={20} />
-                            <span className="hidden sm:inline">Sair</span>
-                        </button>
-                    </div>
-                </nav>
-            </header>
 
-            <main className="container mx-auto p-4 mt-8 space-y-8">
+            <main className="space-y-8">
+                <h1 className="text-3xl font-bold text-white">Gerenciar Clientes</h1>
                 <div className="bg-gray-900 p-8 rounded-2xl shadow-xl">
                     <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                         <div className="relative">

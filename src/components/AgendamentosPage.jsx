@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ArrowLeft, LogOut, Search, Edit, Trash2, PlusCircle, Calendar as CalendarIcon, ChevronLeft, ChevronRight, MessageSquare, List, UserPlus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { Toaster, toast } from 'react-hot-toast';
+import { Search, Edit, Trash2, PlusCircle, Calendar as CalendarIcon, ChevronLeft, ChevronRight, MessageSquare, List, UserPlus } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import Modal from './Modal.jsx';
 import { useEstoqueContext } from './EstoqueContext.jsx';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
@@ -9,8 +8,7 @@ import moment from 'moment';
 import 'moment/locale/pt-br';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
-const AgendamentosPage = ({ onLogout, currentUser }) => {
-    const navigate = useNavigate();
+const AgendamentosPage = ({ currentUser }) => {
     const {
         agendamentos,
         clientes,
@@ -249,25 +247,9 @@ const AgendamentosPage = ({ onLogout, currentUser }) => {
     );
 
     return (
-        <div className="bg-gray-950 text-gray-100 min-h-screen font-sans">
-            <Toaster position="top-right" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
-            <header className="bg-gray-900 shadow-lg sticky top-0 z-20">
-                <nav className="container mx-auto flex items-center justify-between p-4">
-                    <h1 className="text-2xl font-bold text-white">Agenda de Serviços</h1>
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => navigate('/estoque')} className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors" title="Voltar ao Estoque">
-                            <ArrowLeft size={20} />
-                            <span className="hidden sm:inline">Voltar ao Estoque</span>
-                        </button>
-                        <button onClick={onLogout} className="inline-flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors" title="Sair">
-                            <LogOut size={20} />
-                            <span className="hidden sm:inline">Sair</span>
-                        </button>
-                    </div>
-                </nav>
-            </header>
-
-            <main className="container mx-auto p-4 mt-8 space-y-8">
+        <div>
+            <main className="space-y-8">
+                <h1 className="text-3xl font-bold text-white">Agenda de Serviços</h1>
                 <div className="bg-gray-900 p-8 rounded-2xl shadow-xl">
                     <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
                         <div className="relative">
