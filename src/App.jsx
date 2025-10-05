@@ -1,7 +1,7 @@
 import React, { useState, Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { usePersistedState } from './components/usePersistedState';
+import { usePersistedState } from './components/usePersistedState.js';
 import { ThemeProvider } from './components/ThemeContext.jsx';
 import { EstoqueProvider, useEstoqueContext } from './components/EstoqueContext.jsx';
 import LoginPage from './components/LoginPage.jsx';
@@ -47,7 +47,7 @@ const AppContent = () => {
     );
 
     return (
-        <EstoqueProvider currentUser={currentUser}>
+        <>
             <Toaster position="top-right" toastOptions={{ className: 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white', style: { background: 'transparent', boxShadow: 'none' } }} />
             <Suspense fallback={<LoadingFallback />}>
                 <Routes>
@@ -82,13 +82,12 @@ const AppContent = () => {
                 onClose={() => setIsLoginModalOpen(false)}
                 onLogin={handleLogin}
             />
-        </EstoqueProvider>
+        </>
     );
 };
 
 const LoginModalWrapper = ({ isOpen, onClose, onLogin }) => {
     const { handlePasswordRecovery } = useEstoqueContext();
-
     return (
         <Modal isOpen={isOpen} onClose={onClose}>
             <LoginPage onLogin={({ user, token }) => onLogin(user, token)} handlePasswordRecovery={handlePasswordRecovery} />
@@ -98,7 +97,9 @@ const LoginModalWrapper = ({ isOpen, onClose, onLogin }) => {
 
 const App = () => (
     <ThemeProvider>
-        <AppContent />
+        <EstoqueProvider>
+            <AppContent />
+        </EstoqueProvider>
     </ThemeProvider>
 );
 
