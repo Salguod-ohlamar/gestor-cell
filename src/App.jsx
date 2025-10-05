@@ -17,7 +17,7 @@ const ClientesPage = lazy(() => import('./components/ClientesPage.jsx'));
 const AgendamentosPage = lazy(() => import('./components/AgendamentosPage.jsx'));
 const AdminPage = lazy(() => import('./AdminPage.jsx'));
 
-const App = () => {
+const AppRoutes = () => {
     const [currentUser, setCurrentUser] = usePersistedState('boycell-currentUser', null);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
     const navigate = useNavigate();
@@ -92,6 +92,18 @@ const LoginModalWrapper = ({ isOpen, onClose, onLogin }) => {
         <Modal isOpen={isOpen} onClose={onClose}>
             <LoginPage onLogin={({ user, token }) => onLogin(user, token)} handlePasswordRecovery={handlePasswordRecovery} />
         </Modal>
+    );
+};
+
+const App = () => {
+    // O App agora é o container dos Providers, garantindo a ordem correta.
+    return (
+        <ThemeProvider>
+            <EstoqueProvider>
+                {/* AppRoutes contém a lógica de navegação e precisa estar dentro dos providers */}
+                <AppRoutes />
+            </EstoqueProvider>
+        </ThemeProvider>
     );
 };
 

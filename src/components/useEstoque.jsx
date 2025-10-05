@@ -102,8 +102,8 @@ const initialUsers = [
 
 const itemsPerPage = 5; // Itens por página
 
-export const useEstoque = () => {
-    const [currentUser] = usePersistedState('boycell-currentUser', null);
+export const useEstoque = () => { // O hook não busca mais o usuário por conta própria
+    const { currentUser } = useEstoqueContext(); // Ele vai receber o usuário através do contexto
     // ===================================================================
     // PRODUCTS STATE
     // ===================================================================
