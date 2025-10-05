@@ -1,7 +1,7 @@
 import React, { useState, Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { usePersistedState } from './components/usePersistedState.js';
+import { usePersistedState } from './components/usePersistedState';
 import { ThemeProvider } from './components/ThemeContext.jsx';
 import { EstoqueProvider, useEstoqueContext } from './components/EstoqueContext.jsx';
 import LoginPage from './components/LoginPage.jsx';
@@ -17,7 +17,7 @@ const ClientesPage = lazy(() => import('./components/ClientesPage.jsx'));
 const AgendamentosPage = lazy(() => import('./components/AgendamentosPage.jsx'));
 const AdminPage = lazy(() => import('./AdminPage.jsx'));
 
-const AppContent = () => {
+const App = () => {
     const [currentUser, setCurrentUser] = usePersistedState('boycell-currentUser', null);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
     const navigate = useNavigate();
@@ -94,13 +94,5 @@ const LoginModalWrapper = ({ isOpen, onClose, onLogin }) => {
         </Modal>
     );
 };
-
-const App = () => (
-    <ThemeProvider>
-        <EstoqueProvider>
-            <AppContent />
-        </EstoqueProvider>
-    </ThemeProvider>
-);
 
 export default App;

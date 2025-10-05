@@ -11,7 +11,7 @@ export const useEstoqueContext = () => {
     return context;
 };
 
-export const EstoqueProvider = ({ children, currentUser }) => {
-    const estoqueData = useEstoque(currentUser);
+export const EstoqueProvider = ({ children }) => {
+    const estoqueData = useEstoque();
     return <EstoqueContext.Provider value={estoqueData}>{children}</EstoqueContext.Provider>;
 };

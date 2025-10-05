@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import Papa from 'papaparse';
 import toast from 'react-hot-toast';
 import imageCompression from 'browser-image-compression';
+import { usePersistedState } from './usePersistedState.js';
 
 import { parsePrice } from './formatters.js';
 
@@ -101,7 +102,8 @@ const initialUsers = [
 
 const itemsPerPage = 5; // Itens por página
 
-export const useEstoque = (currentUser) => {
+export const useEstoque = () => {
+    const [currentUser] = usePersistedState('boycell-currentUser', null);
     // ===================================================================
     // PRODUCTS STATE
     // ===================================================================
