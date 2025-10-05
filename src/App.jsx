@@ -11,7 +11,7 @@ import AdminLayout from './components/AdminLayout.jsx';
 
 // Lazy load pages for better initial performance
 const HomePage = lazy(() => import('./HomePage.jsx'));
-const EstoquePage = lazy(() => import('./components/EstoquePage.jsx'));
+const EstoquePage = lazy(() => import('./components/StockControl.jsx'));
 const VendasPage = lazy(() => import('./components/VendasPage.jsx'));
 const ClientesPage = lazy(() => import('./components/ClientesPage.jsx'));
 const AgendamentosPage = lazy(() => import('./components/AgendamentosPage.jsx'));
