@@ -15,9 +15,7 @@ const EstoquePage = lazy(() => import('./components/StockControl.jsx'));
 const VendasPage = lazy(() => import('./components/VendasPage.jsx'));
 const ClientesPage = lazy(() => import('./components/ClientesPage.jsx'));
 const AgendamentosPage = lazy(() => import('./components/AgendamentosPage.jsx'));
-const RelatoriosPage = lazy(() => import('./components/RelatoriosPage.jsx'));
-const UsuariosPage = lazy(() => import('./components/UsuariosPage.jsx'));
-const ConfiguracoesPage = lazy(() => import('./components/ConfiguracoesPage.jsx'));
+const AdminPage = lazy(() => import('./AdminPage.jsx'));
 
 const AppContent = () => {
     const [currentUser, setCurrentUser] = usePersistedState('boycell-currentUser', null);
@@ -75,9 +73,9 @@ const AppContent = () => {
                             <Route path="estoque/servicos" element={<EstoquePage currentUser={currentUser} initialTab="servicos" />} />
                             <Route path="estoque/agendamentos" element={<AgendamentosPage currentUser={currentUser} />} />
                             <Route path="estoque/clientes" element={<ClientesPage currentUser={currentUser} />} />
-                            <Route path="estoque/relatorios" element={<RelatoriosPage currentUser={currentUser} />} />
-                            <Route path="estoque/usuarios" element={<UsuariosPage currentUser={currentUser} />} />
-                            <Route path="estoque/configuracoes" element={<ConfiguracoesPage currentUser={currentUser} />} />
+                            <Route path="estoque/relatorios" element={<AdminPage currentUser={currentUser} onLogout={handleLogout} />} />
+                            <Route path="estoque/usuarios" element={<AdminPage currentUser={currentUser} onLogout={handleLogout} />} />
+                            <Route path="estoque/configuracoes" element={<AdminPage currentUser={currentUser} onLogout={handleLogout} />} />
                         </Route>
                     </Route>
 
