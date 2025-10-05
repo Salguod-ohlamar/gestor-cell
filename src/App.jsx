@@ -6,7 +6,7 @@ import { ThemeProvider } from './components/ThemeContext.jsx';
 import { EstoqueProvider, useEstoqueContext } from './components/EstoqueContext.jsx';
 import LoginPage from './components/LoginPage.jsx';
 import Modal from './components/Modal.jsx';
-import ProtectedRoute from './components/ProtectedRoute.jsx';
+import ProtectedRoute from './ProtectedRoute.jsx';
 import AdminLayout from './components/AdminLayout.jsx';
 
 // Lazy load pages for better initial performance
@@ -29,7 +29,7 @@ const AppContent = () => {
         setCurrentUser(user);
         setIsLoginModalOpen(false);
         // Vendedor vai para a página de vendas, outros vão para o dashboard
-        if (user.role === 'vendedor') {
+        if (user.role === 'admin' || user.role === 'root') {
             navigate('/estoque');
         } else {
             navigate('/vendas');
