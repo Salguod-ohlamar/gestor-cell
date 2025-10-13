@@ -271,7 +271,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
             discountValue: discountValue,
             total: totalCarrinho,
             date: new Date(),
-            customer: customerName,
+            customer: customerName.trim() || 'Cliente Balcão',
             customerCpf: customerCpf,
             customerPhone: customerPhone,
             customerEmail: customerEmail,
@@ -303,6 +303,11 @@ const VendasPage = ({ onLogout, currentUser }) => {
 
     const handlePrintRecibo = () => {
         document.body.classList.add('print-mode-recibo');
+        window.print();
+    };
+
+    const handlePrintThermalRecibo = () => {
+        document.body.classList.add('print-mode-thermal');
         window.print();
     };
 
@@ -384,6 +389,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
 
     useEffect(() => {
         const afterPrint = () => {
+            document.body.classList.remove('print-mode-thermal');
             document.body.classList.remove('print-mode-recibo');
         };
         window.addEventListener('afterprint', afterPrint);
@@ -395,13 +401,13 @@ const VendasPage = ({ onLogout, currentUser }) => {
         const lowerCaseSearch = produtoSearchTerm.toLowerCase().trim();
         // Se a busca estiver vazia, mostra os produtos em destaque. Se não houver, mostra todos os disponíveis.
         if (!lowerCaseSearch) {
-            const featured = estoque.filter(p => p.destaque && (Number(p.emEstoque) > Number(p.qtdaMinima)));
-            return featured.length > 0 ? featured : estoque.filter(p => Number(p.emEstoque) > Number(p.qtdaMinima));
+            const featured = estoque.filter(p => p.destaque && (Number(p.emEstoque) > 0));
+            return featured.length > 0 ? featured : estoque.filter(p => Number(p.emEstoque) > 0);
         }
         return estoque.filter(p =>
             (p.nome?.toLowerCase().includes(lowerCaseSearch) ||
              p.categoria?.toLowerCase().includes(lowerCaseSearch) ||
-             p.marca?.toLowerCase().includes(lowerCaseSearch))
+             p.marca?.toLowerCase().includes(lowerCaseSearch)) && Number(p.emEstoque) > 0
         );
     }, [estoque, produtoSearchTerm]);
 
@@ -514,16 +520,15 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                 )}
                             </div>
                             <div className="mt-6 border-t border-gray-700 pt-4">
-                                <div className="mb-4">
-                                    <label htmlFor="customerName" className="block text-sm font-medium text-gray-300 mb-1">Nome do Cliente <span className="text-red-500">*</span></label>
+                               <div className="mb-4">
+                                    <label htmlFor="customerName" className="block text-sm font-medium text-gray-300 mb-1">Nome do Cliente (Opcional)</label>
                                     <input
                                         type="text"
                                         id="customerName"
                                         value={customerName}
                                         onChange={(e) => setCustomerName(e.target.value)}
-                                        placeholder="Insira o nome do cliente"
+                                        placeholder="Cliente Balcão"
                                         className="w-full p-2 bg-gray-800 border border-gray-700 rounded-lg"
-                                        required
                                     />
                                 </div>
                                 <div className="mb-4">
@@ -539,8 +544,8 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                     />
                                     {!isCpfValid && <p className="text-red-500 text-xs mt-1">CPF/CNPJ inválido.</p>}
                                 </div>
-                                <div className="mb-4">
-                                    <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-300 mb-1">Telefone <span className="text-red-500">*</span></label>
+                               <div className="mb-4">
+                                    <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-300 mb-1">Telefone (Opcional)</label>
                                     <input
                                         type="text"
                                         id="customerPhone"
@@ -548,7 +553,6 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                         onChange={handlePhoneChange}
                                         placeholder="Insira o telefone para contato"
                                         className={`w-full p-2 bg-gray-800 border rounded-lg transition-colors ${isPhoneValid ? 'border-gray-700 focus:ring-green-500' : 'border-red-500 focus:ring-red-500'}`}
-                                        required
                                     />
                                     {!isPhoneValid && <p className="text-red-500 text-xs mt-1">Telefone inválido.</p>}
                                 </div>
@@ -705,6 +709,10 @@ const VendasPage = ({ onLogout, currentUser }) => {
                             <button onClick={handlePrintRecibo} className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-colors">
                                 <Printer size={18} />
                                 Imprimir / Salvar PDF
+                            </button>
+                            <button onClick={handlePrintThermalRecibo} className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-800 text-white font-medium rounded-full transition-colors">
+                                <Printer size={18} />
+                                Impressão Térmica
                             </button>
                         </div>
                     </>

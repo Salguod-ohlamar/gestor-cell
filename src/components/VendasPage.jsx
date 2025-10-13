@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, X, Edit, LogOut, ShoppingCart, Mail, Printer, Send, Banknote, CreditCard, QrCode, DollarSign, ShoppingBag, Calendar, Eye, EyeOff, Sun, Moon } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import ReciboVenda from './ReciboVenda';
 import Modal from './Modal.jsx';
 import { validateCPF, validatePhone } from './formatters.js';
 import { useEstoqueContext } from './EstoqueContext.jsx';
-import { useTheme } from './ThemeContext.jsx';
 
 const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue, onToggle }) => {
     const Icon = icon;
@@ -30,7 +29,6 @@ const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue
 
 const VendasPage = ({ onLogout, currentUser }) => {
     const navigate = useNavigate();
-    const { theme, toggleTheme } = useTheme();
     const {
         handleSale,
         salesHistory,
@@ -78,9 +76,6 @@ const VendasPage = ({ onLogout, currentUser }) => {
     const [produtoSearchTerm, setProdutoSearchTerm] = useState('');
     const [servicoSearchTerm, setServicoSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('produtos'); // 'produtos' ou 'servicos'
-    const [showVendasHoje, setShowVendasHoje] = useState(false);
-    const [showVendidoHoje, setShowVendidoHoje] = useState(false);
-    const [showVendidoMes, setShowVendidoMes] = useState(false);
     const [isSearchingClient, setIsSearchingClient] = useState(false);
 
     const API_URL = import.meta.env.VITE_API_URL || '';
@@ -147,45 +142,12 @@ const VendasPage = ({ onLogout, currentUser }) => {
         }
     };
 
-    const vendedorDashboardData = useMemo(() => {
-        if (!salesHistory || !currentUser) {
-            return { totalVendidoHoje: 0, vendasHoje: 0, totalVendidoMes: 0 };
-        }
-
-        const hoje = new Date();
-        const inicioDoDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-        const inicioDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-
-        // Se o usuário for admin ou root, usa todas as vendas. Senão, filtra por vendedor.
-        const vendasConsideradas = (currentUser?.role === 'admin' || currentUser?.role === 'root')
-            ? salesHistory
-            : salesHistory.filter(sale => sale.vendedor === currentUser?.name);
-
-
-        const vendasHoje = vendasConsideradas.filter(sale => {
-            const saleDate = new Date(sale.date);
-            return saleDate >= inicioDoDia;
-        });
-
-        const vendasMes = vendasConsideradas.filter(sale => {
-            const saleDate = new Date(sale.date);
-            return saleDate >= inicioDoMes;
-        });
-
-
-        const totalVendidoHoje = vendasHoje.reduce((acc, sale) => acc + Number(sale.total || 0), 0);
-        const totalVendidoMes = vendasMes.reduce((acc, sale) => acc + Number(sale.total || 0), 0);
-
-        return { totalVendidoHoje, vendasHoje: vendasHoje.length, totalVendidoMes };
-    }, [salesHistory, currentUser]
-    );
-
     const addToCart = (item, type) => {
         const existingItem = carrinho.find(cartItem => cartItem.id === item.id && cartItem.type === type);
         if (existingItem) {
-            const sellableStock = Number(item.emEstoque) - Number(item.qtdaMinima);
-            if (type === 'produto' && existingItem.quantity >= sellableStock) {
-                toast.error(`Estoque máximo de venda para "${item.nome}" atingido.`);
+            const currentStock = Number(item.emEstoque);
+            if (type === 'produto' && existingItem.quantity >= currentStock) {
+                toast.error(`Estoque máximo para "${item.nome}" atingido.`);
                 return;
             }
             setCarrinho(carrinho.map(cartItem => 
@@ -194,8 +156,8 @@ const VendasPage = ({ onLogout, currentUser }) => {
                 : cartItem
             ));
         } else {
-            if (type === 'produto' && (Number(item.emEstoque) <= Number(item.qtdaMinima))) {
-                toast.error(`"${item.nome}" atingiu o estoque mínimo e não pode ser vendido.`);
+            if (type === 'produto' && Number(item.emEstoque) <= 0) {
+                toast.error(`"${item.nome}" está sem estoque e não pode ser vendido.`);
                 return;
             }
             setCarrinho([...carrinho, { ...item, quantity: 1, type }]);
@@ -207,18 +169,18 @@ const VendasPage = ({ onLogout, currentUser }) => {
         if (!itemInCart) return;
 
         if (type === 'produto') {
-            const sellableStock = Number(itemInCart.emEstoque) - Number(itemInCart.qtdaMinima);
+            const currentStock = Number(itemInCart.emEstoque);
 
-            if (sellableStock <= 0) {
-                toast.error(`"${itemInCart.nome}" não possui estoque de venda.`);
+            if (currentStock <= 0) {
+                toast.error(`"${itemInCart.nome}" não possui estoque.`);
                 removeFromCart(itemId, type);
                 return;
             }
 
-            if (newQuantity > sellableStock) {
-                toast.error(`Estoque de venda insuficiente. Apenas ${sellableStock} unidades de "${itemInCart.nome}" podem ser vendidas.`);
+            if (newQuantity > currentStock) {
+                toast.error(`Estoque insuficiente. Apenas ${currentStock} unidades de "${itemInCart.nome}" disponíveis.`);
                 setCarrinho(carrinho.map(item => 
-                    item.id === itemId && item.type === type ? { ...item, quantity: sellableStock } : item
+                    item.id === itemId && item.type === type ? { ...item, quantity: currentStock } : item
                 ));
                 return;
             }
@@ -265,13 +227,6 @@ const VendasPage = ({ onLogout, currentUser }) => {
              return;
         }
 
-        // Valida o telefone apenas se o campo for preenchido
-        if (customerPhone && !validatePhone(customerPhone)) {
-             toast.error("Telefone inválido. Por favor, verifique. Use o formato (XX) 9XXXX-XXXX.");
-             setIsPhoneValid(false);
-             return;
-         }
-
         const saleDetails = {
             items: [...carrinho],
             subtotal: subtotalCarrinho,
@@ -279,7 +234,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
             discountValue: discountValue,
             total: totalCarrinho,
             date: new Date(),
-            customer: customerName,
+            customer: customerName.trim() || 'Cliente Balcão',
             customerCpf: customerCpf,
             customerPhone: customerPhone,
             customerEmail: customerEmail,
@@ -287,7 +242,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
             vendedor: currentUser.name,
         };
 
-        const completeSaleDetails = await handleSale(saleDetails);
+        const completeSaleDetails = handleSale ? await handleSale(saleDetails) : null;
 
         if (completeSaleDetails) {
             setLastSaleDetails(completeSaleDetails);
@@ -403,13 +358,13 @@ const VendasPage = ({ onLogout, currentUser }) => {
         const lowerCaseSearch = produtoSearchTerm.toLowerCase().trim();
         // Se a busca estiver vazia, mostra os produtos em destaque. Se não houver, mostra todos os disponíveis.
         if (!lowerCaseSearch) {
-            const featured = estoque.filter(p => p.destaque && (Number(p.emEstoque) > Number(p.qtdaMinima)));
-            return featured.length > 0 ? featured : estoque.filter(p => Number(p.emEstoque) > Number(p.qtdaMinima));
+            const featured = estoque.filter(p => p.destaque && (Number(p.emEstoque) > 0));
+            return featured.length > 0 ? featured : estoque.filter(p => Number(p.emEstoque) > 0);
         }
         return estoque.filter(p =>
             (p.nome?.toLowerCase().includes(lowerCaseSearch) ||
              p.categoria?.toLowerCase().includes(lowerCaseSearch) ||
-             p.marca?.toLowerCase().includes(lowerCaseSearch))
+             p.marca?.toLowerCase().includes(lowerCaseSearch)) && Number(p.emEstoque) > 0
         );
     }, [estoque, produtoSearchTerm]);
 
@@ -429,7 +384,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
     }, [servicos, servicoSearchTerm]);
 
     return (
-        <div className="bg-gray-950 text-gray-100 min-h-screen font-sans">
+        <>
             <Toaster position="top-right" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
             <div id="recibo-printable-area" className="hidden">
                 <ReciboVenda saleDetails={lastSaleDetails} />
@@ -438,7 +393,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                 <header className="bg-gray-900 shadow-lg sticky top-0 z-20">
                     <nav className="container mx-auto flex items-center justify-between p-4">
                         <h1 className="text-2xl font-bold text-white">Olá, {currentUser?.name?.split(' ')[0] || 'Vendedor'}!</h1>
-                        <div>
+                        <div className="flex items-center gap-4">
                             {(currentUser?.role === 'admin' || currentUser?.role === 'root') && (
                                 <button onClick={() => navigate('/estoque')} className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors mr-6" title="Gerenciar Estoque">
                                     <Edit size={20} />
@@ -446,6 +401,9 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                 </button>
                             )}
                             <button onClick={onLogout} className="inline-flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors" title="Sair">
+                                <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-gray-700">
+                                    {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                                </button>
                                 <LogOut size={20} />
                                 <span className="hidden sm:inline">Sair</span>
                             </button>
@@ -453,7 +411,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                     </nav>
                 </header>
 
-                <div className="container mx-auto p-4 mt-8 space-y-8">
+                <div className="container mx-auto p-4 mt-4 space-y-8">
                     {/* Dashboard do Vendedor */}
                     <div id="dashboard-vendedor">
                         <h2 className="text-2xl font-bold text-white mb-4">Seu Desempenho</h2>
@@ -461,29 +419,29 @@ const VendasPage = ({ onLogout, currentUser }) => {
                             <DashboardCard
                                 icon={DollarSign}
                                 title="Total Vendido Hoje"
-                                value={showVendidoHoje ? vendedorDashboardData.totalVendidoHoje.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ ####,##'}
+                                value={showVendidoHoje ? (vendedorDashboardData?.totalVendidoHoje || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ ####,##'}
                                 colorClass="border-green-500"
                                 isToggleable={true}
                                 showValue={showVendidoHoje}
-                                onToggle={() => setShowVendidoHoje(!showVendidoHoje)}
+                                onToggle={() => setShowVendidoHoje && setShowVendidoHoje(!showVendidoHoje)}
                             />
                             <DashboardCard
                                 icon={ShoppingBag}
                                 title="Vendas Realizadas Hoje"
-                                value={showVendasHoje ? vendedorDashboardData.vendasHoje : '##'}
+                                value={showVendasHoje ? vendedorDashboardData?.vendasHoje || 0 : '##'}
                                 colorClass="border-blue-500"
                                 isToggleable={true}
                                 showValue={showVendasHoje}
-                                onToggle={() => setShowVendasHoje(!showVendasHoje)}
+                                onToggle={() => setShowVendasHoje && setShowVendasHoje(!showVendasHoje)}
                             />
                             <DashboardCard
                                 icon={Calendar}
                                 title="Total Vendido no Mês"
-                                value={showVendidoMes ? vendedorDashboardData.totalVendidoMes.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ ####,##'}
+                                value={showVendidoMes ? (vendedorDashboardData?.totalVendidoMes || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ ####,##'}
                                 colorClass="border-purple-500"
                                 isToggleable={true}
                                 showValue={showVendidoMes}
-                                onToggle={() => setShowVendidoMes(!showVendidoMes)}
+                                onToggle={() => setShowVendidoMes && setShowVendidoMes(!showVendidoMes)}
                             />
                         </div>
                     </div>
@@ -512,7 +470,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                                 onChange={(e) => updateQuantity(item.id, item.type, parseInt(e.target.value))}
                                                 className="w-16 p-1 bg-gray-700 border border-gray-600 rounded-md text-center"
                                                 min="1"
-                                                max={item.type === 'produto' ? (Number(item.emEstoque) - Number(item.qtdaMinima)) : undefined}
+                                                max={item.type === 'produto' ? Number(item.emEstoque) : undefined}
                                             />
                                             <button onClick={() => removeFromCart(item.id, item.type)} className="text-red-500 hover:text-red-400 p-1 flex-shrink-0">
                                                 <X size={20} />
@@ -523,15 +481,14 @@ const VendasPage = ({ onLogout, currentUser }) => {
                             </div>
                             <div className="mt-6 border-t border-gray-700 pt-4">
                                 <div className="mb-4">
-                                    <label htmlFor="customerName" className="block text-sm font-medium text-gray-300 mb-1">Nome do Cliente <span className="text-red-500">*</span></label>
+                                    <label htmlFor="customerName" className="block text-sm font-medium text-gray-300 mb-1">Nome do Cliente (Opcional)</label>
                                     <input
                                         type="text"
                                         id="customerName"
                                         value={customerName}
                                         onChange={(e) => setCustomerName(e.target.value)}
-                                        placeholder="Insira o nome do cliente"
+                                        placeholder="Cliente Balcão"
                                         className="w-full p-2 bg-gray-800 border border-gray-700 rounded-lg"
-                                        required
                                     />
                                 </div>
                                 <div className="mb-4">
@@ -548,7 +505,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                     {!isCpfValid && <p className="text-red-500 text-xs mt-1">CPF/CNPJ inválido.</p>}
                                 </div>
                                 <div className="mb-4">
-                                    <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-300 mb-1">Telefone <span className="text-red-500">*</span></label>
+                                    <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-300 mb-1">Telefone (Opcional)</label>
                                     <input
                                         type="text"
                                         id="customerPhone"
@@ -556,7 +513,6 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                         onChange={handlePhoneChange}
                                         placeholder="Insira o telefone para contato"
                                         className={`w-full p-2 bg-gray-800 border rounded-lg transition-colors ${isPhoneValid ? 'border-gray-700 focus:ring-green-500' : 'border-red-500 focus:ring-red-500'}`}
-                                        required
                                     />
                                     {!isPhoneValid && <p className="text-red-500 text-xs mt-1">Telefone inválido.</p>}
                                 </div>
@@ -650,7 +606,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                                     <img src={p.imagem} alt={p.nome} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
                                                     <div className="flex-grow min-w-0">
                                                         <p className="font-semibold truncate">{p.nome}</p>
-                                                        <p className="text-sm text-gray-400">{p.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} | Disponível: {Number(p.emEstoque) - Number(p.qtdaMinima)}</p>
+                                                        <p className="text-sm text-gray-400">{p.precoFinal.toLocaleString('pt-BR', { style: 'currency', 'currency': 'BRL' })} | Estoque: {p.emEstoque}</p>
                                                     </div>
                                                     <button onClick={() => addToCart(p, 'produto')} className="px-3 py-1 bg-green-600 text-white rounded-full text-sm font-semibold hover:bg-green-700 flex-shrink-0">
                                                         Adicionar
@@ -718,7 +674,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                     </>
                 )}
             </Modal>
-        </div>
+        </>
     );
 };
 
