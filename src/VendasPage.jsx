@@ -520,15 +520,16 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                 )}
                             </div>
                             <div className="mt-6 border-t border-gray-700 pt-4">
-                               <div className="mb-4">
-                                    <label htmlFor="customerName" className="block text-sm font-medium text-gray-300 mb-1">Nome do Cliente (Opcional)</label>
+                                <div className="mb-4">
+                                    <label htmlFor="customerName" className="block text-sm font-medium text-gray-300 mb-1">Nome do Cliente <span className="text-red-500">*</span></label>
                                     <input
                                         type="text"
                                         id="customerName"
                                         value={customerName}
                                         onChange={(e) => setCustomerName(e.target.value)}
-                                        placeholder="Cliente Balcão"
+                                        placeholder="Insira o nome do cliente"
                                         className="w-full p-2 bg-gray-800 border border-gray-700 rounded-lg"
+                                        required
                                     />
                                 </div>
                                 <div className="mb-4">
@@ -544,8 +545,8 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                     />
                                     {!isCpfValid && <p className="text-red-500 text-xs mt-1">CPF/CNPJ inválido.</p>}
                                 </div>
-                               <div className="mb-4">
-                                    <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-300 mb-1">Telefone (Opcional)</label>
+                                <div className="mb-4">
+                                    <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-300 mb-1">Telefone <span className="text-red-500">*</span></label>
                                     <input
                                         type="text"
                                         id="customerPhone"
@@ -553,6 +554,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                         onChange={handlePhoneChange}
                                         placeholder="Insira o telefone para contato"
                                         className={`w-full p-2 bg-gray-800 border rounded-lg transition-colors ${isPhoneValid ? 'border-gray-700 focus:ring-green-500' : 'border-red-500 focus:ring-red-500'}`}
+                                        required
                                     />
                                     {!isPhoneValid && <p className="text-red-500 text-xs mt-1">Telefone inválido.</p>}
                                 </div>
