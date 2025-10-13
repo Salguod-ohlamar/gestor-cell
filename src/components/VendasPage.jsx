@@ -3,7 +3,7 @@ import { Search, X, Edit, LogOut, ShoppingCart, Mail, Printer, Send, Banknote, C
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import ReciboVenda from './ReciboVenda';
-import Modal from './Modal.jsx';
+import Modal from './Modal';
 import { validateCPF, validatePhone } from './formatters.js';
 import { useEstoqueContext } from './EstoqueContext.jsx';
 
@@ -77,6 +77,9 @@ const VendasPage = ({ onLogout, currentUser }) => {
     const [servicoSearchTerm, setServicoSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('produtos'); // 'produtos' ou 'servicos'
     const [isSearchingClient, setIsSearchingClient] = useState(false);
+    const [showVendidoHoje, setShowVendidoHoje] = useState(false);
+    const [showVendasHoje, setShowVendasHoje] = useState(false);
+    const [showVendidoMes, setShowVendidoMes] = useState(false);
 
     const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -227,6 +230,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
              return;
         }
 
+ 
         const saleDetails = {
             items: [...carrinho],
             subtotal: subtotalCarrinho,
@@ -604,6 +608,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                                     <div className="flex-grow min-w-0">
                                                         <p className="font-semibold truncate">{p.nome}</p>
                                                         <p className="text-sm text-gray-400">{p.precoFinal.toLocaleString('pt-BR', { style: 'currency', 'currency': 'BRL' })} | Estoque: {p.emEstoque}</p>
+                                                <p className="text-sm text-gray-400">{p.precoFinal.toLocaleString('pt-BR', { style: 'currency', 'currency': 'BRL' })} | Estoque: {Number(p.emEstoque)}</p>
                                                     </div>
                                                     <button onClick={() => addToCart(p, 'produto')} className="px-3 py-1 bg-green-600 text-white rounded-full text-sm font-semibold hover:bg-green-700 flex-shrink-0">
                                                         Adicionar
