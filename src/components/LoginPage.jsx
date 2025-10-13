@@ -23,7 +23,6 @@ const LoginPage = ({ onLogin, handlePasswordRecovery }) => {
             if (!response.ok) throw new Error(data.message || 'Erro ao fazer login.');
 
             onLogin(data); // Pass the whole data object { user, token }
-            toast.success(`Bem-vindo, ${data.user.name}!`);
 
         } catch (error) {
             toast.error(error.message || 'Credenciais inválidas.');
