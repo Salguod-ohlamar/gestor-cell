@@ -59,7 +59,7 @@ app.get('/api/products/search', protect, async (req, res) => {
         const queryText = `
             SELECT * FROM products 
             WHERE nome ILIKE $1 
-            AND em_estoque > qtda_minima 
+            AND em_estoque > 0 
             ORDER BY nome ASC 
             LIMIT 20;
         `;
@@ -514,9 +514,11 @@ app.post('/api/auth/login', async (req, res) => {
 
     // Garante que o root sempre tenha todas as permissões
     if (user.role === 'root') {
-        Object.keys(finalPermissions).forEach(key => {
-            finalPermissions[key] = true;
-        });
+        for (const group in PERMISSION_GROUPS) {
+            for (const perm in PERMISSION_GROUPS[group].permissions) {
+                finalPermissions[perm] = true;
+            }
+        }
     }
 
     // Create JWT
@@ -737,10 +739,21 @@ app.delete('/api/users/:id', protect, hasPermission('manageUsers'), async (req, 
 // Rota para buscar todos os clientes
 app.get('/api/clients', protect, async (req, res) => {
     const { includeInactive = 'false' } = req.query;
+    // A coluna `is_active` não existe na tabela `clients`, causando o erro 500.
+    // A query foi simplificada para buscar todos os clientes, ignorando o filtro.
     try {
-        const query = includeInactive === 'true' ? 'SELECT * FROM clients ORDER BY name ASC' : 'SELECT * FROM clients WHERE is_active = TRUE ORDER BY name ASC';
+        const query = 'SELECT * FROM clients ORDER BY name ASC';
         const { rows } = await db.query(query);
-        res.json(rows);
+        // Converte o padrão snake_case do DB para camelCase do JS para consistência
+        const clients = rows.map(c => ({
+            id: c.id,
+            name: c.name,
+            cpf: c.cpf,
+            phone: c.phone,
+            email: c.email,
+            lastPurchase: c.last_purchase || null,
+        }));
+        res.json(clients);
     } catch (err) {
         console.error('Error fetching clients:', err);
         res.status(500).send('Erro no servidor ao buscar clientes.');
@@ -852,7 +865,7 @@ app.get('/api/clients/search', protect, async (req, res) => {
         return res.status(400).json({ message: 'CPF/CNPJ é obrigatório para a busca.' });
     }
     try {
-        const { rows } = await db.query('SELECT * FROM clients WHERE cpf = $1 AND is_active = TRUE', [cpf]);
+        const { rows } = await db.query('SELECT * FROM clients WHERE cpf = $1', [cpf]);
         if (rows.length === 0) {
             return res.status(404).json({ message: 'Cliente não encontrado.' });
         }
@@ -950,16 +963,21 @@ app.post('/api/sales', protect, async (req, res) => {
         await client.query('BEGIN');
 
         let clientId;
-        const { rows: existingClients } = await client.query('SELECT id FROM clients WHERE cpf = $1', [customerCpf]);
-        if (existingClients.length > 0) {
-            clientId = existingClients[0].id;
-            await client.query('UPDATE clients SET last_purchase = NOW(), phone = $1, email = $2, name = $3 WHERE id = $4', [customerPhone, customerEmail, customer, clientId]);
+        // Só cria ou atualiza cliente se um CPF for fornecido
+        if (customerCpf) {
+            const { rows: existingClients } = await client.query('SELECT id FROM clients WHERE cpf = $1', [customerCpf]);
+            if (existingClients.length > 0) {
+                clientId = existingClients[0].id;
+                await client.query('UPDATE clients SET last_purchase = NOW(), phone = $1, email = $2, name = $3 WHERE id = $4', [customerPhone, customerEmail, customer, clientId]);
+            } else {
+                const { rows: newClient } = await client.query(
+                    'INSERT INTO clients (name, cpf, phone, email, last_purchase) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
+                    [customer, customerCpf, customerPhone, customerEmail]
+                );
+                clientId = newClient[0].id;
+            }
         } else {
-            const { rows: newClient } = await client.query(
-                'INSERT INTO clients (name, cpf, phone, email, last_purchase) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
-                [customer, customerCpf, customerPhone, customerEmail]
-            );
-            clientId = newClient[0].id;
+            clientId = null; // Venda sem cliente associado
         }
 
         const receiptCode = `BC-${new Date().getFullYear()}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${new Date().getDate().toString().padStart(2, '0')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
