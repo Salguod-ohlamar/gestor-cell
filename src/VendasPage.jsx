@@ -463,7 +463,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                 colorClass="border-green-500"
                                 isToggleable={true}
                                 showValue={showVendidoHoje}
-                                onToggle={() => setShowVendidoHoje(!showVendidoHoje)}
+                                onToggle={() => setShowVendidoHoje(prev => !prev)}
                             />
                             <DashboardCard
                                 icon={ShoppingBag}
@@ -472,7 +472,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                 colorClass="border-blue-500"
                                 isToggleable={true}
                                 showValue={showVendasHoje}
-                                onToggle={() => setShowVendasHoje(!showVendasHoje)}
+                                onToggle={() => setShowVendasHoje(prev => !prev)}
                             />
                             <DashboardCard
                                 icon={Calendar}
@@ -481,7 +481,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                 colorClass="border-purple-500"
                                 isToggleable={true}
                                 showValue={showVendidoMes}
-                                onToggle={() => setShowVendidoMes(!showVendidoMes)}
+                                onToggle={() => setShowVendidoMes(prev => !prev)}
                             />
                         </div>
                     </div>

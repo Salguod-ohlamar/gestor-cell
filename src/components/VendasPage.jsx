@@ -83,6 +83,28 @@ const VendasPage = ({ onLogout, currentUser }) => {
 
     const API_URL = import.meta.env.VITE_API_URL || '';
 
+    const vendedorDashboardData = useMemo(() => {
+        if (!salesHistory || !currentUser) {
+            return { totalVendidoHoje: 0, vendasHoje: 0, totalVendidoMes: 0 };
+        }
+
+        const hoje = new Date();
+        const inicioDoDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+        const inicioDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+
+        const vendasConsideradas = (currentUser?.role === 'admin' || currentUser?.role === 'root')
+            ? salesHistory
+            : salesHistory.filter(sale => sale.vendedor === currentUser?.name);
+
+        const vendasHoje = vendasConsideradas.filter(sale => new Date(sale.date) >= inicioDoDia);
+        const vendasMes = vendasConsideradas.filter(sale => new Date(sale.date) >= inicioDoMes);
+
+        const totalVendidoHoje = vendasHoje.reduce((acc, sale) => acc + Number(sale.total || 0), 0);
+        const totalVendidoMes = vendasMes.reduce((acc, sale) => acc + Number(sale.total || 0), 0);
+
+        return { totalVendidoHoje, vendasHoje: vendasHoje.length, totalVendidoMes };
+    }, [salesHistory, currentUser]);
+
     const handleCpfChange = (e) => {
         const value = e.target.value;
         setCustomerCpf(value);
@@ -424,7 +446,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                 colorClass="border-green-500"
                                 isToggleable={true}
                                 showValue={showVendidoHoje}
-                                onToggle={() => setShowVendidoHoje(!showVendidoHoje)}
+                                onToggle={() => setShowVendidoHoje(prev => !prev)}
                             />
                             <DashboardCard
                                 icon={ShoppingBag}
@@ -433,7 +455,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                 colorClass="border-blue-500"
                                 isToggleable={true}
                                 showValue={showVendasHoje}
-                                onToggle={() => setShowVendasHoje(!showVendasHoje)}
+                                onToggle={() => setShowVendasHoje(prev => !prev)}
                             />
                             <DashboardCard
                                 icon={Calendar}
@@ -442,7 +464,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                 colorClass="border-purple-500"
                                 isToggleable={true}
                                 showValue={showVendidoMes}
-                                onToggle={() => setShowVendidoMes(!showVendidoMes)}
+                                onToggle={() => setShowVendidoMes(prev => !prev)}
                             />
                         </div>
                     </div>
