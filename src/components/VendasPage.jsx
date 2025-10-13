@@ -401,9 +401,6 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                 </button>
                             )}
                             <button onClick={onLogout} className="inline-flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors" title="Sair">
-                                <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-gray-700">
-                                    {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-                                </button>
                                 <LogOut size={20} />
                                 <span className="hidden sm:inline">Sair</span>
                             </button>
