@@ -4,7 +4,6 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import ReciboVenda from './ReciboVenda';
 import Modal from './Modal';
-import { validateCPF, validatePhone } from './formatters.js';
 import { useEstoqueContext } from './EstoqueContext.jsx';
 
 const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue, onToggle }) => {
@@ -31,6 +30,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
     const navigate = useNavigate();
     const {
         handleSale,
+        validateCPF,
         salesHistory,
         estoque,
         servicos
@@ -388,7 +388,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
     }, [servicos, servicoSearchTerm]);
 
     return (
-        <>
+        <div className="bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen font-sans">
             <Toaster position="top-right" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
             <div id="recibo-printable-area" className="hidden">
                 <ReciboVenda saleDetails={lastSaleDetails} />
@@ -414,7 +414,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
 
                 <div className="container mx-auto p-4 mt-4 space-y-8">
                     {/* Dashboard do Vendedor */}
-                    <div id="dashboard-vendedor">
+                    <div id="dashboard-vendedor" className="dark">
                         <h2 className="text-2xl font-bold text-white mb-4">Seu Desempenho</h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <DashboardCard
@@ -676,7 +676,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                     </>
                 )}
             </Modal>
-        </>
+        </div>
     );
 };
 
