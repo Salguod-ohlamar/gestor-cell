@@ -25,11 +25,11 @@ const AppContent = () => {
         localStorage.setItem('boycell-token', token); // Salva o token
         setCurrentUser(user);
         setIsLoginModalOpen(false);
-        // Admin/root goes to stock control, vendedor goes to sales page
-        if (user.role === 'admin' || user.role === 'root' || user.role === 'vendedor') {
+        // Admin e root vão para o controle de estoque após o login.
+        if (['admin', 'root'].includes(user.role)) {
             navigate('/estoque');
         } else {
-            navigate('/vendas'); // Fallback, should not be reached for these roles
+            navigate('/vendas'); // Fallback para outros papéis futuros
         }
     };
 
@@ -64,8 +64,8 @@ const AppContent = () => {
                                 />
                             } />
 
-                            {/* Rotas para Estoque, Clientes e Admin: Acessíveis por admin, vendedor e root */}
-                            <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root', 'vendedor']} />}>
+                            {/* Rotas para Estoque, Clientes e Admin: Acessíveis por admin e root. */}
+                            <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root']} redirectPath="/vendas" />}>
                                 <Route path="/estoque" element={<StockControl onLogout={handleLogout} currentUser={currentUser} />} />
                                 <Route path="/clientes" element={<ClientesPage onLogout={handleLogout} currentUser={currentUser} />} />
                                 <Route path="/admin" element={<AdminPage onLogout={handleLogout} currentUser={currentUser} />} />

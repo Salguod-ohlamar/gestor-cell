@@ -76,14 +76,12 @@ export const PERMISSION_GROUPS = {
 
 export const getDefaultPermissions = (role) => {
     const permissions = {};
-    // Trata 'vendedor' como 'admin' para fins de permissão padrão.
-    const effectiveRole = role === 'vendedor' ? 'admin' : role;
     Object.values(PERMISSION_GROUPS).forEach(group => {
         for (const key in group.permissions) {
-            if (effectiveRole === 'root') {
+            if (role === 'root') {
                 permissions[key] = true;
             } else {
-                permissions[key] = group.permissions[key].roles.includes(effectiveRole);
+                permissions[key] = group.permissions[key].roles.includes(role);
             }
         }
     });
@@ -93,7 +91,6 @@ export const getDefaultPermissions = (role) => {
 const initialUsers = [
   { id: 0, email: 'root@boycell.com', password: 'root', role: 'root', name: 'Root User', permissions: getDefaultPermissions('root') },
   { id: 1, email: 'admin@boycell.com', password: 'admin', role: 'admin', name: 'Admin Boycell', permissions: getDefaultPermissions('admin') },
-  { id: 2, email: 'vendedor@boycell.com', password: 'vendedor', role: 'vendedor', name: 'Vendedor Boycell', permissions: getDefaultPermissions('vendedor') },
 ];
 
 const itemsPerPage = 5; // Itens por página
@@ -308,7 +305,7 @@ export const useEstoque = (currentUser) => {
         const token = localStorage.getItem('boycell-token');
         if (currentUser && token) {
             // Vendedores não precisam e não podem buscar a lista de todos os usuários.
-            if (currentUser.role === 'admin' || currentUser.role === 'root') {
+            if (['admin', 'root'].includes(currentUser.role)) {
                 fetchUsers(token);
             }
         }
@@ -1442,7 +1439,7 @@ export const useEstoque = (currentUser) => {
     const hasAdminAccessPermission = useMemo(() => {
         if (!currentUser) return false;
         // Root e Admin sempre têm acesso
-        if (currentUser.role === 'root' || currentUser.role === 'admin') return true;
+        if (['root', 'admin'].includes(currentUser.role)) return true;
         if (!currentUser.permissions) return false;
 
         // Lista de permissões que garantem acesso ao painel de administração
