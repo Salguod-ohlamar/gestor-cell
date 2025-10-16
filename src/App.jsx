@@ -64,25 +64,28 @@ const AppContent = () => {
                                 />
                             } />
 
-                            {/* Rota para Estoque: Acessível por admin/root ou quem tiver permissão de editar produto */}
-                            <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root']} requiredPermission={['editProduct', 'addProduct', 'deleteProduct']} />}>
+                            {/* Rota para Estoque: Acessível por admin/root ou quem tiver qualquer permissão de produto/serviço */}
+                            <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root']} requiredPermission={[
+                                ...Object.keys(PERMISSION_GROUPS.products.permissions),
+                                ...Object.keys(PERMISSION_GROUPS.services.permissions)
+                            ]} />}>
                                 <Route path="/estoque" element={<StockControl onLogout={handleLogout} currentUser={currentUser} />} />
                             </Route>
                             
-                            {/* Rota para Clientes: Acessível por admin/root ou quem tiver permissão de gerenciar clientes */}
-                            <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root']} requiredPermission="manageClients" />}>
+                            {/* Rota para Clientes: Acessível por admin/root ou quem tiver permissão de gerenciar clientes. */}
+                            <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root']} requiredPermission={['manageClients']} />}>
                                 <Route path="/clientes" element={<ClientesPage onLogout={handleLogout} currentUser={currentUser} />} />
                             </Route>
                             
-                            {/* Rota para Admin: Acessível por admin/root ou quem tiver qualquer permissão de admin/root */}
+                            {/* Rota para Admin: Acessível por admin/root ou quem tiver qualquer permissão de admin/root/conteúdo do site */}
                             <Route element={
                                 <ProtectedRoute 
                                     user={currentUser} 
                                     allowedRoles={['admin', 'root']} 
                                     requiredPermission={[
-                                        ...Object.keys(PERMISSION_GROUPS.admin?.permissions || {}), 
-                                        ...Object.keys(PERMISSION_GROUPS.root?.permissions || {}),
-                                        ...Object.keys(PERMISSION_GROUPS.siteContent?.permissions || {}),
+                                        ...Object.keys(PERMISSION_GROUPS.admin.permissions), 
+                                        ...Object.keys(PERMISSION_GROUPS.root.permissions),
+                                        ...Object.keys(PERMISSION_GROUPS.siteContent.permissions),
                                         'manageClients'
                                     ]} 
                                 />

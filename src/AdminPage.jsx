@@ -79,6 +79,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
         handleUpdateBanner,
         handleDeleteBanner,
     } = useEstoqueContext();
+    const hasStockPermission = useMemo(() => currentUser?.permissions?.editProduct || currentUser?.permissions?.addProduct || currentUser?.permissions?.deleteProduct || currentUser.role === 'admin' || currentUser.role === 'root', [currentUser]);
 
     // State and handlers that were in StockControl.jsx
     const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState(false);
@@ -584,10 +585,12 @@ const AdminPage = ({ onLogout, currentUser }) => {
                 <div className="flex flex-wrap justify-between items-center gap-4 mb-8">
                     <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Painel de Administração</h1>
                     <div>
-                        <button onClick={() => navigate('/estoque')} className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors mr-4" title="Voltar ao Estoque">
-                            <ArrowLeft size={20} />
-                            <span className="hidden sm:inline">Voltar ao Estoque</span>
-                        </button>
+                        {hasStockPermission && (
+                            <button onClick={() => navigate('/estoque')} className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors mr-4" title="Voltar ao Estoque">
+                                <ArrowLeft size={20} />
+                                <span className="hidden sm:inline">Voltar ao Estoque</span>
+                            </button>
+                        )}
                         <button onClick={onLogout} className="inline-flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors ml-2" title="Sair">
                             <LogOut size={20} />
                             <span className="hidden sm:inline">Sair</span>
