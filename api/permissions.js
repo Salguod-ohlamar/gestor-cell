@@ -36,7 +36,7 @@ const PERMISSION_GROUPS = {
     root: {
         title: 'Super Admin (Root)',
         permissions: {
-            manageUsers: { roles: ['root'] },
+            manageUsers: { roles: ['root', 'admin'] },
             resetUserPassword: { roles: ['root'] },
             manageBackup: { roles: ['root'] },
             manageTheme: { roles: ['root'] },
