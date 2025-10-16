@@ -1437,6 +1437,26 @@ export const useEstoque = (currentUser) => {
         }
     };
 
+    const hasAdminAccessPermission = useMemo(() => {
+        if (!currentUser) return false;
+        // Root e Admin sempre têm acesso
+        if (currentUser.role === 'root' || currentUser.role === 'admin') return true;
+        if (!currentUser.permissions) return false;
+
+        // Lista de permissões que garantem acesso ao painel de administração
+        const adminAccessPermissions = [
+            ...Object.keys(PERMISSION_GROUPS.admin.permissions),
+            ...Object.keys(PERMISSION_GROUPS.root.permissions),
+            ...Object.keys(PERMISSION_GROUPS.siteContent.permissions),
+            'manageClients' // Adicionado explicitamente caso esteja em outro grupo
+        ];
+
+        // Verifica se o usuário tem pelo menos uma dessas permissões
+        return adminAccessPermissions.some(permissionKey => 
+            !!currentUser.permissions[permissionKey]
+        );
+    }, [currentUser]);
+
     return {
         estoque,
         servicos,
@@ -1511,5 +1531,6 @@ export const useEstoque = (currentUser) => {
         handleAddBanner,
         handleUpdateBanner,
         handleDeleteBanner,
+        hasAdminAccessPermission, // Exporta a nova função
     };
 };
