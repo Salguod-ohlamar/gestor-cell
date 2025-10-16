@@ -907,7 +907,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
                         <input id="user-password" name="password" type="password" value={newUserData.password} onChange={handleNewUserChange} required className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" />
                     </div>
                     <div>
-                        <label htmlFor="user-role" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Cargo</oabel>
+                        <label htmlFor="user-role" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Cargo</label>
                         <select id="user-role" name="role" value={newUserData.role} onChange={handleNewUserChange} required className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
                             <option value="vendedor">Vendedor</option>
                             {currentUser.role === 'root' && (
