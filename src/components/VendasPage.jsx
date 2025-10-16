@@ -170,8 +170,8 @@ const VendasPage = ({ onLogout, currentUser }) => {
     const addToCart = (item, type) => {
         const existingItem = carrinho.find(cartItem => cartItem.id === item.id && cartItem.type === type);
         if (existingItem) {
-            const currentStock = Number(item.emEstoque);
-            if (type === 'produto' && existingItem.quantity >= currentStock) {
+            const estoqueDisponivel = Number(item.emEstoque);
+            if (type === 'produto' && existingItem.quantity >= estoqueDisponivel) {
                 toast.error(`Estoque máximo para "${item.nome}" atingido.`);
                 return;
             }
@@ -194,18 +194,18 @@ const VendasPage = ({ onLogout, currentUser }) => {
         if (!itemInCart) return;
 
         if (type === 'produto') {
-            const currentStock = Number(itemInCart.emEstoque);
+            const estoqueDisponivel = Number(itemInCart.emEstoque);
 
-            if (currentStock <= 0) {
+            if (estoqueDisponivel <= 0) {
                 toast.error(`"${itemInCart.nome}" não possui estoque.`);
                 removeFromCart(itemId, type);
                 return;
             }
 
-            if (newQuantity > currentStock) {
-                toast.error(`Estoque insuficiente. Apenas ${currentStock} unidades de "${itemInCart.nome}" disponíveis.`);
+            if (newQuantity > estoqueDisponivel) {
+                toast.error(`Estoque insuficiente. Apenas ${estoqueDisponivel} unidades de "${itemInCart.nome}" disponíveis.`);
                 setCarrinho(carrinho.map(item => 
-                    item.id === itemId && item.type === type ? { ...item, quantity: currentStock } : item
+                    item.id === itemId && item.type === type ? { ...item, quantity: estoqueDisponivel } : item
                 ));
                 return;
             }
@@ -295,41 +295,9 @@ const VendasPage = ({ onLogout, currentUser }) => {
         window.print();
     };
 
-    const handleEmailRecibo = () => {
-        if (!lastSaleDetails) return;
-
-        const { items, subtotal, discountPercentage, discountValue, total, date, customer, customerCpf, customerPhone, customerEmail, receiptCode } = lastSaleDetails;
-
-        let emailBody = `Olá, ${customer || 'cliente'},\n\nObrigado pela sua compra na Boycell!\n\n`;
-        emailBody += `Detalhes da Venda:\n`;
-        if (receiptCode) emailBody += `Código da Venda: ${receiptCode}\n`;
-        if (customer) emailBody += `Cliente: ${customer}\n`;
-        if (customerCpf) emailBody += `CPF/CNPJ: ${customerCpf}\n`;
-        if (customerPhone) emailBody += `Telefone: ${customerPhone}\n`;
-        if (customerEmail) emailBody += `Email: ${customerEmail}\n`;
-        emailBody += `Data: ${new Date(date).toLocaleString('pt-BR')}\n\n`;
-        emailBody += `Itens:\n`;
-        items.forEach(item => {
-            const itemSubtotal = (item.precoFinal * item.quantity).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            emailBody += `- ${item.nome || item.servico} (x${item.quantity}) - ${itemSubtotal}\n`;
-            // Corrigido para incluir garantia de produtos e serviços
-            if (item.tempoDeGarantia > 0) {
-                const dataGarantia = new Date(date);
-                dataGarantia.setDate(dataGarantia.getDate() + item.tempoDeGarantia);
-                emailBody += `  Garantia até: ${dataGarantia.toLocaleDateString('pt-BR')}\n`;
-            }
-        });
-        emailBody += `\nSubtotal: ${subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n`;
-        if (discountPercentage > 0) {
-            emailBody += `Desconto (${discountPercentage}%): -${discountValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n`;
-        }
-        emailBody += `\nTotal: ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n\n`;
-        emailBody += `Atenciosamente,\nEquipe Boycell`;
-
-        const subject = `Seu Comprovante de Compra - Boycell (Cód: ${receiptCode || 'N/A'})`;
-        const mailtoLink = `mailto:${customerEmail || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
-
-        window.open(mailtoLink, '_blank');
+    const handlePrintThermalRecibo = () => {
+        document.body.classList.add('print-mode-thermal');
+        window.print();
     };
 
     const handleWhatsAppRecibo = () => {
@@ -373,6 +341,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
 
     useEffect(() => {
         const afterPrint = () => {
+            document.body.classList.remove('print-mode-thermal');
             document.body.classList.remove('print-mode-recibo');
         };
         window.addEventListener('afterprint', afterPrint);
@@ -413,7 +382,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
         <div className="bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen font-sans">
             <Toaster position="top-right" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
             <div id="recibo-printable-area" className="hidden">
-                <ReciboVenda saleDetails={lastSaleDetails} />
+                <ReciboVenda sale={lastSaleDetails} />
             </div>
             <div id="vendas-non-printable-area">
                 <header className="bg-gray-900 shadow-lg sticky top-0 z-20">
@@ -485,7 +454,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                             <img src={item.imagem} alt={item.nome || item.servico} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
                                             <div className="flex-grow min-w-0">
                                                 <p className="font-semibold truncate">{item.nome || item.servico}</p>
-                                                <p className="text-sm text-gray-400">{item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                                                        <p className="text-sm text-gray-400">{item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                                             </div>
                                             <input 
                                                 type="number" 
@@ -493,7 +462,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                                 onChange={(e) => updateQuantity(item.id, item.type, parseInt(e.target.value))}
                                                 className="w-16 p-1 bg-gray-700 border border-gray-600 rounded-md text-center"
                                                 min="1"
-                                                max={item.type === 'produto' ? Number(item.emEstoque) : undefined}
+                                                        max={item.type === 'produto' ? Number(item.emEstoque) : undefined}
                                             />
                                             <button onClick={() => removeFromCart(item.id, item.type)} className="text-red-500 hover:text-red-400 p-1 flex-shrink-0">
                                                 <X size={20} />
@@ -623,14 +592,13 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                                 className="w-full p-2 pl-10 bg-gray-800 border border-gray-700 rounded-lg"
                                             />
                                         </div>
-                                        <div className="space-y-2 overflow-y-auto max-h-[65vh] pr-2">
+                                        <div className="space-y-2 overflow-y-auto max-h-[60vh] pr-2 pb-10">
                                             {produtoResults.map(p => (
                                                 <div key={p.id} className="flex items-center gap-4 p-3 bg-gray-800 rounded-lg hover:bg-gray-700/50">
                                                     <img src={p.imagem} alt={p.nome} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
                                                     <div className="flex-grow min-w-0">
                                                         <p className="font-semibold truncate">{p.nome}</p>
-                                                        <p className="text-sm text-gray-400">{p.precoFinal.toLocaleString('pt-BR', { style: 'currency', 'currency': 'BRL' })} | Estoque: {p.emEstoque}</p>
-                                                <p className="text-sm text-gray-400">{p.precoFinal.toLocaleString('pt-BR', { style: 'currency', 'currency': 'BRL' })} | Estoque: {Number(p.emEstoque)}</p>
+                                                        <p className="text-sm text-gray-400">{p.precoFinal.toLocaleString('pt-BR', { style: 'currency', 'currency': 'BRL' })} | Em Estoque: {Number(p.emEstoque)}</p>
                                                     </div>
                                                     <button onClick={() => addToCart(p, 'produto')} className="px-3 py-1 bg-green-600 text-white rounded-full text-sm font-semibold hover:bg-green-700 flex-shrink-0">
                                                         Adicionar
@@ -652,7 +620,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                                 className="w-full p-2 pl-10 bg-gray-800 border border-gray-700 rounded-lg"
                                             />
                                         </div>
-                                        <div className="space-y-2 overflow-y-auto max-h-[65vh] pr-2">
+                                        <div className="space-y-2 overflow-y-auto max-h-[60vh] pr-2 pb-10">
                                             {servicoResults.map(s => (
                                                 <div key={s.id} className="flex items-center gap-4 p-3 bg-gray-800 rounded-lg hover:bg-gray-700/50">
                                                     <img src={s.imagem} alt={s.servico} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
@@ -679,20 +647,20 @@ const VendasPage = ({ onLogout, currentUser }) => {
                     <>
                         <h2 className="text-2xl font-bold text-center text-blue-400 mb-4">Venda Concluída</h2>
                         <div className="bg-white rounded-lg overflow-y-auto max-h-[60vh]">
-                            <ReciboVenda saleDetails={lastSaleDetails} />
+                            <ReciboVenda sale={lastSaleDetails} />
                         </div>
                         <div className="mt-6 flex flex-col sm:flex-row justify-end gap-4">
                             <button onClick={handleWhatsAppRecibo} className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-full transition-colors">
                                 <Send size={18} />
                                 Enviar por WhatsApp
                             </button>
-                            <button onClick={handleEmailRecibo} className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-full transition-colors">
-                                <Mail size={18} />
-                                Enviar por Email
-                            </button>
                             <button onClick={handlePrintRecibo} className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-colors">
                                 <Printer size={18} />
                                 Imprimir / Salvar PDF
+                            </button>
+                            <button onClick={handlePrintThermalRecibo} className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-800 text-white font-medium rounded-full transition-colors">
+                                <Printer size={18} />
+                                Impressão Térmica
                             </button>
                         </div>
                     </>

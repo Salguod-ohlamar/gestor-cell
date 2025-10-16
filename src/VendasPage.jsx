@@ -188,7 +188,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                 return;
             }
             setCarrinho(carrinho.map(cartItem => 
-                cartItem.id === item.id && cartItem.type === type 
+                cartItem.id === item.id && cartItem.type === type  
                 ? { ...cartItem, quantity: cartItem.quantity + 1 } 
                 : cartItem
             ));

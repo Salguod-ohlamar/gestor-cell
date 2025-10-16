@@ -531,13 +531,6 @@ export const useEstoque = (currentUser) => {
             return;
         }
     
-        const emEstoqueNum = parseInt(newProduct.emEstoque, 10);
-        const qtdaMinimaNum = parseInt(newProduct.qtdaMinima, 10);
-        if (emEstoqueNum < qtdaMinimaNum) {
-            toast.error('O estoque não pode ser menor que a quantidade mínima.');
-            return;
-        }
-    
         setIsSubmitting(true);
 
         try {
@@ -550,8 +543,8 @@ export const useEstoque = (currentUser) => {
                 },
                 body: JSON.stringify({
                     ...newProduct,
-                    emEstoque: emEstoqueNum,
-                    qtdaMinima: qtdaMinimaNum,
+                    emEstoque: parseInt(newProduct.emEstoque, 10),
+                    qtdaMinima: parseInt(newProduct.qtdaMinima, 10),
                     preco: parseFloat(newProduct.preco),
                     precoFinal: parseFloat(newProduct.precoFinal),
                     tempoDeGarantia: parseInt(newProduct.tempoDeGarantia, 10) || 0,
@@ -580,13 +573,6 @@ export const useEstoque = (currentUser) => {
         const oldItem = estoque.find(item => item.id === editingProduct.id);
         if (!oldItem) return;
     
-        const emEstoqueNum = parseInt(editingProduct.emEstoque, 10);
-        const qtdaMinimaNum = parseInt(editingProduct.qtdaMinima, 10);
-        if (emEstoqueNum < qtdaMinimaNum) {
-            toast.error('O estoque não pode ser menor que a quantidade mínima.');
-            return;
-        }
-    
         const newHistorico = [...(oldItem.historico || [])];
         const changes = [];
         const fieldsToCompare = {
@@ -612,8 +598,8 @@ export const useEstoque = (currentUser) => {
     
         const productToUpdate = {
             ...editingProduct,
-            emEstoque: emEstoqueNum,
-            qtdaMinima: qtdaMinimaNum,
+            emEstoque: parseInt(editingProduct.emEstoque, 10),
+            qtdaMinima: parseInt(editingProduct.qtdaMinima, 10),
             preco: parseFloat(editingProduct.preco),
             precoFinal: parseFloat(editingProduct.precoFinal),
             tempoDeGarantia: parseInt(editingProduct.tempoDeGarantia, 10) || 0,
