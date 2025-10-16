@@ -79,7 +79,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
         handleUpdateBanner,
         handleDeleteBanner,
     } = useEstoqueContext();
-    const hasStockPermission = useMemo(() => currentUser?.permissions?.editProduct || currentUser?.permissions?.addProduct || currentUser?.permissions?.deleteProduct || currentUser.role === 'admin' || currentUser.role === 'root', [currentUser]);
+    const hasStockPermission = useMemo(() => currentUser?.permissions?.editProduct || currentUser?.permissions?.addProduct || currentUser?.permissions?.deleteProduct || ['admin', 'root', 'vendedor'].includes(currentUser.role), [currentUser]);
 
     // State and handlers that were in StockControl.jsx
     const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState(false);
@@ -177,7 +177,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
         if (!currentUser || !targetUser) return false;
         if (targetUser.role === 'root') return false;
         if (currentUser.role === 'root') return true;
-        if (currentUser.role === 'admin' && targetUser.role === 'vendedor') return true;
+        // Admins e Vendedores não podem gerenciar outros usuários, apenas o root.
         return false;
     };
 
@@ -851,7 +851,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
                                 </select>
                             </div>
                         )}
-                        {currentUser.role === 'root' && editingUser.role !== 'root' && (
+                        {currentUser.role === 'root' && editingUser.role !== 'root' && ( // Root pode editar permissões de admin e vendedor
                             <div className="mt-4">
                                 <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Permissões</h4>
                                 <div className="space-y-6 p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg max-h-80 overflow-y-auto">

@@ -428,7 +428,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
     const hasStockPermission = useMemo(() => {
         if (!currentUser) return false;
         // Garante que admin e root sempre tenham acesso
-        if (currentUser.role === 'admin' || currentUser.role === 'root') return true;
+        if (['admin', 'root', 'vendedor'].includes(currentUser.role)) return true;
         if (!currentUser?.permissions) return false;
 
         // Qualquer permissão dentro destes grupos garante o acesso ao botão de gerenciamento

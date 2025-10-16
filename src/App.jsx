@@ -26,10 +26,10 @@ const AppContent = () => {
         setCurrentUser(user);
         setIsLoginModalOpen(false);
         // Admin/root goes to stock control, vendedor goes to sales page
-        if (user.role === 'admin' || user.role === 'root') {
+        if (user.role === 'admin' || user.role === 'root' || user.role === 'vendedor') {
             navigate('/estoque');
         } else {
-            navigate('/vendas');
+            navigate('/vendas'); // Fallback, should not be reached for these roles
         }
     };
 
@@ -64,32 +64,10 @@ const AppContent = () => {
                                 />
                             } />
 
-                            {/* Rota para Estoque: Acessível por admin/root ou quem tiver qualquer permissão de produto/serviço */}
-                            <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root']} requiredPermission={[
-                                ...Object.keys(PERMISSION_GROUPS.products.permissions),
-                                ...Object.keys(PERMISSION_GROUPS.services.permissions)
-                            ]} />}>
+                            {/* Rotas para Estoque, Clientes e Admin: Acessíveis por admin, vendedor e root */}
+                            <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root', 'vendedor']} />}>
                                 <Route path="/estoque" element={<StockControl onLogout={handleLogout} currentUser={currentUser} />} />
-                            </Route>
-                            
-                            {/* Rota para Clientes: Acessível por admin/root ou quem tiver permissão de gerenciar clientes. */}
-                            <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root']} requiredPermission={['manageClients']} />}>
                                 <Route path="/clientes" element={<ClientesPage onLogout={handleLogout} currentUser={currentUser} />} />
-                            </Route>
-                            
-                            {/* Rota para Admin: Acessível por admin/root ou quem tiver qualquer permissão de admin/root/conteúdo do site */}
-                            <Route element={
-                                <ProtectedRoute 
-                                    user={currentUser} 
-                                    allowedRoles={['admin', 'root']} 
-                                    requiredPermission={[
-                                        ...Object.keys(PERMISSION_GROUPS.admin.permissions), 
-                                        ...Object.keys(PERMISSION_GROUPS.root.permissions),
-                                        ...Object.keys(PERMISSION_GROUPS.siteContent.permissions),
-                                        'manageClients'
-                                    ]} 
-                                />
-                            }>
                                 <Route path="/admin" element={<AdminPage onLogout={handleLogout} currentUser={currentUser} />} />
                             </Route>
                         </Route>

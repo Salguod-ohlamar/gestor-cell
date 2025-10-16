@@ -76,12 +76,14 @@ export const PERMISSION_GROUPS = {
 
 export const getDefaultPermissions = (role) => {
     const permissions = {};
+    // Trata 'vendedor' como 'admin' para fins de permissão padrão.
+    const effectiveRole = role === 'vendedor' ? 'admin' : role;
     Object.values(PERMISSION_GROUPS).forEach(group => {
         for (const key in group.permissions) {
-            if (role === 'root') {
+            if (effectiveRole === 'root') {
                 permissions[key] = true;
             } else {
-                permissions[key] = group.permissions[key].roles.includes(role);
+                permissions[key] = group.permissions[key].roles.includes(effectiveRole);
             }
         }
     });
