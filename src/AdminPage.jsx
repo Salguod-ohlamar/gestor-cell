@@ -796,11 +796,11 @@ const AdminPage = ({ onLogout, currentUser }) => {
                             return (
                                 <div key={user.id} className="flex items-center justify-between bg-gray-100 dark:bg-gray-800 p-3 rounded-lg">
                                     <div>
-                                        <p className="font-semibold text-white">{user.name}</p>
+                                        <p className="font-semibold text-white">{user.name} <span className="text-xs text-gray-400">({user.title || user.role})</span></p>
                                         <p className="text-sm text-gray-400">{user.email}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${userRoleClass}`}>{user.role}</span>
+                                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${userRoleClass}`}>{user.title || user.role}</span>
                                         {showManagementButtons && (<>
                                             {currentUser.permissions?.resetUserPassword && user.role === 'vendedor' && (
                                             <button onClick={() => handleResetUserPassword(user.id, currentUser.name, currentUser)} className="text-yellow-400 hover:text-yellow-300 transition-colors" title="Resetar Senha">
@@ -838,16 +838,16 @@ const AdminPage = ({ onLogout, currentUser }) => {
                         </div>
                         {currentUser.role === 'root' && editingUser.role !== 'root' && (
                             <div>
-                                <label htmlFor="edit-user-role" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nível de Acesso</label>
-                                <select
-                                    id="edit-user-role"
-                                    name="role"
-                                    value={editingUser.role}
+                                <label htmlFor="edit-user-title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Título do Cargo</label>
+                                <input
+                                    id="edit-user-title"
+                                    name="title"
+                                    type="text"
+                                    value={editingUser.title || ''}
                                     onChange={handleEditUserChange}
-                                    className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="admin">Administrador</option>
-                                    <option value="vendedor">Vendedor</option>
-                                </select>
+                                    placeholder="Ex: Gerente, Supervisor"
+                                    className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
                             </div>
                         )}
                         {currentUser.role === 'root' && editingUser.role !== 'root' ? (

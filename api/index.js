@@ -572,7 +572,7 @@ app.post('/api/auth/recover', async (req, res) => {
 app.post('/api/users/register', protect, hasPermission('manageUsers'), async (req, res) => {
   const { name, email, password, role } = req.body;
   const requestingUser = req.user;
-  const finalRole = role || 'vendedor';
+  const finalRole = 'admin'; // Novos usuários são sempre 'admin'
 
   if (!name || !email || !password) {
     return res.status(400).json({ message: 'Nome, email e senha são obrigatórios.' });
@@ -593,8 +593,8 @@ app.post('/api/users/register', protect, hasPermission('manageUsers'), async (re
     const password_hash = await bcrypt.hash(password, salt);
 
     const { rows } = await db.query(
-      'INSERT INTO users (name, email, password_hash, role, permissions) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, role, permissions',
-      [name, email.toLowerCase(), password_hash, finalRole, JSON.stringify(getDefaultPermissions(finalRole))]
+      'INSERT INTO users (name, email, password_hash, role, permissions, title) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, email, role, permissions, title',
+      [name, email.toLowerCase(), password_hash, finalRole, JSON.stringify(getDefaultPermissions(finalRole)), 'Administrador']
     );
 
     res.status(201).json(rows[0]);
@@ -640,9 +640,9 @@ app.get('/api/users', protect, hasPermission('manageUsers'), async (req, res) =>
   const queryParams = [];
 
   if (requestingUser.role === 'root') {
-    queryText = 'SELECT id, name, email, role, permissions FROM users ORDER BY name ASC';
+    queryText = 'SELECT id, name, email, role, permissions, title FROM users ORDER BY name ASC';
   } else {
-    queryText = 'SELECT id, name, email, role, permissions FROM users WHERE role != $1 ORDER BY name ASC';
+    queryText = 'SELECT id, name, email, role, permissions, title FROM users WHERE role != $1 ORDER BY name ASC';
     queryParams.push('root');
   }
 
@@ -658,7 +658,7 @@ app.get('/api/users', protect, hasPermission('manageUsers'), async (req, res) =>
 // Rota para atualizar um usuário
 app.put('/api/users/:id', protect, hasPermission('manageUsers'), async (req, res) => {
     const { id } = req.params;
-    const { name, email, password, permissions, role } = req.body;
+    const { name, email, password, permissions, role, title } = req.body;
     const requestingUser = req.user;
 
     try {
@@ -684,7 +684,8 @@ app.put('/api/users/:id', protect, hasPermission('manageUsers'), async (req, res
 
         if (name) { updateFields.push(`name = $${valueCount++}`); values.push(name); }
         if (email) { updateFields.push(`email = $${valueCount++}`); values.push(email.toLowerCase()); }
-        if (role && ['admin', 'vendedor'].includes(role) && requestingUser.role === 'root') {
+        if (title) { updateFields.push(`title = $${valueCount++}`); values.push(title); }
+        if (role && role === 'admin' && requestingUser.role === 'root') {
             updateFields.push(`role = $${valueCount++}`);
             values.push(role);
         }
@@ -695,7 +696,7 @@ app.put('/api/users/:id', protect, hasPermission('manageUsers'), async (req, res
             values.push(password_hash);
         }
         // Root pode editar permissões de qualquer um. Admin pode editar permissões de vendedor.
-        if (permissions && (requestingUser.role === 'root' || (requestingUser.role === 'admin' && targetUser.role === 'vendedor'))) {
+        if (permissions && requestingUser.role === 'root') {
             updateFields.push(`permissions = $${valueCount++}`);
             values.push(JSON.stringify(permissions));
         }
@@ -703,7 +704,7 @@ app.put('/api/users/:id', protect, hasPermission('manageUsers'), async (req, res
         if (updateFields.length === 0) return res.status(400).json({ message: 'Nenhum dado para atualizar foi fornecido.' });
 
         values.push(id);
-        const queryText = `UPDATE users SET ${updateFields.join(', ')} WHERE id = $${valueCount} RETURNING id, name, email, role, permissions`;
+        const queryText = `UPDATE users SET ${updateFields.join(', ')} WHERE id = $${valueCount} RETURNING id, name, email, role, permissions, title`;
         
         const { rows } = await db.query(queryText, values);
         res.json(rows[0]);
