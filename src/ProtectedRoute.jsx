@@ -5,7 +5,7 @@ import { useEstoqueContext } from './components/EstoqueContext.jsx';
 const ProtectedRoute = ({
   user,
   allowedRoles,
-  redirectPath = '/',
+  redirectPath = '/vendas',
   requiredPermission,
 }) => {
   const location = useLocation();
@@ -13,26 +13,27 @@ const ProtectedRoute = ({
   if (!user) {
     // Usuário não está logado, redireciona para a página inicial
     // Passamos a localização atual para que possamos voltar após o login, se desejado.
-    return <Navigate to={redirectPath} state={{ from: location }} replace />;
+    return <Navigate to="/" state={{ from: location }} replace />;
   }
 
   let hasAccess = false;
 
   // 1. Verifica por papel (role)
-  if (allowedRoles && allowedRoles.includes(user.role)) {
+  if (allowedRoles && user && allowedRoles.includes(user.role)) {
     hasAccess = true;
   }
 
   // 2. Se não tiver acesso pelo papel, verifica por permissão granular
-  if (!hasAccess && requiredPermission) {
-    if (user.permissions && user.permissions[requiredPermission]) {
+  if (!hasAccess && requiredPermission && user.permissions) {
+    // Verifica se o usuário tem pelo menos UMA das permissões necessárias
+    if (Array.isArray(requiredPermission) ? requiredPermission.some(p => user.permissions[p]) : user.permissions[requiredPermission]) {
       hasAccess = true;
     }
   }
 
   if (!hasAccess) {
     // Usuário logado mas sem o papel ou a permissão necessária.
-    return <Navigate to="/vendas" state={{ from: location }} replace />;
+    return <Navigate to={redirectPath} state={{ from: location }} replace />;
   }
 
   // Se todas as verificações passarem, renderiza o componente filho (a rota protegida).

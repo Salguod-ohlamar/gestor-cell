@@ -13,6 +13,7 @@ const HomePage = lazy(() => import('./HomePage.jsx'));
 const StockControl = lazy(() => import('./components/StockControl.jsx'));
 const VendasPage = lazy(() => import('./components/VendasPage.jsx'));
 const ClientesPage = lazy(() => import('./components/ClientesPage.jsx'));
+import { PERMISSION_GROUPS } from './components/useEstoque.jsx';
 const AdminPage = lazy(() => import('./AdminPage.jsx'));
 
 const AppContent = () => {
@@ -63,26 +64,30 @@ const AppContent = () => {
                                 />
                             } />
 
-                            {/* Acessível apenas por admin e root */}
-                            <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root']} />}>
-                                <Route path="/estoque" element={
-                                    <StockControl
-                                        onLogout={handleLogout}
-                                        currentUser={currentUser}
-                                    />
-                                } />
-                                <Route path="/clientes" element={
-                                    <ClientesPage
-                                        onLogout={handleLogout}
-                                        currentUser={currentUser}
-                                    />
-                                } />
-                                <Route path="/admin" element={
-                                    <AdminPage
-                                        onLogout={handleLogout}
-                                        currentUser={currentUser}
-                                    />
-                                } />
+                            {/* Rota para Estoque: Acessível por admin/root ou quem tiver permissão de editar produto */}
+                            <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root']} requiredPermission={['editProduct', 'addProduct', 'deleteProduct']} />}>
+                                <Route path="/estoque" element={<StockControl onLogout={handleLogout} currentUser={currentUser} />} />
+                            </Route>
+                            
+                            {/* Rota para Clientes: Acessível por admin/root ou quem tiver permissão de gerenciar clientes */}
+                            <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root']} requiredPermission="manageClients" />}>
+                                <Route path="/clientes" element={<ClientesPage onLogout={handleLogout} currentUser={currentUser} />} />
+                            </Route>
+                            
+                            {/* Rota para Admin: Acessível por admin/root ou quem tiver qualquer permissão de admin/root */}
+                            <Route element={
+                                <ProtectedRoute 
+                                    user={currentUser} 
+                                    allowedRoles={['admin', 'root']} 
+                                    requiredPermission={[
+                                        ...Object.keys(PERMISSION_GROUPS.admin?.permissions || {}), 
+                                        ...Object.keys(PERMISSION_GROUPS.root?.permissions || {}),
+                                        ...Object.keys(PERMISSION_GROUPS.siteContent?.permissions || {}),
+                                        'manageClients'
+                                    ]} 
+                                />
+                            }>
+                                <Route path="/admin" element={<AdminPage onLogout={handleLogout} currentUser={currentUser} />} />
                             </Route>
                         </Route>
 
