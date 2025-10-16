@@ -157,7 +157,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
         const inicioDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
 
         // Admin/Vendedor/Root veem todas as vendas, outros papéis veem apenas as suas.
-        const vendasConsideradas = ['admin', 'root'].includes(currentUser?.role)
+        const vendasConsideradas = ['admin', 'root', 'vendedor'].includes(currentUser?.role)
             ? salesHistory
             : salesHistory.filter(sale => sale.vendedor === currentUser?.name);
 
@@ -429,7 +429,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
     const hasStockPermission = useMemo(() => {
         if (!currentUser) return false;
         // Garante que admin e root sempre tenham acesso
-        if (['admin', 'root'].includes(currentUser.role)) return true;
+        if (['admin', 'root', 'vendedor'].includes(currentUser.role)) return true;
         if (!currentUser?.permissions) return false;
 
         // Qualquer permissão dentro destes grupos garante o acesso ao botão de gerenciamento

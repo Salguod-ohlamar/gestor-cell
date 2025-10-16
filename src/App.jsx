@@ -64,26 +64,10 @@ const AppContent = () => {
                                 />
                             } />
 
-                            {/* Rota para Estoque: Acessível por admin/root ou quem tiver permissão de produto/serviço */}
-                            <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root']} requiredPermission={[
-                                ...Object.keys(PERMISSION_GROUPS.products.permissions),
-                                ...Object.keys(PERMISSION_GROUPS.services.permissions)
-                            ]} />}>
+                            {/* Rotas para Estoque, Clientes e Admin: Acessíveis por admin e root. */}
+                            <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root']} redirectPath="/vendas" />}>
                                 <Route path="/estoque" element={<StockControl onLogout={handleLogout} currentUser={currentUser} />} />
-                            </Route>
-
-                            {/* Rota para Clientes: Acessível por admin/root ou quem tiver permissão de gerenciar clientes */}
-                            <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root']} requiredPermission={['manageClients']} />}>
                                 <Route path="/clientes" element={<ClientesPage onLogout={handleLogout} currentUser={currentUser} />} />
-                            </Route>
-
-                            {/* Rota para Admin: Acessível por admin/root ou quem tiver permissão de admin/root/conteúdo */}
-                            <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root']} requiredPermission={[
-                                ...Object.keys(PERMISSION_GROUPS.admin.permissions),
-                                ...Object.keys(PERMISSION_GROUPS.root.permissions),
-                                ...Object.keys(PERMISSION_GROUPS.siteContent.permissions),
-                                'manageClients'
-                            ]} />}>
                                 <Route path="/admin" element={<AdminPage onLogout={handleLogout} currentUser={currentUser} />} />
                             </Route>
                         </Route>

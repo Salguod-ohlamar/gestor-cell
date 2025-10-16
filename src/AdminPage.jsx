@@ -79,7 +79,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
         handleUpdateBanner,
         handleDeleteBanner,
     } = useEstoqueContext();
-    const hasStockPermission = useMemo(() => currentUser?.permissions?.editProduct || currentUser?.permissions?.addProduct || currentUser?.permissions?.deleteProduct || currentUser.role === 'admin' || currentUser.role === 'root', [currentUser]);
+    const hasStockPermission = useMemo(() => currentUser?.permissions?.editProduct || currentUser?.permissions?.addProduct || currentUser?.permissions?.deleteProduct || ['admin', 'root', 'vendedor'].includes(currentUser.role), [currentUser]);
 
     // State and handlers that were in StockControl.jsx
     const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState(false);
@@ -176,7 +176,8 @@ const AdminPage = ({ onLogout, currentUser }) => {
     const canManageUser = (targetUser) => {
         if (!currentUser || !targetUser) return false;
         if (targetUser.role === 'root') return false;
-        if (currentUser.role === 'root' || (currentUser.role === 'admin' && targetUser.role === 'vendedor')) return true;
+        // Apenas o root pode gerenciar outros usuários (admins).
+        if (currentUser.role === 'root') return true;
         return false;
     };
 
@@ -185,7 +186,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
     const handleOpenAddUserModal = () => setIsAddUserModalOpen(true);
     const handleCloseAddUserModal = () => {
         setIsAddUserModalOpen(false);
-        setNewUserData({ name: '', email: '', password: '' });
+        setNewUserData({ name: '', email: '', password: '', role: 'admin' });
     };
     const handleNewUserChange = (e) => {
         const { name, value } = e.target;
@@ -197,7 +198,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
             toast.error('Por favor, preencha todos os campos.');
             return;
         }
-        const success = await handleAddUser(newUserData, currentUser.name);
+        const success = await handleAddUser({ ...newUserData, role: 'admin' }, currentUser.name);
         if (success) {
             handleCloseAddUserModal();
         }
@@ -802,14 +803,14 @@ const AdminPage = ({ onLogout, currentUser }) => {
                                         <span className={`px-2 py-1 text-xs font-bold rounded-full ${userRoleClass}`}>{user.role}</span>
                                         {showManagementButtons && (<>
                                             {currentUser.permissions?.resetUserPassword && user.role === 'vendedor' && (
-                                                <button onClick={() => handleResetUserPassword(user.id, currentUser.name, currentUser)} className="text-yellow-400 hover:text-yellow-300 transition-colors" title="Resetar Senha">
+                                            <button onClick={() => handleResetUserPassword(user.id, currentUser.name, currentUser)} className="text-yellow-400 hover:text-yellow-300 transition-colors" title="Resetar Senha do Administrador">
                                                     <KeyRound size={18} />
                                                 </button>
                                             )}
-                                            <button onClick={() => handleOpenEditUserModal(user)} className="text-blue-400 hover:text-blue-300 transition-colors" title={`Editar ${user.role === 'admin' ? 'Administrador' : 'Vendedor'}`}>
+                                        <button onClick={() => handleOpenEditUserModal(user)} className="text-blue-400 hover:text-blue-300 transition-colors" title="Editar Administrador">
                                                 <Edit size={18} />
                                             </button>
-                                            <button onClick={async () => await handleDeleteUser(user.id, currentUser.name, currentUser)} className="text-red-400 hover:text-red-300 transition-colors" title={`Excluir ${user.role === 'admin' ? 'Administrador' : 'Vendedor'}`}><Trash2 size={18} /></button>
+                                        <button onClick={async () => await handleDeleteUser(user.id, currentUser.name, currentUser)} className="text-red-400 hover:text-red-300 transition-colors" title="Excluir Administrador"><Trash2 size={18} /></button>
                                         </>)}
                                     </div>
                                 </div>
@@ -843,14 +844,12 @@ const AdminPage = ({ onLogout, currentUser }) => {
                                     name="role"
                                     value={editingUser.role}
                                     onChange={handleEditUserChange}
-                                    className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="vendedor">Vendedor</option>
+                                    className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" disabled>
                                     <option value="admin">Administrador</option>
                                 </select>
                             </div>
                         )}
-                        {currentUser.role === 'root' && editingUser.role !== 'root' && ( // Root pode editar permissões de admin e vendedor
+                        {currentUser.role === 'root' && editingUser.role !== 'root' ? (
                             <div className="mt-4">
                                 <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Permissões</h4>
                                 <div className="space-y-6 p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg max-h-80 overflow-y-auto">
@@ -883,7 +882,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
                                     ))}
                                 </div>
                             </div>
-                        )}
+                        ) : null}
                         <button type="submit" className="w-full mt-4 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
                             Salvar Alterações
                         </button>
