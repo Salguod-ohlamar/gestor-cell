@@ -79,7 +79,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
         handleUpdateBanner,
         handleDeleteBanner,
     } = useEstoqueContext();
-    const hasStockPermission = useMemo(() => currentUser?.permissions?.editProduct || currentUser?.permissions?.addProduct || currentUser?.permissions?.deleteProduct || ['admin', 'root'].includes(currentUser.role), [currentUser]);
+    const hasStockPermission = useMemo(() => currentUser?.permissions?.editProduct || currentUser?.permissions?.addProduct || currentUser?.permissions?.deleteProduct || currentUser.role === 'admin' || currentUser.role === 'root', [currentUser]);
 
     // State and handlers that were in StockControl.jsx
     const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState(false);
@@ -176,7 +176,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
     const canManageUser = (targetUser) => {
         if (!currentUser || !targetUser) return false;
         if (targetUser.role === 'root') return false;
-        if (currentUser.role === 'root') return true;
+        if (currentUser.role === 'root' || (currentUser.role === 'admin' && targetUser.role === 'vendedor')) return true;
         return false;
     };
 
@@ -185,7 +185,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
     const handleOpenAddUserModal = () => setIsAddUserModalOpen(true);
     const handleCloseAddUserModal = () => {
         setIsAddUserModalOpen(false);
-        setNewUserData({ name: '', email: '', password: '', role: 'admin' });
+        setNewUserData({ name: '', email: '', password: '' });
     };
     const handleNewUserChange = (e) => {
         const { name, value } = e.target;
@@ -197,7 +197,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
             toast.error('Por favor, preencha todos os campos.');
             return;
         }
-        const success = await handleAddUser({ ...newUserData, role: 'admin' }, currentUser.name);
+        const success = await handleAddUser(newUserData, currentUser.name);
         if (success) {
             handleCloseAddUserModal();
         }
@@ -850,7 +850,41 @@ const AdminPage = ({ onLogout, currentUser }) => {
                                 </select>
                             </div>
                         )}
-                        <button type="submit" className="w-full mt-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
+                        {currentUser.role === 'root' && editingUser.role !== 'root' && ( // Root pode editar permissões de admin e vendedor
+                            <div className="mt-4">
+                                <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Permissões</h4>
+                                <div className="space-y-6 p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg max-h-80 overflow-y-auto">
+                                    {Object.values(PERMISSION_GROUPS).map((group, groupIndex) => (
+                                        <div key={group.title}>
+                                            <h5 className="text-md font-semibold text-gray-900 dark:text-white mb-3">{group.title}</h5>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+                                                {Object.entries(group.permissions).map(([key, { label }]) => (
+                                                    <label key={key} className="flex items-center gap-2 cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={!!editingUser.permissions?.[key]}
+                                                            onChange={(e) => {
+                                                                const { checked } = e.target;
+                                                                setEditingUser(prev => ({
+                                                                    ...prev,
+                                                                    permissions: { ...(prev.permissions || {}), [key]: checked }
+                                                                }));
+                                                            }}
+                                                            className="form-checkbox h-4 w-4 text-blue-500 bg-gray-200 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded focus:ring-blue-500"
+                                                        />
+                                                        <span className="text-sm text-gray-700 dark:text-gray-300">{label}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                            {groupIndex < Object.values(PERMISSION_GROUPS).length - 1 && (
+                                                <hr className="border-gray-300 dark:border-gray-700 mt-4" />
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        <button type="submit" className="w-full mt-4 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
                             Salvar Alterações
                         </button>
                     </form>

@@ -91,6 +91,7 @@ export const getDefaultPermissions = (role) => {
 const initialUsers = [
   { id: 0, email: 'root@boycell.com', password: 'root', role: 'root', name: 'Root User', permissions: getDefaultPermissions('root') },
   { id: 1, email: 'admin@boycell.com', password: 'admin', role: 'admin', name: 'Admin Boycell', permissions: getDefaultPermissions('admin') },
+  { id: 2, email: 'vendedor@boycell.com', password: 'vendedor', role: 'vendedor', name: 'Vendedor Boycell', permissions: getDefaultPermissions('vendedor') },
 ];
 
 const itemsPerPage = 5; // Itens por página
@@ -305,7 +306,8 @@ export const useEstoque = (currentUser) => {
         const token = localStorage.getItem('boycell-token');
         if (currentUser && token) {
             // Vendedores não precisam e não podem buscar a lista de todos os usuários.
-            if (['admin', 'root'].includes(currentUser.role)) {
+            // Apenas usuários com permissão de gerenciar outros usuários devem buscar a lista.
+            if (currentUser.permissions?.manageUsers) {
                 fetchUsers(token);
             }
         }
@@ -1439,7 +1441,7 @@ export const useEstoque = (currentUser) => {
     const hasAdminAccessPermission = useMemo(() => {
         if (!currentUser) return false;
         // Root e Admin sempre têm acesso
-        if (['root', 'admin'].includes(currentUser.role)) return true;
+        if (currentUser.role === 'root' || currentUser.role === 'admin') return true;
         if (!currentUser.permissions) return false;
 
         // Lista de permissões que garantem acesso ao painel de administração
