@@ -31,12 +31,12 @@ const PERMISSION_GROUPS = {
             viewDreReport: { roles: ['root', 'admin'] },
             viewActivityLog: { roles: ['root'] },
             manageClients: { roles: ['root', 'admin'] },
+            manageUsers: { roles: ['root', 'admin'] }, // Movido para o grupo 'admin'
         }
     },
     root: {
         title: 'Super Admin (Root)',
         permissions: {
-            manageUsers: { roles: ['root', 'admin'] },
             resetUserPassword: { roles: ['root'] },
             manageBackup: { roles: ['root'] },
             manageTheme: { roles: ['root'] },
