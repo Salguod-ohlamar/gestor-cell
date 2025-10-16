@@ -91,7 +91,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
     const [isDreModalOpen, setIsDreModalOpen] = useState(false);
     const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
     const [isChartsModalOpen, setIsChartsModalOpen] = useState(false);
-    const [newUserData, setNewUserData] = useState({ name: '', email: '', password: '' });
+    const [newUserData, setNewUserData] = useState({ name: '', email: '', password: '', role: 'vendedor' });
     const [editingUser, setEditingUser] = useState(null);
     const [reprintingSale, setReprintingSale] = useState(null);
     const [monthlySalesReport, setMonthlySalesReport] = useState(null);
@@ -186,7 +186,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
     const handleOpenAddUserModal = () => setIsAddUserModalOpen(true);
     const handleCloseAddUserModal = () => {
         setIsAddUserModalOpen(false);
-        setNewUserData({ name: '', email: '', password: '' });
+        setNewUserData({ name: '', email: '', password: '', role: 'vendedor' });
     };
     const handleNewUserChange = (e) => {
         const { name, value } = e.target;
@@ -194,7 +194,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
     };
     const handleAddNewUser = async (e) => {
         e.preventDefault();
-        if (!newUserData.name || !newUserData.email || !newUserData.password) {
+        if (!newUserData.name || !newUserData.email || !newUserData.password || !newUserData.role) {
             toast.error('Por favor, preencha todos os campos.');
             return;
         }
@@ -905,6 +905,15 @@ const AdminPage = ({ onLogout, currentUser }) => {
                     <div>
                         <label htmlFor="user-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Senha</label>
                         <input id="user-password" name="password" type="password" value={newUserData.password} onChange={handleNewUserChange} required className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    </div>
+                    <div>
+                        <label htmlFor="user-role" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Cargo</oabel>
+                        <select id="user-role" name="role" value={newUserData.role} onChange={handleNewUserChange} required className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option value="vendedor">Vendedor</option>
+                            {currentUser.role === 'root' && (
+                                <option value="admin">Administrador</option>
+                            )}
+                        </select>
                     </div>
                     <button type="submit" className="w-full mt-2 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors">
                         Adicionar Usuário

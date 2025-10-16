@@ -572,14 +572,18 @@ app.post('/api/auth/recover', async (req, res) => {
 app.post('/api/users/register', protect, hasPermission('manageUsers'), async (req, res) => {
   const { name, email, password, role } = req.body;
   const requestingUser = req.user;
-  const finalRole = 'admin'; // Novos usuários são sempre 'admin'
+  const finalRole = role || 'vendedor'; // O padrão é 'vendedor' se não for especificado
 
-  if (!name || !email || !password) {
-    return res.status(400).json({ message: 'Nome, email e senha são obrigatórios.' });
+  if (!name || !email || !password || !finalRole) {
+    return res.status(400).json({ message: 'Nome, email, senha e cargo são obrigatórios.' });
   }
 
   if (finalRole === 'admin' && requestingUser.role !== 'root') {
     return res.status(403).json({ message: 'Apenas o usuário root pode criar um administrador.' });
+  }
+  
+  if (!['admin', 'vendedor'].includes(finalRole)) {
+    return res.status(400).json({ message: 'Cargo inválido.' });
   }
 
   try {
@@ -594,7 +598,7 @@ app.post('/api/users/register', protect, hasPermission('manageUsers'), async (re
 
     const { rows } = await db.query(
       'INSERT INTO users (name, email, password_hash, role, permissions, title) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, email, role, permissions, title',
-      [name, email.toLowerCase(), password_hash, finalRole, JSON.stringify(getDefaultPermissions(finalRole)), 'Administrador']
+      [name, email.toLowerCase(), password_hash, finalRole, JSON.stringify(getDefaultPermissions(finalRole)), finalRole === 'admin' ? 'Administrador' : 'Vendedor']
     );
 
     res.status(201).json(rows[0]);
