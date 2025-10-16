@@ -639,29 +639,27 @@ app.post('/api/users/:id/reset-password', protect, hasPermission('resetUserPassw
 
 // Rota para buscar todos os usuários (protegida)
 app.get('/api/users', protect, hasPermission('manageUsers'), async (req, res) => {
-  const requestingUser = req.user;
-  let queryText;
-  const queryParams = [];
+    const requestingUser = req.user;
 
-  if (requestingUser.role === 'root') {
-    queryText = 'SELECT id, name, email, role, permissions, title FROM users ORDER BY name ASC';
-  } else if (requestingUser.role === 'admin') {
-    // Admin pode ver todos, exceto o root
-    queryText = 'SELECT id, name, email, role, permissions, title FROM users WHERE role != $1 ORDER BY name ASC';
-    queryParams.push('root');
-  } else {
-    // Vendedores (e outros futuros cargos) não podem ver a lista de usuários.
-    // Retornamos um array vazio para não quebrar a interface.
-    return res.json([]);
-  }
+    try {
+        let queryText;
+        const queryParams = [];
 
-  try {
-    const { rows } = await db.query(queryText, queryParams);
-    res.json(rows);
-  } catch (err) {
-    console.error('Error fetching users:', err);
-    res.status(500).send('Erro no servidor ao buscar usuários.');
-  }
+        if (requestingUser.role === 'root') {
+            queryText = 'SELECT id, name, email, role, permissions, title FROM users ORDER BY name ASC';
+        } else if (requestingUser.role === 'admin') {
+            queryText = 'SELECT id, name, email, role, permissions, title FROM users WHERE role != $1 ORDER BY name ASC';
+            queryParams.push('root');
+        } else {
+            return res.json([]); // Vendedor e outros não veem a lista, retorna array vazio.
+        }
+
+        const { rows } = await db.query(queryText, queryParams);
+        res.json(rows);
+    } catch (err) {
+        console.error('Error fetching users:', err);
+        res.status(500).send('Erro no servidor ao buscar usuários.');
+    }
 });
 
 // Rota para atualizar um usuário
