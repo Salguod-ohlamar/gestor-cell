@@ -667,9 +667,10 @@ app.put('/api/users/:id', protect, hasPermission('manageUsers'), async (req, res
         
         const targetUser = targetUserRows[0];
         if (targetUser.role === 'root') return res.status(403).json({ message: 'O usuário root não pode ser editado.' });
-        // Apenas o root pode editar outros usuários com cargo 'user'.
-        if (targetUser.role === 'user' && requestingUser.role !== 'root') {
-            return res.status(403).json({ message: 'Apenas o usuário root pode editar outros usuários.' });
+        
+        // Um usuário 'user' não pode editar outro 'user'. Apenas o 'root' pode.
+        if (requestingUser.role === 'user' && targetUser.role === 'user' && requestingUser.id !== targetUser.id) {
+            return res.status(403).json({ message: 'Você não tem permissão para editar outros usuários.' });
         }
 
         // Check for email collision
