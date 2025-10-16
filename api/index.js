@@ -639,11 +639,12 @@ app.get('/api/users', protect, hasPermission('manageUsers'), async (req, res) =>
 
         if (requestingUser.role === 'root') {
             queryText = 'SELECT id, name, email, role, permissions, title FROM users ORDER BY name ASC';
-        } else if (requestingUser.role === 'admin') {
-            queryText = 'SELECT id, name, email, role, permissions, title FROM users WHERE role != $1 ORDER BY name ASC';
+        } else if (requestingUser.role === 'user') {
+            // Usuários com cargo 'user' podem ver todos, exceto o 'root'.
+            queryText = 'SELECT id, name, email, role, permissions, title FROM users WHERE role <> $1 ORDER BY name ASC';
             queryParams.push('root');
         } else {
-            return res.json([]); // Vendedor e outros não veem a lista, retorna array vazio.
+            return res.json([]); // Outros futuros cargos não veem a lista.
         }
 
         const { rows } = await db.query(queryText, queryParams);
