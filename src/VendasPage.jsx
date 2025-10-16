@@ -452,7 +452,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                     <nav className="container mx-auto flex items-center justify-between p-4">
                         <h1 className="text-2xl font-bold text-white">Olá, {currentUser?.name?.split(' ')[0] || 'Vendedor'}!</h1>
                         <div>
-                            {hasStockPermission && (
+                            {(hasStockPermission || currentUser?.permissions?.editProduct || currentUser?.permissions?.addProduct) && (
                                 <button onClick={() => navigate('/estoque')} className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors mr-6" title="Gerenciar Estoque">
                                     <Edit size={20} />
                                     <span className="hidden sm:inline">Gerenciar Estoque</span>
