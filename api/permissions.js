@@ -2,36 +2,36 @@ const PERMISSION_GROUPS = {
     products: {
         title: 'Produtos',
         permissions: {
-            addProduct: { roles: ['root', 'admin'] },
-            editProduct: { roles: ['root', 'admin'] },
-            deleteProduct: { roles: ['root', 'admin'] },
-            exportCsv: { roles: ['root', 'admin'] },
+            addProduct: { roles: ['root', 'user'] },
+            editProduct: { roles: ['root', 'user'] },
+            deleteProduct: { roles: ['root', 'user'] },
+            exportCsv: { roles: ['root', 'user'] },
         }
     },
     services: {
         title: 'Serviços',
         permissions: {
-            addService: { roles: ['root', 'admin'] },
-            editService: { roles: ['root', 'admin'] },
-            deleteService: { roles: ['root', 'admin'] },
+            addService: { roles: ['root', 'user'] },
+            editService: { roles: ['root', 'user'] },
+            deleteService: { roles: ['root', 'user'] },
         }
     },
     siteContent: {
         title: 'Conteúdo do Site',
         permissions: {
-            manageBanners: { roles: ['root', 'admin'] },
+            manageBanners: { roles: ['root', 'user'] },
         }
     },
     admin: {
         title: 'Administração',
         permissions: {
             viewDashboardCharts: { roles: ['root'] },
-            viewSalesHistory: { roles: ['root', 'admin'] },
-            viewUserSalesReport: { roles: ['root', 'admin'] },
-            viewDreReport: { roles: ['root', 'admin'] },
+            viewSalesHistory: { roles: ['root', 'user'] },
+            viewUserSalesReport: { roles: ['root', 'user'] },
+            viewDreReport: { roles: ['root', 'user'] },
             viewActivityLog: { roles: ['root'] },
-            manageClients: { roles: ['root', 'admin'] },
-            manageUsers: { roles: ['root', 'admin'] }, // Movido para o grupo 'admin'
+            manageClients: { roles: ['root', 'user'] },
+            manageUsers: { roles: ['root', 'user'] },
         }
     },
     root: {
