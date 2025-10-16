@@ -186,7 +186,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
     const handleOpenAddUserModal = () => setIsAddUserModalOpen(true);
     const handleCloseAddUserModal = () => {
         setIsAddUserModalOpen(false);
-        setNewUserData({ name: '', email: '', password: '', role: 'admin' });
+        setNewUserData({ name: '', email: '', password: '' });
     };
     const handleNewUserChange = (e) => {
         const { name, value } = e.target;
@@ -198,7 +198,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
             toast.error('Por favor, preencha todos os campos.');
             return;
         }
-        const success = await handleAddUser({ ...newUserData, role: 'admin' }, currentUser.name);
+        const success = await handleAddUser(newUserData, currentUser.name);
         if (success) {
             handleCloseAddUserModal();
         }
@@ -803,14 +803,14 @@ const AdminPage = ({ onLogout, currentUser }) => {
                                         <span className={`px-2 py-1 text-xs font-bold rounded-full ${userRoleClass}`}>{user.role}</span>
                                         {showManagementButtons && (<>
                                             {currentUser.permissions?.resetUserPassword && user.role === 'vendedor' && (
-                                            <button onClick={() => handleResetUserPassword(user.id, currentUser.name, currentUser)} className="text-yellow-400 hover:text-yellow-300 transition-colors" title="Resetar Senha do Administrador">
+                                            <button onClick={() => handleResetUserPassword(user.id, currentUser.name, currentUser)} className="text-yellow-400 hover:text-yellow-300 transition-colors" title="Resetar Senha">
                                                     <KeyRound size={18} />
                                                 </button>
                                             )}
-                                        <button onClick={() => handleOpenEditUserModal(user)} className="text-blue-400 hover:text-blue-300 transition-colors" title="Editar Administrador">
+                                        <button onClick={() => handleOpenEditUserModal(user)} className="text-blue-400 hover:text-blue-300 transition-colors" title={`Editar ${user.role === 'admin' ? 'Administrador' : 'Vendedor'}`}>
                                                 <Edit size={18} />
                                             </button>
-                                        <button onClick={async () => await handleDeleteUser(user.id, currentUser.name, currentUser)} className="text-red-400 hover:text-red-300 transition-colors" title="Excluir Administrador"><Trash2 size={18} /></button>
+                                        <button onClick={async () => await handleDeleteUser(user.id, currentUser.name, currentUser)} className="text-red-400 hover:text-red-300 transition-colors" title={`Excluir ${user.role === 'admin' ? 'Administrador' : 'Vendedor'}`}><Trash2 size={18} /></button>
                                         </>)}
                                     </div>
                                 </div>
@@ -844,8 +844,9 @@ const AdminPage = ({ onLogout, currentUser }) => {
                                     name="role"
                                     value={editingUser.role}
                                     onChange={handleEditUserChange}
-                                    className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" disabled>
+                                    className="mt-1 block w-full p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                                     <option value="admin">Administrador</option>
+                                    <option value="vendedor">Vendedor</option>
                                 </select>
                             </div>
                         )}

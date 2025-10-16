@@ -91,6 +91,7 @@ export const getDefaultPermissions = (role) => {
 const initialUsers = [
   { id: 0, email: 'root@boycell.com', password: 'root', role: 'root', name: 'Root User', permissions: getDefaultPermissions('root') },
   { id: 1, email: 'admin@boycell.com', password: 'admin', role: 'admin', name: 'Admin Boycell', permissions: getDefaultPermissions('admin') },
+  { id: 2, email: 'vendedor@boycell.com', password: 'vendedor', role: 'vendedor', name: 'Vendedor Boycell', permissions: getDefaultPermissions('vendedor') },
 ];
 
 const itemsPerPage = 5; // Itens por página
