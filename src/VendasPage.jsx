@@ -155,10 +155,8 @@ const VendasPage = ({ onLogout, currentUser }) => {
         const inicioDoDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
         const inicioDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
 
-        // Se o usuário for admin ou root, usa todas as vendas. Senão, filtra por vendedor.
-        const vendasConsideradas = (currentUser?.role === 'admin' || currentUser?.role === 'root')
-            ? salesHistory
-            : salesHistory.filter(sale => sale.vendedor === currentUser?.name);
+        // Filtra as vendas para mostrar apenas as do usuário logado.
+        const vendasConsideradas = salesHistory.filter(sale => sale.vendedor === currentUser?.name);
 
 
         const vendasHoje = vendasConsideradas.filter(sale => {
