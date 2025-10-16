@@ -1,10 +1,12 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { useEstoqueContext } from './components/EstoqueContext.jsx';
 
 const ProtectedRoute = ({
   user,
   allowedRoles,
   redirectPath = '/',
+  requiredPermission,
 }) => {
   const location = useLocation();
 
@@ -14,12 +16,23 @@ const ProtectedRoute = ({
     return <Navigate to={redirectPath} state={{ from: location }} replace />;
   }
 
-  // Se roles são especificadas, verifica se o usuário tem a permissão
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // Usuário logado mas sem a permissão necessária.
-    // Redireciona para uma página padrão para sua role ou uma página de "não autorizado".
-    const defaultPage = (user.role === 'admin' || user.role === 'root') ? '/estoque' : '/vendas';
-    return <Navigate to={defaultPage} replace />;
+  let hasAccess = false;
+
+  // 1. Verifica por papel (role)
+  if (allowedRoles && allowedRoles.includes(user.role)) {
+    hasAccess = true;
+  }
+
+  // 2. Se não tiver acesso pelo papel, verifica por permissão granular
+  if (!hasAccess && requiredPermission) {
+    if (user.permissions && user.permissions[requiredPermission]) {
+      hasAccess = true;
+    }
+  }
+
+  if (!hasAccess) {
+    // Usuário logado mas sem o papel ou a permissão necessária.
+    return <Navigate to="/vendas" state={{ from: location }} replace />;
   }
 
   // Se todas as verificações passarem, renderiza o componente filho (a rota protegida).
