@@ -174,11 +174,13 @@ const AdminPage = ({ onLogout, currentUser }) => {
     }, []);
 
     const canManageUser = (targetUser) => {
-        if (!currentUser || !targetUser) return false;
+        if (!currentUser || !targetUser || !currentUser.permissions?.manageUsers) return false;
+        // Ninguém pode gerenciar o usuário root.
         if (targetUser.role === 'root') return false;
-        // Apenas o root pode gerenciar outros usuários (admins).
+        // O root pode gerenciar qualquer um (exceto ele mesmo).
         if (currentUser.role === 'root') return true;
-        return false;
+        // Outros usuários com a permissão só não podem gerenciar o root.
+        return true;
     };
 
     const handleOpenUserManagementModal = () => setIsUserManagementModalOpen(true);
