@@ -16,6 +16,12 @@ const ProtectedRoute = ({
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
+  // Se nenhuma regra específica (role ou permissão) for fornecida,
+  // apenas verifica se o usuário está logado.
+  if (!allowedRoles && !requiredPermission) {
+    return <Outlet />;
+  }
+
   let hasAccess = false;
 
   // 1. Verifica por papel (role)
