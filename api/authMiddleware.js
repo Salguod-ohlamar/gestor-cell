@@ -47,7 +47,7 @@ const hasPermission = (permission) => async (req, res, next) => {
 
     // Otimização: Verifica primeiro se a permissão já existe no token JWT.
     // Isso evita uma consulta desnecessária ao banco de dados na maioria das requisições.
-    if (req.user.permissions && req.user.permissions[permission]) {
+    if (req.user.permissions && req.user.permissions[permission] === true) {
         return next();
     }
 
@@ -58,7 +58,7 @@ const hasPermission = (permission) => async (req, res, next) => {
         }
 
         const userPermissions = rows[0].permissions;
-        if (userPermissions && userPermissions[permission]) {
+        if (userPermissions && userPermissions[permission] === true) {
             next();
         } else {
             res.status(403).json({ message: 'Acesso negado. Permissão específica insuficiente.' });
