@@ -99,6 +99,8 @@ const AdminPage = ({ onLogout, currentUser }) => {
     const [showTotalValue, setShowTotalValue] = useState(false);
     const [renderCharts, setRenderCharts] = useState(false);
     const [salesHistoryStartDate, setSalesHistoryStartDate] = useState('');
+    const [salesHistoryCurrentPage, setSalesHistoryCurrentPage] = useState(1);
+    const salesHistoryItemsPerPage = 4;
     const [salesHistorySearchTerm, setSalesHistorySearchTerm] = useState('');
     const [salesHistoryEndDate, setSalesHistoryEndDate] = useState('');
     const [salesChartPeriod, setSalesChartPeriod] = useState('day');
@@ -158,6 +160,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
 
     useEffect(() => {
         const afterPrint = () => {
+            document.body.classList.remove('print-mode-thermal');
             document.body.classList.remove('print-mode-recibo');
             document.body.classList.remove('print-mode-monthly-report');
             document.body.classList.remove('print-mode-dre-report');
@@ -229,7 +232,10 @@ const AdminPage = ({ onLogout, currentUser }) => {
         }
     };
 
-    const handleOpenSalesHistoryModal = () => setIsSalesHistoryModalOpen(true);
+    const handleOpenSalesHistoryModal = () => {
+        setSalesHistoryCurrentPage(1);
+        setIsSalesHistoryModalOpen(true);
+    };
     const handleCloseSalesHistoryModal = () => setIsSalesHistoryModalOpen(false);
 
     const handleOpenChartsModal = () => {
@@ -439,24 +445,9 @@ const AdminPage = ({ onLogout, currentUser }) => {
         window.print();
     };
 
-    const handleEmailRecibo = () => {
-        if (!reprintingSale) return;
-        const { items, subtotal, discountPercentage, discountValue, total, date, customer, customerCpf, customerEmail, receiptCode } = reprintingSale;
-        let emailBody = `Olá, ${customer || 'cliente'},\n\nObrigado pela sua compra na Boycell!\n\nDetalhes da Venda:\nCódigo: ${receiptCode}\nCliente: ${customer}\nCPF/CNPJ: ${customerCpf}\nData: ${new Date(date).toLocaleString('pt-BR')}\n\nItens:\n`;
-        items.forEach(item => {
-            const itemSubtotal = (item.precoFinal * item.quantity).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            emailBody += `- ${item.nome || item.servico} (x${item.quantity}) - ${itemSubtotal}\n`;
-            if (item.tempoDeGarantia > 0) {
-                const dataGarantia = new Date(date);
-                dataGarantia.setDate(dataGarantia.getDate() + item.tempoDeGarantia);
-                emailBody += `  Garantia até: ${dataGarantia.toLocaleDateString('pt-BR')}\n`;
-            }
-        });
-        emailBody += `\nSubtotal: ${subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n`;
-        if (discountPercentage > 0) emailBody += `Desconto (${discountPercentage}%): -${discountValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n`;
-        emailBody += `\nTotal: ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n\nAtenciosamente,\nEquipe Boycell`;
-        const subject = `Seu Comprovante de Compra - Boycell (Cód: ${receiptCode || 'N/A'})`;
-        window.open(`mailto:${customerEmail || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`, '_blank');
+    const handlePrintThermalRecibo = () => {
+        document.body.classList.add('print-mode-thermal');
+        window.print();
     };
 
     const handleWhatsAppRecibo = () => {
@@ -531,6 +522,19 @@ const AdminPage = ({ onLogout, currentUser }) => {
         });
     }, [salesHistory, salesHistoryStartDate, salesHistoryEndDate, salesHistorySearchTerm]);
 
+    useEffect(() => {
+        setSalesHistoryCurrentPage(1);
+    }, [salesHistoryStartDate, salesHistoryEndDate, salesHistorySearchTerm]);
+
+    const salesHistoryTotalPages = Math.ceil(filteredSalesHistory.length / salesHistoryItemsPerPage);
+
+    const paginatedSalesHistory = useMemo(() => {
+        if (filteredSalesHistory.length === 0) return [];
+        const startIndex = (salesHistoryCurrentPage - 1) * salesHistoryItemsPerPage;
+        return filteredSalesHistory.slice(startIndex, startIndex + salesHistoryItemsPerPage);
+    }, [filteredSalesHistory, salesHistoryCurrentPage]);
+
+
     const salesByPeriodData = useMemo(() => {
         if (!salesHistory || salesHistory.length === 0) return [];
         const getWeekStartDate = (d) => {
@@ -596,7 +600,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
                     <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-purple-500 md:col-span-1 lg:col-span-1">
                         <h3 className="text-xl font-semibold text-purple-600 dark:text-purple-400 mb-4">Gerenciamento</h3>
                         <div className="flex flex-col gap-3">
-                            {currentUser.permissions?.manageUsers && (
+                            {currentUser?.permissions?.manageUsers && (
                                 <>
                                     <button onClick={handleOpenAddUserModal} className={actionButtonClasses}>
                                         <PlusCircle size={18} /> Adicionar Usuário
@@ -606,7 +610,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
                                     </button>
                                 </>
                             )}
-                            {currentUser.permissions?.manageClients && (
+                            {currentUser?.permissions?.manageClients && (
                                 <button onClick={() => navigate('/clientes')} className={actionButtonClasses}>
                                     <UserCog size={18} /> Gerenciar Clientes
                                 </button>
@@ -614,7 +618,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
                         </div>
                     </div>
 
-                    {currentUser.permissions?.manageBanners && (
+                    {currentUser?.permissions?.manageBanners && (
                         <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-green-500 md:col-span-1 lg:col-span-1">
                             <h3 className="text-xl font-semibold text-green-600 dark:text-green-400 mb-4">Conteúdo do Site</h3>
                             <div className="flex flex-col gap-3">
@@ -628,27 +632,27 @@ const AdminPage = ({ onLogout, currentUser }) => {
                     <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-cyan-500 md:col-span-1 lg:col-span-1">
                         <h3 className="text-xl font-semibold text-cyan-600 dark:text-cyan-400 mb-4">Relatórios e Dados</h3>
                         <div className="flex flex-col gap-3">
-                            {currentUser.permissions?.viewDashboardCharts && (
+                            {currentUser?.permissions?.viewDashboardCharts && (
                                 <button onClick={handleOpenChartsModal} className={actionButtonClasses}>
                                     <LayoutDashboard size={18} /> Análise Gráfica
                                 </button>
                             )}
-                            {currentUser.permissions?.viewActivityLog && (
+                            {currentUser?.permissions?.viewActivityLog && (
                                 <button onClick={() => setIsActivityLogModalOpen(true)} className={actionButtonClasses}>
                                     <ListChecks size={18} /> Log de Atividades
                                 </button>
                             )}
-                            {currentUser.permissions?.viewSalesHistory && (
+                            {currentUser?.permissions?.viewSalesHistory && (
                                 <button onClick={handleOpenSalesHistoryModal} className={actionButtonClasses}>
                                     <History size={18} /> Histórico de Vendas
                                 </button>
                             )}
-                            {currentUser.permissions?.viewUserSalesReport && (
+                            {currentUser?.permissions?.viewUserSalesReport && (
                                 <button onClick={() => setIsUserSalesReportModalOpen(true)} className={actionButtonClasses}>
                                     <Users size={18} /> Relatório por Vendedor
                                 </button>
                             )}
-                            {currentUser.permissions?.viewDreReport && (
+                            {currentUser?.permissions?.viewDreReport && (
                                 <button onClick={() => setIsDreModalOpen(true)} className={actionButtonClasses}>
                                     <TrendingUpIcon size={18} /> DRE Simplificado
                                 </button>
@@ -659,12 +663,12 @@ const AdminPage = ({ onLogout, currentUser }) => {
                     <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-yellow-500 md:col-span-2 lg:col-span-1">
                         <h3 className="text-xl font-semibold text-yellow-600 dark:text-yellow-400 mb-4">Sistema</h3>
                         <div className="flex flex-col gap-3">
-                            {currentUser.permissions?.manageTheme && (
+                            {currentUser?.permissions?.manageTheme && (
                                 <button onClick={toggleTheme} className={actionButtonClasses}>
                                     {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />} Alterar para Tema {theme === 'dark' ? 'Claro' : 'Escuro'}
                                 </button>
                             )}
-                            {currentUser.permissions?.manageBackup && (
+                            {currentUser?.permissions?.manageBackup && (
                                 <>
                                     <button onClick={handleBackup} className={actionButtonClasses}>
                                         <Download size={18} /> Fazer Backup (Local)
@@ -963,12 +967,12 @@ const AdminPage = ({ onLogout, currentUser }) => {
                 </div>
             </Modal>
 
-            <Modal isOpen={isSalesHistoryModalOpen} onClose={handleCloseSalesHistoryModal} size="xl">
+            <Modal isOpen={isSalesHistoryModalOpen} onClose={handleCloseSalesHistoryModal} size="md">
                 <h2 className="text-2xl font-bold text-center text-yellow-600 dark:text-yellow-400 mb-6">Histórico de Vendas</h2>
                 <div className="space-y-6">
                     <div className="p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
                         <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Filtrar por Período</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                        <div className="flex flex-wrap gap-4 items-end">
                             <div>
                                 <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">De:</label>
                                 <input type="date" id="startDate" value={salesHistoryStartDate} onChange={e => setSalesHistoryStartDate(e.target.value)} className="w-full p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm" />
@@ -985,7 +989,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
 
                     <div className="p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
                         <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Imprimir Relatório Mensal</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                        <div className="flex flex-wrap gap-4 items-end">
                             <div>
                                 <label htmlFor="reportMonth" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mês:</label>
                                 <select id="reportMonth" value={reportMonth} onChange={e => setReportMonth(Number(e.target.value))} className="w-full p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm">
@@ -1019,8 +1023,8 @@ const AdminPage = ({ onLogout, currentUser }) => {
                 </div>
 
                 <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-4">
-                    {filteredSalesHistory.length > 0 ? (
-                        filteredSalesHistory.map(sale => (
+                    {paginatedSalesHistory.length > 0 ? (
+                        paginatedSalesHistory.map(sale => (
                             <div key={sale.id} className="p-4 bg-gray-200 dark:bg-gray-800 rounded-lg border-l-4 border-yellow-500">
                                 <div className="flex justify-between items-start mb-3">
                                     <div className="flex-grow">
@@ -1048,6 +1052,17 @@ const AdminPage = ({ onLogout, currentUser }) => {
                         ))
                     ) : (<p className="text-center text-gray-500 py-16">Nenhuma venda encontrada para o período selecionado.</p>)}
                 </div>
+                {salesHistoryTotalPages > 1 && (
+                    <div className="mt-6 flex justify-between items-center">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                            Página {salesHistoryCurrentPage} de {salesHistoryTotalPages}
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setSalesHistoryCurrentPage(prev => Math.max(prev - 1, 1))} disabled={salesHistoryCurrentPage === 1} className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-700"><ChevronLeft size={20} /></button>
+                            <button onClick={() => setSalesHistoryCurrentPage(prev => Math.min(prev + 1, salesHistoryTotalPages))} disabled={salesHistoryCurrentPage === salesHistoryTotalPages} className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-700"><ChevronRight size={20} /></button>
+                        </div>
+                    </div>
+                )}
             </Modal>
 
             <Modal isOpen={isChartsModalOpen} onClose={handleCloseChartsModal} size="2xl">
@@ -1145,11 +1160,11 @@ const AdminPage = ({ onLogout, currentUser }) => {
                             <button onClick={handleWhatsAppRecibo} className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-full transition-colors">
                                 <Send size={18} /> Enviar por WhatsApp
                             </button>
-                            <button onClick={handleEmailRecibo} className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-500 dark:bg-gray-600 hover:bg-gray-600 dark:hover:bg-gray-700 text-white font-medium rounded-full transition-colors">
-                                <Mail size={18} /> Enviar por Email
-                            </button>
                             <button onClick={handlePrintRecibo} className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-colors">
                                 <Printer size={18} /> Imprimir / Salvar PDF
+                            </button>
+                            <button onClick={handlePrintThermalRecibo} className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-800 text-white font-medium rounded-full transition-colors">
+                                <Printer size={18} /> Impressão Térmica
                             </button>
                         </div>
                     </>
