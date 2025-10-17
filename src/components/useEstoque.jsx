@@ -118,8 +118,8 @@ export const useEstoque = (currentUser) => {
                 // Garante que os campos numéricos sejam do tipo correto
                 const parsedData = data.map(p => ({
                     ...p,
-                    preco: parseFloat(p.preco) || 0,
-                    precoFinal: parseFloat(p.precoFinal) || 0,
+                    preco: parseFloat(String(p.preco).replace(',', '.')) || 0,
+                    precoFinal: parseFloat(String(p.precoFinal).replace(',', '.')) || 0,
                     emEstoque: parseInt(p.emEstoque, 10) || 0,
                     qtdaMinima: parseInt(p.qtdaMinima, 10) || 0,
                 }));
@@ -175,8 +175,8 @@ export const useEstoque = (currentUser) => {
                 // Garante que os campos numéricos sejam do tipo correto
                 const parsedData = data.map(s => ({
                     ...s,
-                    preco: parseFloat(s.preco) || 0,
-                    precoFinal: parseFloat(s.precoFinal) || 0,
+                    preco: parseFloat(String(s.preco).replace(',', '.')) || 0,
+                    precoFinal: parseFloat(String(s.precoFinal).replace(',', '.')) || 0,
                 }));
                 setServicos(parsedData);
             } catch (error) {

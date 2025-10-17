@@ -34,8 +34,8 @@ app.get('/api/products', async (req, res) => {
         fornecedor: p.fornecedor,
         emEstoque: p.em_estoque,
         qtdaMinima: p.qtda_minima,
-        preco: parseFloat(p.preco),
-        precoFinal: parseFloat(p.preco_final),
+        preco: parseFloat(String(p.preco).replace(',', '.')),
+        precoFinal: parseFloat(String(p.preco_final).replace(',', '.')),
         markup: p.markup,
         imagem: p.imagem,
         destaque: !!p.destaque,
@@ -68,7 +68,7 @@ app.get('/api/products/search', protect, async (req, res) => {
         const products = rows.map(p => ({
             id: p.id, nome: p.nome, categoria: p.categoria, marca: p.marca,
             fornecedor: p.fornecedor, emEstoque: p.em_estoque, qtdaMinima: p.qtda_minima,
-            preco: parseFloat(p.preco), precoFinal: parseFloat(p.preco_final),
+            preco: parseFloat(String(p.preco).replace(',', '.')), precoFinal: parseFloat(String(p.preco_final).replace(',', '.')),
             markup: p.markup, imagem: p.imagem, destaque: !!p.destaque,
             tempoDeGarantia: p.tempo_de_garantia, historico: p.historico,
         }));
@@ -218,8 +218,8 @@ app.get('/api/services', async (req, res) => {
         marca: s.marca,
         tipoReparo: s.tipo_reparo,
         tecnico: s.tecnico,
-        preco: parseFloat(s.preco),
-        precoFinal: parseFloat(s.preco_final),
+        preco: parseFloat(String(s.preco).replace(',', '.')),
+        precoFinal: parseFloat(String(s.preco_final).replace(',', '.')),
         markup: s.markup,
         imagem: s.imagem,
         destaque: s.destaque,
@@ -245,7 +245,7 @@ app.get('/api/services/search', protect, async (req, res) => {
         const services = rows.map(s => ({
             id: s.id, servico: s.servico, fornecedor: s.fornecedor, marca: s.marca,
             tipoReparo: s.tipo_reparo, tecnico: s.tecnico, preco: parseFloat(s.preco),
-            precoFinal: parseFloat(s.preco_final), markup: s.markup, imagem: s.imagem,
+            precoFinal: parseFloat(String(s.preco_final).replace(',', '.')), markup: s.markup, imagem: s.imagem,
             destaque: !!s.destaque, tempoDeGarantia: s.tempo_de_garantia, historico: s.historico,
         }));
         res.json(services);
