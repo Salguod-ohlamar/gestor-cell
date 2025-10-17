@@ -1089,13 +1089,13 @@ const AdminPage = ({ onLogout, currentUser }) => {
                         <DashboardCard 
                             icon={DollarSign} 
                             title="Valor Total do Estoque"
-                            value={showTotalValue ? dashboardData.valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ ####,##'}
+                            value={showTotalValue ? dashboardData.valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'R$ ####,##'}
                             colorClass="border-green-500"
                             isToggleable={true}
                             showValue={showTotalValue}
                             onToggle={() => setShowTotalValue(!showTotalValue)}
                         />
-                        <DashboardCard icon={TrendingUp} title="Total Faturado" value={Number(dashboardData.totalVendas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} colorClass="border-yellow-500" />
+                        <DashboardCard icon={TrendingUp} title="Total Faturado" value={Number(dashboardData.totalVendas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })} colorClass="border-yellow-500" />
                         <DashboardCard icon={ShoppingBag} title="Número de Vendas" value={dashboardData.numeroVendas} colorClass="border-pink-500" />
                         <DashboardCard icon={Package} title="Total de Itens no Estoque" value={dashboardData.totalItems} colorClass="border-blue-500" />
                         <DashboardCard icon={Layers} title="Produtos Diferentes" value={dashboardData.totalProdutos} colorClass="border-purple-500" />

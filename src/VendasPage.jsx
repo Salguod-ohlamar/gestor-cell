@@ -475,7 +475,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                             <DashboardCard
                                 icon={DollarSign}
                                 title="Total Vendido Hoje"
-                                value={showVendidoHoje ? vendedorDashboardData.totalVendidoHoje.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ ####,##'}
+                                value={showVendidoHoje ? vendedorDashboardData.totalVendidoHoje.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'R$ ####,##'}
                                 colorClass="border-green-500"
                                 isToggleable={true}
                                 showValue={showVendidoHoje}
@@ -493,7 +493,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                             <DashboardCard
                                 icon={Calendar}
                                 title="Total Vendido no Mês"
-                                value={showVendidoMes ? vendedorDashboardData.totalVendidoMes.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ ####,##'}
+                                value={showVendidoMes ? vendedorDashboardData.totalVendidoMes.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'R$ ####,##'}
                                 colorClass="border-purple-500"
                                 isToggleable={true}
                                 showValue={showVendidoMes}
@@ -518,7 +518,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                             <img src={item.imagem} alt={item.nome || item.servico} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
                                             <div className="flex-grow min-w-0">
                                                 <p className="font-semibold truncate">{item.nome || item.servico}</p>
-                                                <p className="text-sm text-gray-400">{item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                                                <p className="text-sm text-gray-400">{item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                             </div>
                                             <input 
                                                 type="number" 
@@ -616,7 +616,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                 </div>
                                 <div className="flex justify-between items-center text-xl font-bold">
                                     <span>Total:</span>
-                                    <span className="text-green-400">{totalCarrinho.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                    <span className="text-green-400">{totalCarrinho.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                                 <button 
                                     onClick={handleFinalizarVenda}
@@ -664,7 +664,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                                     <img src={p.imagem} alt={p.nome} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
                                                     <div className="flex-grow min-w-0">
                                                         <p className="font-semibold truncate">{p.nome}</p>
-                                                        <p className="text-sm text-gray-400">{p.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} | Disponível: {Number(p.emEstoque) - Number(p.qtdaMinima)}</p>
+                                                        <p className="text-sm text-gray-400">{p.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })} | Disponível: {Number(p.emEstoque) - Number(p.qtdaMinima)}</p>
                                                     </div>
                                                     <button onClick={() => addToCart(p, 'produto')} className="px-3 py-1 bg-green-600 text-white rounded-full text-sm font-semibold hover:bg-green-700 flex-shrink-0">
                                                         Adicionar
@@ -692,7 +692,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                                     <img src={s.imagem} alt={s.servico} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
                                                     <div className="flex-grow min-w-0">
                                                         <p className="font-semibold truncate">{s.servico}</p>
-                                                        <p className="text-sm text-gray-400">{s.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                                                        <p className="text-sm text-gray-400">{s.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                                     </div>
                                                     <button onClick={() => addToCart(s, 'servico')} className="px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-semibold hover:bg-blue-700 flex-shrink-0">
                                                         Adicionar

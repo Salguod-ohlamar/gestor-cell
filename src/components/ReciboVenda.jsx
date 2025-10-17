@@ -38,7 +38,7 @@ const ReciboVenda = ({ saleDetails }) => {
                         }
                         return (
                             <tr key={`${item.type}-${item.id}`} className="border-b border-dashed border-gray-400">
-                                <td className="p-1 w-1/2">
+                                <td className="p-1 w-1/2 text-left">
                                     {item.nome || item.servico}
                                     {item.tempoDeGarantia > 0 && (
                                         <span className="block text-gray-600 text-[10px] italic">
@@ -47,8 +47,8 @@ const ReciboVenda = ({ saleDetails }) => {
                                     )}
                                 </td>
                                 <td className="text-center p-1">{item.quantity}</td>
-                                <td className="text-right p-1">{item.precoFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                                <td className="text-right p-1">{(item.precoFinal * item.quantity).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                                <td className="text-right p-1">{item.precoFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className="text-right p-1">{(item.precoFinal * item.quantity).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             </tr>
                         );
                     })}
@@ -58,17 +58,17 @@ const ReciboVenda = ({ saleDetails }) => {
                 <div className="w-1/2 space-y-1">
                     <div className="flex justify-between">
                         <span>Subtotal:</span>
-                        <span>{subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                        <span>{subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                     {discountValue > 0 && (
                         <div className="flex justify-between text-gray-600">
                             <span>Desconto ({discountPercentage}%):</span>
-                            <span>-{discountValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                            <span>-{discountValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                     )}
                     <div className="flex justify-between font-bold text-sm border-t-2 border-black pt-2 mt-1">
                         <span>TOTAL:</span>
-                        <span>{total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                        <span>{total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                 </div>
             </div>

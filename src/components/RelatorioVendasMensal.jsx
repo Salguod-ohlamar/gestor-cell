@@ -32,15 +32,15 @@ const RelatorioVendasMensal = ({ reportData }) => {
                                 <td className="p-2">{sale.customer}</td>
                                 <td className="p-2">{sale.vendedor}</td>
                                 <td className="p-2">{sale.paymentMethod}</td>
-                                <td className="p-2 text-right font-semibold">{sale.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                                <td className="p-2 text-right font-semibold">{sale.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             </tr>
                             <tr className="border-b-2 border-black">
                                 <td colSpan="6" className="p-2 pl-8 text-xs">
                                     <strong className="text-xs">Itens:</strong>
                                     <ul className="list-disc list-inside ml-2">
                                         {sale.items.map(item => (
-                                            <li key={`${sale.id}-${item.type}-${item.id}`}>
-                                                {item.nome || item.servico} (x{item.quantity}) - {item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                            <li key={`${sale.id}-${item.type}-${item.id}`} className="text-gray-700">
+                                                {item.nome || item.servico} (x{item.quantity}) - {item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </li>
                                         ))}
                                     </ul>
@@ -61,25 +61,25 @@ const RelatorioVendasMensal = ({ reportData }) => {
                         {totalsByPaymentMethod?.Dinheiro?.total > 0 && (
                             <div className="flex justify-between text-gray-700">
                                 <span>- Em Dinheiro ({totalsByPaymentMethod.Dinheiro.count}):</span>
-                                <span>{totalsByPaymentMethod.Dinheiro.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                <span>{totalsByPaymentMethod.Dinheiro.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         )}
                         {totalsByPaymentMethod?.Cartão?.total > 0 && (
                             <div className="flex justify-between text-gray-700">
                                 <span>- No Cartão ({totalsByPaymentMethod.Cartão.count}):</span>
-                                <span>{totalsByPaymentMethod.Cartão.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                <span>{totalsByPaymentMethod.Cartão.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         )}
                         {totalsByPaymentMethod?.Pix?.total > 0 && (
                             <div className="flex justify-between text-gray-700">
                                 <span>- No Pix ({totalsByPaymentMethod.Pix.count}):</span>
-                                <span>{totalsByPaymentMethod.Pix.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                <span>{totalsByPaymentMethod.Pix.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         )}
                     </div>
                     <div className="flex justify-between font-bold text-lg border-t-2 border-black pt-2 mt-2">
                         <span>Valor Total Vendido:</span>
-                        <span>{totalVendido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                        <span>{totalVendido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                 </div>
             </div>

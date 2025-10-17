@@ -189,9 +189,9 @@ const StockControl = ({ onLogout, currentUser }) => {
             case 'emEstoque':
               return <td key={col.id} className={`p-4 font-semibold text-${col.align} ${isLowStock ? 'text-red-500 dark:text-red-400' : ''}`}>{item.emEstoque}</td>;
             case 'preco':
-              return <td key={col.id} className={`p-4 text-${col.align}`}>{item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
+              return <td key={col.id} className={`p-4 text-${col.align}`}>{item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>;
             case 'precoFinal':
-              return <td key={col.id} className={`p-4 text-${col.align} ${col.printable === false ? 'printable-hidden' : ''}`}>{item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
+              return <td key={col.id} className={`p-4 text-${col.align} ${col.printable === false ? 'printable-hidden' : ''}`}>{item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>;
             case 'acoes':
               return (
                 <td key={col.id} className={`p-4 text-${col.align} printable-hidden`}>
@@ -217,9 +217,9 @@ const StockControl = ({ onLogout, currentUser }) => {
                 case 'imagem':
                     return <td key={col.id} className={`p-2 text-${col.align}`}><img src={item.imagem || 'https://via.placeholder.com/40'} alt={item.servico} className="w-12 h-12 object-cover rounded-md bg-gray-200 dark:bg-gray-700" /></td>;
                 case 'preco':
-                    return <td key={col.id} className={`p-4 text-${col.align}`}>{item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
+                    return <td key={col.id} className={`p-4 text-${col.align}`}>{item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>;
                 case 'precoFinal':
-                    return <td key={col.id} className={`p-4 text-${col.align}`}>{item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>;
+                    return <td key={col.id} className={`p-4 text-${col.align}`}>{item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>;
                 case 'servico':
                     return <td key={col.id} className={`p-4 font-medium text-${col.align}`}>{item.servico}</td>;
                 case 'acoes':

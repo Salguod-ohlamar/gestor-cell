@@ -324,7 +324,7 @@ const ClientesPage = ({ onLogout, currentUser }) => {
                                             <div className="flex-grow">
                                                 <p className="text-sm text-gray-400">{new Date(sale.date).toLocaleString('pt-BR')}</p>
                                                 {sale.receiptCode && <p className="text-xs text-gray-500 font-mono">Cód: {sale.receiptCode}</p>}
-                                                <p className="text-lg font-bold text-purple-300">Total: {sale.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                                                <p className="text-lg font-bold text-purple-300">Total: {sale.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                                 <p className="text-sm text-gray-300">Pagamento: <span className="font-semibold text-purple-200">{sale.paymentMethod}</span></p>
                                             </div>
                                             <div className="flex-shrink-0">

@@ -13,7 +13,7 @@ const ProductCard = ({ product, onComprarClick }) => (
       )}
     </div>
     <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-200 dark:border-gray-800">
-      <span className="text-2xl font-bold text-green-600 dark:text-green-400">{product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+      <span className="text-2xl font-bold text-green-600 dark:text-green-400">{product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
       <Button size="sm" className="hover:scale-105" onClick={() => onComprarClick(product)}>
         Comprar
       </Button>
