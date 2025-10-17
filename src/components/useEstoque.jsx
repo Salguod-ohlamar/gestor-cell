@@ -344,7 +344,10 @@ export const useEstoque = (currentUser) => {
     // ===================================================================
     // Effect to update stock value history
     useEffect(() => {
-        const newTotalValue = estoque.reduce((acc, item) => acc + (parsePrice(item.preco) * (item.emEstoque || 0)), 0);
+        const newTotalValue = estoque.reduce((acc, item) => {
+            const custo = parseFloat(String(item.preco).replace(',', '.')) || 0;
+            return acc + (custo * (item.emEstoque || 0));
+        }, 0);
 
         setStockValueHistory(prevHistory => {
             const lastEntry = prevHistory[prevHistory.length - 1];
@@ -944,10 +947,10 @@ export const useEstoque = (currentUser) => {
     // ===================================================================
     // Dashboard data calculation
     const dashboardData = useMemo(() => {
-        const valorTotal = estoque.reduce((acc, item) => {
-            const custo = parseFloat(item.preco) || 0;
+        const valorTotal = estoque.reduce((acc, item) => { 
+            const custo = parseFloat(String(item.preco).replace(',', '.')) || 0;
             return acc + (custo * (item.emEstoque || 0));
-        }, 0);
+        }, 0); 
         const sortedByStock = [...estoque].sort((a, b) => (a.emEstoque || 0) - (b.emEstoque || 0));
         const maisEstoque = [...sortedByStock].reverse().slice(0, 5);
         const menosEstoque = sortedByStock.slice(0, 5);
