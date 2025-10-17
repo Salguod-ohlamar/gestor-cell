@@ -947,10 +947,14 @@ export const useEstoque = (currentUser) => {
     // ===================================================================
     // Dashboard data calculation
     const dashboardData = useMemo(() => {
-        const valorTotal = estoque.reduce((acc, item) => { 
+        const valorTotalBruto = estoque.reduce((acc, item) => { 
             const custo = parseFloat(String(item.preco).replace(',', '.')) || 0;
             return acc + (custo * (item.emEstoque || 0));
         }, 0); 
+            // insirido agora 
+            const valorTotal = Math.round(valorTotalBruto * 100) / 100;
+
+
         const sortedByStock = [...estoque].sort((a, b) => (a.emEstoque || 0) - (b.emEstoque || 0));
         const maisEstoque = [...sortedByStock].reverse().slice(0, 5);
         const menosEstoque = sortedByStock.slice(0, 5);
