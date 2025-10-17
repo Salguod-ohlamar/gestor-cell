@@ -748,6 +748,7 @@ app.get('/api/clients', protect, async (req, res) => {
     // A coluna `is_active` não existe na tabela `clients`, causando o erro 500.
     // A query foi simplificada para buscar todos os clientes, ignorando o filtro.
     try {
+        // CORREÇÃO: Removida a lógica de filtro por 'is_active' que não existe na tabela.
         const query = 'SELECT * FROM clients ORDER BY name ASC';
         const { rows } = await db.query(query);
         // Converte o padrão snake_case do DB para camelCase do JS para consistência
