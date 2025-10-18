@@ -919,7 +919,7 @@ app.get('/api/sales', protect, async (req, res) => {
                 )) AS items
             FROM sales s
             JOIN sale_items si ON s.id = si.sale_id
-            LEFT JOIN clients c ON s.client_id = c.id
+            LEFT JOIN clients c ON s.client_id = c.id AND c.id IS NOT NULL
             LEFT JOIN products p ON si.product_id = p.id
             LEFT JOIN services sv ON si.service_id = sv.id
         `;
