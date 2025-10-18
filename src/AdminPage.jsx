@@ -541,14 +541,13 @@ const AdminPage = ({ onLogout, currentUser }) => {
     const salesByPeriodData = useMemo(() => {
         if (!salesHistory || salesHistory.length === 0) return [];
         const getWeekStartDate = (d) => {
-            const date = new Date(d);
-            const day = date.getDay();
-            const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-            return new Date(new Date(date.setDate(diff)).setHours(0, 0, 0, 0)).toISOString().split('T')[0];
+            const date = new Date(d); // Cria uma nova instância para não modificar a original
+            const day = date.getUTCDay(); // Usa getUTCDay para consistência
+            const diff = date.getUTCDate() - day + (day === 0 ? -6 : 1); // Ajuste para a semana começar na segunda-feira
+            return new Date(date.setUTCDate(diff)).toISOString().split('T')[0];
         };
         const groupedData = salesHistory.reduce((acc, sale) => {
             const saleDate = new Date(sale.date);
-            if (isNaN(saleDate.getTime())) return acc;
             let key = '';
             if (salesChartPeriod === 'day') {
                 key = saleDate.toISOString().split('T')[0];
@@ -558,7 +557,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
                 key = `${saleDate.getFullYear()}-${String(saleDate.getMonth() + 1).padStart(2, '0')}`;
             }
             if (!acc[key]) { acc[key] = { period: key, total: 0 }; }
-            acc[key].total += sale.total;
+            acc[key].total += Number(sale.total || 0);
             return acc;
         }, {});
         return Object.values(groupedData).sort((a, b) => new Date(a.period) - new Date(b.period));
