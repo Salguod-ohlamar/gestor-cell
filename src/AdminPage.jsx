@@ -548,7 +548,8 @@ const AdminPage = ({ onLogout, currentUser }) => {
         };
         const groupedData = salesHistory.reduce((acc, sale) => {
             const saleDate = new Date(sale.date);
-            let key = '';
+            if (isNaN(saleDate.getTime())) return acc; // Re-adiciona a verificação de data inválida
+            let key;
             if (salesChartPeriod === 'day') {
                 key = saleDate.toISOString().split('T')[0];
             } else if (salesChartPeriod === 'week') {
