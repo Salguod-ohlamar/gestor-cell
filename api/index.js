@@ -942,7 +942,7 @@ app.get('/api/sales', protect, async (req, res) => {
         // Garante que o total seja um número para evitar problemas de concatenação no frontend
         const salesWithNumericTotal = rows.map(sale => ({
             ...sale,
-            total: parseFloat(sale.total)
+            total: parseFloat(sale.total) // Mantém a conversão para número
         }));
         res.json(salesWithNumericTotal);
     } catch (err) {
