@@ -1541,7 +1541,5 @@ export const useEstoque = (currentUser) => {
         handleUpdateBanner,
         handleDeleteBanner,
         hasAdminAccessPermission, // Exporta a nova função
-        validateCPF, // Exporta a função de validação de CPF
-        validatePhone, // Exporta a função de validação de telefone
     };
 };
