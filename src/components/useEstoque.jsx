@@ -948,9 +948,9 @@ export const useEstoque = (currentUser) => {
     // Dashboard data calculation
     const dashboardData = useMemo(() => {
         const valorTotal = estoque.reduce((acc, item) => { 
-            const custo = parseFloat(String(item.preco).replace(',', '.')) || 0;
-            // A correção é dividir o custo por 100 para ajustar a magnitude do valor.
-            return acc + ((custo / 100) * (item.emEstoque || 0));
+            // Garante que o preço seja um número e o trata como se estivesse em centavos.
+            const custoEmReais = (parseFloat(String(item.preco).replace(',', '.')) || 0) / 100;
+            return acc + (custoEmReais * (item.emEstoque || 0));
         }, 0); 
 
         const sortedByStock = [...estoque].sort((a, b) => (a.emEstoque || 0) - (b.emEstoque || 0));
@@ -1541,5 +1541,7 @@ export const useEstoque = (currentUser) => {
         handleUpdateBanner,
         handleDeleteBanner,
         hasAdminAccessPermission, // Exporta a nova função
+        validateCPF, // Exporta a função de validação de CPF
+        validatePhone, // Exporta a função de validação de telefone
     };
 };

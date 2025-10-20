@@ -31,6 +31,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
     const {
         handleSale,
         validateCPF,
+        validatePhone,
         salesHistory,
         estoque,
         servicos

@@ -64,7 +64,7 @@ const AppContent = () => {
                                 />
                             } />
 
-                            {/* Rotas para Estoque, Clientes e Admin: Acessíveis por admin e root. */}
+                            {/* Rotas para Estoque, Clientes, Admin: Acessíveis por admin e root. */}
                             <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root']} redirectPath="/vendas" />}>
                                 <Route path="/estoque" element={<StockControl onLogout={handleLogout} currentUser={currentUser} />} />
                                 <Route path="/clientes" element={<ClientesPage onLogout={handleLogout} currentUser={currentUser} />} />
