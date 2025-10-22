@@ -705,6 +705,10 @@ const AdminPage = ({ onLogout, currentUser }) => {
                 />
             </Modal>
 
+            <Modal isOpen={isFaqModalOpen} onClose={() => setIsFaqModalOpen(false)} size="lg">
+                <FaqRegras />
+            </Modal>
+
             <Modal isOpen={isUserSalesReportModalOpen} onClose={() => setIsUserSalesReportModalOpen(false)} size="xl">
                 <h2 className="text-2xl font-bold text-center text-cyan-600 dark:text-cyan-400 mb-6">Relatório de Vendas por Vendedor</h2>
                 <div className="flex flex-wrap items-center justify-center gap-4 mb-6 p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
