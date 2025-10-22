@@ -19,13 +19,15 @@ const Modal = ({ isOpen, onClose, children, size = 'md' }) => {
     >
       {/* Conteúdo do Modal */}
       <div
-        className={`bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-8 rounded-2xl shadow-xl w-full ${sizeClasses[size]} relative`}
+        className={`bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-8 rounded-2xl shadow-xl w-full ${sizeClasses[size]} relative flex flex-col max-h-[90vh]`}
         onClick={e => e.stopPropagation()} // Impede que o clique dentro do modal o feche
       >
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:hover:text-white text-3xl leading-none" aria-label="Fechar modal">
           &times;
         </button>
-        {children}
+        <div className="overflow-y-auto pr-4 -mr-4">
+          {children}
+        </div>
       </div>
     </div>
   );
