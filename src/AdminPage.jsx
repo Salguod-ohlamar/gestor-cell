@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ArrowLeft, LogOut, PlusCircle, Search, Edit, DollarSign, Package, FileDown, ChevronLeft, ChevronRight, GripVertical, Printer, Eye, EyeOff, ChevronUpSquare, ChevronDownSquare, History, Trash2, Layers, ShoppingCart, TrendingUp, ShoppingBag, Banknote, LayoutDashboard, Users, KeyRound, ListChecks, Mail, Send, RefreshCw, Upload, Download, UserCog, Settings, Image as ImageIcon, TrendingUp as TrendingUpIcon, Sun, Moon } from 'lucide-react';
+import { ArrowLeft, LogOut, PlusCircle, Search, Edit, DollarSign, Package, FileDown, ChevronLeft, ChevronRight, GripVertical, Printer, Eye, EyeOff, ChevronUpSquare, ChevronDownSquare, History, Trash2, Layers, ShoppingCart, TrendingUp, ShoppingBag, Banknote, LayoutDashboard, Users, KeyRound, ListChecks, Mail, Send, RefreshCw, Upload, Download, UserCog, Settings, Image as ImageIcon, TrendingUp as TrendingUpIcon, Sun, Moon, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Label, AreaChart, Area } from 'recharts';
 import { Toaster, toast } from 'react-hot-toast';
 import Modal from './components/Modal.jsx';
 import ReciboVenda from './components/ReciboVenda.jsx';
 import BannerManager from './components/BannerManager.jsx';
+import FaqRegras from './components/FaqRegras.jsx';
 import { useEstoqueContext } from './components/EstoqueContext.jsx';
 import { useTheme } from './components/ThemeContext.jsx';
 import RelatorioVendasMensal from './components/RelatorioVendasMensal.jsx';
@@ -90,6 +91,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
     const [isUserSalesReportModalOpen, setIsUserSalesReportModalOpen] = useState(false);
     const [isDreModalOpen, setIsDreModalOpen] = useState(false);
     const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
+    const [isFaqModalOpen, setIsFaqModalOpen] = useState(false);
     const [isChartsModalOpen, setIsChartsModalOpen] = useState(false);
     const [newUserData, setNewUserData] = useState({ name: '', email: '', password: '', title: 'Vendedor' });
     const [editingUser, setEditingUser] = useState(null);
@@ -683,6 +685,10 @@ const AdminPage = ({ onLogout, currentUser }) => {
                                     </button>
                                 </>
                             )}
+                            {/* Botão para abrir o FAQ */}
+                            <button onClick={() => setIsFaqModalOpen(true)} className={actionButtonClasses}>
+                                <HelpCircle size={18} /> FAQ - Regras de Negócio
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -745,46 +751,6 @@ const AdminPage = ({ onLogout, currentUser }) => {
                 </div>
 
                 <div className="bg-white rounded-lg overflow-y-auto max-h-[60vh]"><RelatorioVendasUsuario reportData={userSalesReportData} /></div>
-            </Modal>
-
-            <Modal isOpen={isDreModalOpen} onClose={() => setIsDreModalOpen(false)} size="xl">
-                <h2 className="text-2xl font-bold text-center text-green-600 dark:text-green-400 mb-6">DRE Simplificado</h2>
-                <div className="flex flex-wrap items-center justify-center gap-4 mb-6 p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                        <label htmlFor="dreStartDate" className="text-sm font-medium text-gray-700 dark:text-gray-300">De:</label>
-                        <input 
-                            type="date" 
-                            id="dreStartDate"
-                            value={dreStartDate}
-                            onChange={e => setDreStartDate(e.target.value)}
-                            className="p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
-                        />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <label htmlFor="dreEndDate" className="text-sm font-medium text-gray-700 dark:text-gray-300">Até:</label>
-                        <input 
-                            type="date" 
-                            id="dreEndDate"
-                            value={dreEndDate}
-                            onChange={e => setDreEndDate(e.target.value)}
-                            className="p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
-                        />
-                    </div>
-                    <button onClick={handleGenerateDreReport} disabled={loadingDre} className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-lg transition-colors disabled:bg-gray-500">
-                        {loadingDre ? 'Gerando...' : 'Gerar Relatório'}
-                    </button>
-                    <button onClick={handlePrintDre} disabled={!dreData} className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors disabled:bg-gray-500">
-                        <Printer size={16} /> Imprimir
-                    </button>
-                </div>
-
-                <div className="bg-white rounded-lg overflow-y-auto max-h-[60vh]">
-                    {loadingDre ? (
-                        <p className="text-center text-gray-500 py-10">Carregando dados do relatório...</p>
-                    ) : (
-                        <DreReport reportData={dreData} />
-                    )}
-                </div>
             </Modal>
 
             <Modal isOpen={isUserManagementModalOpen} onClose={handleCloseUserManagementModal} size="lg">
@@ -922,6 +888,42 @@ const AdminPage = ({ onLogout, currentUser }) => {
                         Adicionar Usuário
                     </button>
                 </form>
+            </Modal>
+
+            <Modal isOpen={isDreModalOpen} onClose={() => setIsDreModalOpen(false)} size="xl">
+                <h2 className="text-2xl font-bold text-center text-green-600 dark:text-green-400 mb-6">DRE Simplificado</h2>
+                <div className="flex flex-wrap items-center justify-center gap-4 mb-6 p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="dreStartDate" className="text-sm font-medium text-gray-700 dark:text-gray-300">De:</label>
+                        <input 
+                            type="date" 
+                            id="dreStartDate"
+                            value={dreStartDate}
+                            onChange={e => setDreStartDate(e.target.value)}
+                            className="p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="dreEndDate" className="text-sm font-medium text-gray-700 dark:text-gray-300">Até:</label>
+                        <input 
+                            type="date" 
+                            id="dreEndDate"
+                            value={dreEndDate}
+                            onChange={e => setDreEndDate(e.target.value)}
+                            className="p-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+                        />
+                    </div>
+                    <button onClick={handleGenerateDreReport} disabled={loadingDre} className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-lg transition-colors disabled:bg-gray-500">
+                        {loadingDre ? 'Gerando...' : 'Gerar Relatório'}
+                    </button>
+                    <button onClick={handlePrintDre} disabled={!dreData} className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors disabled:bg-gray-500">
+                        <Printer size={16} /> Imprimir
+                    </button>
+                </div>
+
+                <div className="bg-white rounded-lg overflow-y-auto max-h-[60vh]">
+                    {loadingDre ? (<p className="text-center text-gray-500 py-10">Carregando dados do relatório...</p>) : (<DreReport reportData={dreData} />)}
+                </div>
             </Modal>
 
             <Modal isOpen={isActivityLogModalOpen} onClose={() => setIsActivityLogModalOpen(false)} size="2xl">
