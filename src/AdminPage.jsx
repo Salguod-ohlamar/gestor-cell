@@ -767,8 +767,8 @@ const AdminPage = ({ onLogout, currentUser }) => {
                             const userRoleClass = user.role === 'root' ? 'bg-red-500 text-white' : (user.role === 'admin' ? 'bg-green-500 text-black' : 'bg-blue-500 text-white');
                             return (
                                 <div key={user.id} className="flex items-center justify-between bg-gray-100 dark:bg-gray-800 p-3 rounded-lg">
-                                    <div>
-                                        <p className="font-semibold text-white">{user.name} <span className="text-xs text-gray-400">({user.title || user.role})</span></p>
+                                    <div className="flex-grow min-w-0">
+                                        <p className="font-semibold text-gray-900 dark:text-white truncate">{user.name} <span className="text-xs text-gray-500 dark:text-gray-400">({user.title || user.role})</span></p>
                                         <p className="text-sm text-gray-400">{user.email}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
