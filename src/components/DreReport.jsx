@@ -10,7 +10,12 @@ const DreReport = ({ reportData }) => {
         custoVendas, lucroBruto
     } = reportData;
 
-    const formatCurrency = (value) => (value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const formatCurrency = (value) => {
+        // Os valores parecem estar vindo multiplicados por 100 do backend ou em centavos.
+        // Dividir por 100 antes de formatar corrige a exibição.
+        const numericValue = (value || 0) / 100;
+        return numericValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
 
     const ItemRow = ({ label, value, isSub, isTotal, isFinal }) => (
         <div className={`flex justify-between py-2 border-b border-gray-200 ${isTotal ? 'font-bold text-lg' : ''} ${isFinal ? 'text-xl' : ''}`}>

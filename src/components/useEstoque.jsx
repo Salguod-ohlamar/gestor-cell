@@ -50,6 +50,9 @@ export const PERMISSION_GROUPS = {
         title: 'Conteúdo do Site',
         permissions: {
             manageBanners: { label: 'Gerenciar Banners', roles: ['root', 'admin'] },
+            createQuote: { label: 'Criar Orçamento', roles: ['root', 'admin', 'vendedor'] },
+            viewAllQuotes: { label: 'Visualizar Todos Orçamentos', roles: ['root', 'admin'] },
+            manageQuotes: { label: 'Gerenciar Orçamentos (Salvar/Excluir)', roles: ['root', 'admin'] },
         }
     },
     admin: {
