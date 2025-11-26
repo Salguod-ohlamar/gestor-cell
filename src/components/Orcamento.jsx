@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactToPrint from 'react-to-print';
 import { useDebounce } from '@/hooks/useDebounce';
-import api from '@/services/api';
 import { Trash, Search, Printer, Save, ArrowLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -154,14 +153,26 @@ function Orcamento() {
 
     const handleSaveQuote = async () => {
         try {
-            const token = localStorage.getItem('boycell-token');
-            const response = await api.post('/api/quotes', printableData, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            const token = localStorage.getItem('boycell-token'); // Certifique-se que o nome da chave está correto
+            const response = await fetch('/api/quotes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(printableData)
             });
-            toast.success(`Orçamento ${response.data.quote_number} salvo com sucesso!`);
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Falha ao salvar o orçamento.');
+            }
+
+            const responseData = await response.json();
+            toast.success(`Orçamento ${responseData.quote_number} salvo com sucesso!`);
         } catch (error) {
             console.error("Erro ao salvar orçamento:", error);
-            toast.error(error.response?.data?.message || 'Falha ao salvar o orçamento.');
+            toast.error(error.message || 'Falha ao salvar o orçamento.');
         }
     };
 
