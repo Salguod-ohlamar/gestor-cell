@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactToPrint from 'react-to-print';
-import { useDebounce } from '@/hooks/useDebounce';
-import api from '@/services/api';
-import { Trash, Search, Printer, Save, ArrowLeft } from 'lucide-react';
+import { useDebounce } from '../hooks/useDebounce';
+import api from '../services/api';
+import { Trash, Search, Printer, Save, ArrowLeft, ClipboardList } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,10 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
-import toast from 'react-hot-toast';
-import OrcamentoPrintable from '@/OrcamentoPrintable.jsx';
-import '@/OrcamentoPrintable.css';
+import { Toaster, toast } from 'react-hot-toast';
+import OrcamentoPrintable from '../OrcamentoPrintable';
+import '../OrcamentoPrintable.css';
 import { useNavigate } from 'react-router-dom';
 
 function Orcamento() {
@@ -22,12 +21,6 @@ function Orcamento() {
     const [isSearching, setIsSearching] = useState(false);
     const [quoteItems, setQuoteItems] = useState([]);
     const [quoteNumber, setQuoteNumber] = useState('');
-
-    // Customer details
-    const [customerName, setCustomerName] = useState('');
-    const [customerCpf, setCustomerCpf] = useState('');
-    const [customerPhone, setCustomerPhone] = useState('');
-    const [customerEmail, setCustomerEmail] = useState('');
 
     const printableComponentRef = useRef();
     const navigate = useNavigate();
@@ -58,6 +51,12 @@ function Orcamento() {
     const [expectedQuoteDate, setExpectedQuoteDate] = useState('');
     const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
     const [warrantyPeriod, setWarrantyPeriod] = useState('');
+
+    // Customer details
+    const [customerName, setCustomerName] = useState('');
+    const [customerCpf, setCustomerCpf] = useState('');
+    const [customerPhone, setCustomerPhone] = useState('');
+    const [customerEmail, setCustomerEmail] = useState('');
 
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
