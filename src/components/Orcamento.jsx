@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import toast, { Toaster } from 'react-hot-toast';
 import OrcamentoPrintable from './OrcamentoPrintable';
 import './OrcamentoPrintable.css';
 import { useNavigate } from 'react-router-dom';
@@ -177,16 +178,16 @@ function Orcamento() {
             }
 
             const responseData = await response.json();
-            // Mensagem de sucesso agora apenas no console
-            console.log(`Orçamento ${responseData.quote_number} salvo com sucesso!`);
+            toast.success(`Orçamento ${responseData.quote_number} salvo com sucesso!`);
         } catch (error) {
             console.error("Erro ao salvar orçamento:", error);
-            // O erro já é logado no console pela linha acima, não precisa de outra ação.
+            toast.error(error.message || 'Falha ao salvar o orçamento.');
         }
     };
 
     return (
         <div className="bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen p-4 sm:p-8">
+            <Toaster position="top-right" />
             <div className="container mx-auto space-y-8">
                 <header className="flex flex-wrap justify-between items-center gap-4">
                     <div>
