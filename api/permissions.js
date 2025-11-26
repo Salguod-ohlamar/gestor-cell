@@ -30,8 +30,8 @@ const PERMISSION_GROUPS = {
             viewUserSalesReport: { roles: ['root', 'user'] },
             viewDreReport: { roles: ['root', 'user'] },
             viewActivityLog: { roles: ['root'] },
-            manageClients: { roles: ['root', 'user'] },
-            manageUsers: { roles: ['root', 'user'] },
+            manageClients: { roles: ['root', 'admin', 'user'] },
+            manageUsers: { roles: ['root', 'admin'] },
         }
     },
     root: {
