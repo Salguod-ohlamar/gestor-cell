@@ -278,6 +278,12 @@ const StockControl = ({ onLogout, currentUser }) => {
               <ShoppingCart size={20} />
               <span className="hidden sm:inline">Página de Vendas</span>
             </button>
+            {currentUser.permissions?.createQuote && (
+              <button onClick={() => navigate('/orcamento')} className="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors mr-4" title="Página de Orçamentos">
+                <ClipboardList size={20} />
+                <span className="hidden sm:inline">Orçamentos</span>
+              </button>
+            )}
             <a href="/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors mr-4" title="Ver Site">
               <ArrowLeft size={20} />
               <span className="hidden sm:inline">Ver Site</span>
@@ -296,8 +302,8 @@ const StockControl = ({ onLogout, currentUser }) => {
         </div>
 
         {/* Painéis de Ação */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            {/* Painel de Produtos - Ajustado para o novo grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            {/* Painel de Produtos */}
             <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-green-500">
                 <h3 className="text-xl font-semibold text-green-600 dark:text-green-400 mb-4">Produtos</h3>
                 <div className="flex flex-col gap-3">
@@ -317,25 +323,13 @@ const StockControl = ({ onLogout, currentUser }) => {
                 </div>
             </div>
 
-            {/* Painel de Serviços - Ajustado para o novo grid */}
+            {/* Painel de Serviços */}
             <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-blue-500">
                 <h3 className="text-xl font-semibold text-blue-600 dark:text-blue-400 mb-4">Serviços</h3>
                 <div className="flex flex-col gap-3">
                     {currentUser.permissions?.addService && (
                         <button onClick={handleOpenAddServicoModal} className={actionButtonClasses}>
                             <PlusCircle size={18} /> Adicionar Serviço
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {/* Novo Painel de Orçamentos */}
-            <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-orange-500">
-                <h3 className="text-xl font-semibold text-orange-600 dark:text-orange-400 mb-4">Orçamentos</h3>
-                <div className="flex flex-col gap-3">
-                    {currentUser.permissions?.createQuote && (
-                        <button onClick={() => navigate('/orcamento')} className={actionButtonClasses}>
-                            <ClipboardList size={18} /> Criar Orçamento
                         </button>
                     )}
                 </div>
