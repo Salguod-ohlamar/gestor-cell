@@ -14,6 +14,7 @@ const StockControl = lazy(() => import('./components/StockControl.jsx'));
 const VendasPage = lazy(() => import('./components/VendasPage.jsx'));
 const ClientesPage = lazy(() => import('./components/ClientesPage.jsx'));
 import { PERMISSION_GROUPS } from './components/useEstoque.jsx';
+const Orcamento = lazy(() => import('./components/Orcamento.jsx'));
 const AdminPage = lazy(() => import('./AdminPage.jsx'));
 
 const AppContent = () => {
@@ -60,6 +61,12 @@ const AppContent = () => {
                             <Route path="/vendas" element={
                                 <VendasPage
                                     onLogout={handleLogout}
+                                    currentUser={currentUser}
+                                />
+                            } />
+
+                            <Route path="/orcamento" element={
+                                <Orcamento
                                     currentUser={currentUser}
                                 />
                             } />
