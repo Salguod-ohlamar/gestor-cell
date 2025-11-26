@@ -58,4 +58,8 @@ const getDefaultPermissions = (role) => {
     return permissions;
 };
 
-module.exports = { PERMISSION_GROUPS, getDefaultPermissions };
+// Removido o module.exports e adicionado o export individual
+export {
+    PERMISSION_GROUPS,
+    getDefaultPermissions
+};

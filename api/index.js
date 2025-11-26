@@ -1,13 +1,13 @@
 
 //server.js
-const express = require('express');
-const cors = require('cors');
-const db = require('./db.js');
-const bcrypt = require('bcryptjs'); 
-const jwt = require('jsonwebtoken');
-require('dotenv').config();
-const { protect, hasPermission } = require('./authMiddleware.js');
-const { getDefaultPermissions, PERMISSION_GROUPS } = require('./permissions.js');
+import express from 'express';
+import cors from 'cors';
+import db from './db.js';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import 'dotenv/config';
+import { protect, hasPermission } from './authMiddleware.js';
+import { getDefaultPermissions, PERMISSION_GROUPS } from './permissions.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -1160,5 +1160,75 @@ app.get('/api/reports/dre', protect, hasPermission('viewDreReport'), async (req,
     }
 });
 
+// ==================
+// QUOTES ROUTES
+// ==================
+
+// Rota para criar um novo orçamento
+app.post('/api/quotes', protect, hasPermission('createQuote'), async (req, res) => {
+    const {
+        quoteNumber, customerName, customerCpf, customerPhone, customerEmail,
+        deviceBrandModel, deviceSerialNumber, reportedDefect, observations,
+        issues, items, total, expectedQuoteDate, expectedDeliveryDate, warrantyPeriod
+    } = req.body;
+    const userId = req.user.id;
+
+    if (!quoteNumber) {
+        return res.status(400).json({ message: 'Número do orçamento é obrigatório.' });
+    }
+
+    try {
+        const query = `
+            INSERT INTO quotes (
+                quote_number, customer_name, customer_cpf, customer_phone, customer_email,
+                device_brand_model, device_serial_number, reported_defect, observations,
+                issues, items, total, expected_quote_date, expected_delivery_date, warranty_period, user_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+            ON CONFLICT (quote_number) DO UPDATE SET
+                customer_name = EXCLUDED.customer_name,
+                customer_cpf = EXCLUDED.customer_cpf,
+                customer_phone = EXCLUDED.customer_phone,
+                customer_email = EXCLUDED.customer_email,
+                device_brand_model = EXCLUDED.device_brand_model,
+                device_serial_number = EXCLUDED.device_serial_number,
+                reported_defect = EXCLUDED.reported_defect,
+                observations = EXCLUDED.observations,
+                issues = EXCLUDED.issues,
+                items = EXCLUDED.items,
+                total = EXCLUDED.total,
+                expected_quote_date = EXCLUDED.expected_quote_date,
+                expected_delivery_date = EXCLUDED.expected_delivery_date,
+                warranty_period = EXCLUDED.warranty_period,
+                user_id = EXCLUDED.user_id,
+                updated_at = NOW()
+            RETURNING *;
+        `;
+        const values = [
+            quoteNumber, customerName, customerCpf, customerPhone, customerEmail,
+            deviceBrandModel, deviceSerialNumber, reportedDefect, observations,
+            JSON.stringify(issues || []), JSON.stringify(items || []), total,
+            expectedQuoteDate || null, expectedDeliveryDate || null, warrantyPeriod, userId
+        ];
+
+        const { rows } = await db.query(query, values);
+        res.status(201).json(rows[0]);
+
+    } catch (err) {
+        console.error('Save quote error:', err);
+        res.status(500).send('Erro no servidor ao salvar orçamento.');
+    }
+});
+
+// Rota para buscar todos os orçamentos (protegida)
+app.get('/api/quotes', protect, hasPermission('viewAllQuotes'), async (req, res) => {
+    try {
+        const { rows } = await db.query('SELECT * FROM quotes ORDER BY created_at DESC');
+        res.json(rows);
+    } catch (err) {
+        console.error('Error fetching quotes:', err);
+        res.status(500).send('Erro no servidor ao buscar orçamentos.');
+    }
+});
+
 // Exporta o app para ser usado pela Vercel como uma Serverless Function
-module.exports = app;
+export default app;
