@@ -13,6 +13,7 @@ const HomePage = lazy(() => import('./HomePage.jsx'));
 const StockControl = lazy(() => import('./components/StockControl.jsx'));
 const VendasPage = lazy(() => import('./components/VendasPage.jsx'));
 const ClientesPage = lazy(() => import('./components/ClientesPage.jsx'));
+const BudgetPage = lazy(() => import('./components/BudgetPage.jsx'));
 import { PERMISSION_GROUPS } from './components/useEstoque.jsx';
 const AdminPage = lazy(() => import('./AdminPage.jsx'));
 
@@ -64,6 +65,12 @@ const AppContent = () => {
                                 />
                             } />
 
+                            <Route path="/orcamento" element={
+                                <BudgetPage
+                                    onLogout={handleLogout}
+                                    currentUser={currentUser}
+                                />
+                            } />
                             {/* Rotas para Estoque, Clientes, Admin: Acessíveis por admin e root. */}
                             <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root']} redirectPath="/vendas" />}>
                                 <Route path="/estoque" element={<StockControl onLogout={handleLogout} currentUser={currentUser} />} />
@@ -94,9 +101,11 @@ const LoginModalWrapper = ({ isOpen, onClose, onLogin }) => {
 
 const App = () => {
     return (
-        <ThemeProvider>
-            <AppContent />
-        </ThemeProvider>
+        <div className="bg-gray-100 dark:bg-gray-950">
+            <ThemeProvider>
+                <AppContent />
+            </ThemeProvider>
+        </div>
     );
 };
 

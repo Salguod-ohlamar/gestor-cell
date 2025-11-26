@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, X, Edit, LogOut, ShoppingCart, Mail, Printer, Send, Banknote, CreditCard, QrCode, DollarSign, ShoppingBag, Calendar, Eye, EyeOff, Sun, Moon } from 'lucide-react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import ReciboVenda from './ReciboVenda';
 import Modal from './Modal';
 import { useEstoqueContext } from './EstoqueContext.jsx';
+import { useTheme } from './ThemeContext.jsx';
 
 const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue, onToggle }) => {
     const Icon = icon;
@@ -28,6 +29,7 @@ const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue
 
 const VendasPage = ({ onLogout, currentUser }) => {
     const navigate = useNavigate();
+    const { theme, toggleTheme } = useTheme();
     const {
         handleSale,
         validateCPF,
@@ -386,9 +388,9 @@ const VendasPage = ({ onLogout, currentUser }) => {
                 <ReciboVenda sale={lastSaleDetails} />
             </div>
             <div id="vendas-non-printable-area">
-                <header className="bg-gray-900 shadow-lg sticky top-0 z-20">
+                <header className="bg-white dark:bg-gray-900 shadow-lg sticky top-0 z-20">
                     <nav className="container mx-auto flex items-center justify-between p-4">
-                        <h1 className="text-2xl font-bold text-white">Olá, {currentUser?.name?.split(' ')[0] || 'Vendedor'}!</h1>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Olá, {currentUser?.name?.split(' ')[0] || 'Vendedor'}!</h1>
                         <div className="flex items-center gap-4">
                             {(currentUser?.role === 'admin' || currentUser?.role === 'root') && (
                                 <button onClick={() => navigate('/estoque')} className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors mr-6" title="Gerenciar Estoque">
@@ -396,6 +398,9 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                     <span className="hidden sm:inline">Gerenciar Estoque</span>
                                 </button>
                             )}
+                            <button onClick={toggleTheme} className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300 transition-colors" title={`Alterar para Tema ${theme === 'dark' ? 'Claro' : 'Escuro'}`}>
+                                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                            </button>
                             <button onClick={onLogout} className="inline-flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors" title="Sair">
                                 <LogOut size={20} />
                                 <span className="hidden sm:inline">Sair</span>
@@ -406,8 +411,8 @@ const VendasPage = ({ onLogout, currentUser }) => {
 
                 <div className="container mx-auto p-4 mt-4 space-y-8">
                     {/* Dashboard do Vendedor */}
-                    <div id="dashboard-vendedor" className="dark">
-                        <h2 className="text-2xl font-bold text-white mb-4">Seu Desempenho</h2>
+                    <div id="dashboard-vendedor">
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Seu Desempenho</h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <DashboardCard
                                 icon={DollarSign}
@@ -441,7 +446,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Coluna do Carrinho */}
-                        <div className="lg:col-span-1 bg-gray-900 p-6 rounded-2xl shadow-xl flex flex-col h-fit lg:sticky top-24">
+                        <div className="lg:col-span-1 bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-xl flex flex-col h-fit lg:sticky top-24">
                             <h2 className="text-2xl font-bold text-blue-400 mb-4 flex items-center gap-2">
                                 <ShoppingCart size={24} />
                                 Carrinho
@@ -451,17 +456,17 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                     <p className="text-gray-500 text-center py-8">O carrinho está vazio.</p>
                                 ) : (
                                     carrinho.map(item => (
-                                        <div key={`${item.type}-${item.id}`} className="flex items-center gap-4 bg-gray-800 p-3 rounded-lg">
+                                        <div key={`${item.type}-${item.id}`} className="flex items-center gap-4 bg-gray-100 dark:bg-gray-800 p-3 rounded-lg">
                                             <img src={item.imagem} alt={item.nome || item.servico} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
                                             <div className="flex-grow min-w-0">
-                                                <p className="font-semibold truncate">{item.nome || item.servico}</p>
-                                                        <p className="text-sm text-gray-400">{item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                                                <p className="font-semibold truncate text-gray-900 dark:text-white">{item.nome || item.servico}</p>
+                                                <p className="text-sm text-gray-500 dark:text-gray-400">{item.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                                             </div>
                                             <input 
                                                 type="number" 
                                                 value={item.quantity}
                                                 onChange={(e) => updateQuantity(item.id, item.type, parseInt(e.target.value))}
-                                                className="w-16 p-1 bg-gray-700 border border-gray-600 rounded-md text-center"
+                                                className="w-16 p-1 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-center"
                                                 min="1"
                                                         max={item.type === 'produto' ? Number(item.emEstoque) : undefined}
                                             />
@@ -472,16 +477,16 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                     ))
                                 )}
                             </div>
-                            <div className="mt-6 border-t border-gray-700 pt-4">
+                            <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
                                 <div className="mb-4">
-                                    <label htmlFor="customerName" className="block text-sm font-medium text-gray-300 mb-1">Nome do Cliente (Opcional)</label>
+                                    <label htmlFor="customerName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome do Cliente (Opcional)</label>
                                     <input
                                         type="text"
                                         id="customerName"
                                         value={customerName}
                                         onChange={(e) => setCustomerName(e.target.value)}
                                         placeholder="Cliente Balcão"
-                                        className="w-full p-2 bg-gray-800 border border-gray-700 rounded-lg"
+                                        className="w-full p-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg"
                                     />
                                 </div>
                                 <div className="mb-4">
@@ -493,19 +498,19 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                         onBlur={handleCpfBlur}
                                         onChange={handleCpfChange}
                                         placeholder="Insira o CPF ou CNPJ para buscar"
-                                        className={`w-full p-2 bg-gray-800 border rounded-lg transition-colors ${isCpfValid ? 'border-gray-700 focus:ring-green-500' : 'border-red-500 focus:ring-red-500'} ${isSearchingClient ? 'animate-pulse' : ''}`}
+                                        className={`w-full p-2 bg-gray-100 dark:bg-gray-800 border rounded-lg transition-colors ${isCpfValid ? 'border-gray-300 dark:border-gray-700 focus:ring-green-500' : 'border-red-500 focus:ring-red-500'} ${isSearchingClient ? 'animate-pulse' : ''}`}
                                     />
                                     {!isCpfValid && <p className="text-red-500 text-xs mt-1">CPF/CNPJ inválido.</p>}
                                 </div>
                                 <div className="mb-4">
-                                    <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-300 mb-1">Telefone (Opcional)</label>
+                                    <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Telefone (Opcional)</label>
                                     <input
                                         type="text"
                                         id="customerPhone"
                                         value={customerPhone}
                                         onChange={handlePhoneChange}
                                         placeholder="Insira o telefone para contato"
-                                        className={`w-full p-2 bg-gray-800 border rounded-lg transition-colors ${isPhoneValid ? 'border-gray-700 focus:ring-green-500' : 'border-red-500 focus:ring-red-500'}`}
+                                        className={`w-full p-2 bg-gray-100 dark:bg-gray-800 border rounded-lg transition-colors ${isPhoneValid ? 'border-gray-300 dark:border-gray-700 focus:ring-green-500' : 'border-red-500 focus:ring-red-500'}`}
                                     />
                                     {!isPhoneValid && <p className="text-red-500 text-xs mt-1">Telefone inválido.</p>}
                                 </div>
@@ -517,7 +522,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                         value={customerEmail}
                                         onChange={(e) => setCustomerEmail(e.target.value)}
                                         placeholder="Insira o email para envio do recibo"
-                                        className="w-full p-2 bg-gray-800 border border-gray-700 rounded-lg"
+                                        className="w-full p-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg"
                                     />
                                 </div>
                                 <div className="mb-4">
@@ -528,22 +533,22 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                         value={discount}
                                         onChange={(e) => setDiscount(e.target.value)}
                                         placeholder="0"
-                                        className="w-full p-2 bg-gray-800 border border-gray-700 rounded-lg"
+                                        className="w-full p-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg"
                                         step="0.01"
                                     />
                                 </div>
                                 <div className="mb-4">
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">Forma de Pagamento</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Forma de Pagamento</label>
                                     <div className="grid grid-cols-3 gap-2">
-                                        <button type="button" onClick={() => setPaymentMethod('Dinheiro')} className={`flex items-center justify-center gap-2 p-2 rounded-lg text-sm transition-colors ${paymentMethod === 'Dinheiro' ? 'bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                                        <button type="button" onClick={() => setPaymentMethod('Dinheiro')} className={`flex items-center justify-center gap-2 p-2 rounded-lg text-sm transition-colors ${paymentMethod === 'Dinheiro' ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
                                             <Banknote size={16} />
                                             Dinheiro
                                         </button>
-                                        <button type="button" onClick={() => setPaymentMethod('Cartão')} className={`flex items-center justify-center gap-2 p-2 rounded-lg text-sm transition-colors ${paymentMethod === 'Cartão' ? 'bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                                        <button type="button" onClick={() => setPaymentMethod('Cartão')} className={`flex items-center justify-center gap-2 p-2 rounded-lg text-sm transition-colors ${paymentMethod === 'Cartão' ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
                                             <CreditCard size={16} />
                                             Cartão
                                         </button>
-                                        <button type="button" onClick={() => setPaymentMethod('Pix')} className={`flex items-center justify-center gap-2 p-2 rounded-lg text-sm transition-colors ${paymentMethod === 'Pix' ? 'bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                                        <button type="button" onClick={() => setPaymentMethod('Pix')} className={`flex items-center justify-center gap-2 p-2 rounded-lg text-sm transition-colors ${paymentMethod === 'Pix' ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}>
                                             <QrCode size={16} />
                                             Pix
                                         </button>
@@ -564,17 +569,17 @@ const VendasPage = ({ onLogout, currentUser }) => {
                         </div>
 
                         {/* Coluna de Produtos/Serviços */}
-                        <div className="lg:col-span-2 bg-gray-900 p-6 rounded-2xl shadow-xl">
-                            <div className="flex border-b border-gray-700 mb-4">
+                        <div className="lg:col-span-2 bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-xl">
+                            <div className="flex border-b border-gray-200 dark:border-gray-700 mb-4">
                                 <button 
                                     onClick={() => setActiveTab('produtos')} 
-                                    className={`px-4 py-2 font-semibold transition-colors ${activeTab === 'produtos' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-400 hover:text-white'}`}
+                                    className={`px-4 py-2 font-semibold transition-colors ${activeTab === 'produtos' ? 'text-green-500 dark:text-green-400 border-b-2 border-green-500 dark:border-green-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
                                 >
                                     Produtos
                                 </button>
                                 <button 
                                     onClick={() => setActiveTab('servicos')} 
-                                    className={`px-4 py-2 font-semibold transition-colors ${activeTab === 'servicos' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-white'}`}
+                                    className={`px-4 py-2 font-semibold transition-colors ${activeTab === 'servicos' ? 'text-blue-500 dark:text-blue-400 border-b-2 border-blue-500 dark:border-blue-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
                                 >
                                     Serviços
                                 </button>
@@ -590,16 +595,16 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                                 placeholder="Buscar produto..." 
                                                 value={produtoSearchTerm}
                                                 onChange={e => setProdutoSearchTerm(e.target.value)}
-                                                className="w-full p-2 pl-10 bg-gray-800 border border-gray-700 rounded-lg"
+                                                className="w-full p-2 pl-10 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg"
                                             />
                                         </div>
                                         <div className="space-y-2 overflow-y-auto max-h-[60vh] pr-2 pb-10">
                                             {produtoResults.map(p => (
-                                                <div key={p.id} className="flex items-center gap-4 p-3 bg-gray-800 rounded-lg hover:bg-gray-700/50">
+                                                <div key={p.id} className="flex items-center gap-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700/50">
                                                     <img src={p.imagem} alt={p.nome} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
                                                     <div className="flex-grow min-w-0">
-                                                        <p className="font-semibold truncate">{p.nome}</p>
-                                                        <p className="text-sm text-gray-400">{p.precoFinal.toLocaleString('pt-BR', { style: 'currency', 'currency': 'BRL' })} | Em Estoque: {Number(p.emEstoque)}</p>
+                                                        <p className="font-semibold truncate text-gray-900 dark:text-white">{p.nome}</p>
+                                                        <p className="text-sm text-gray-500 dark:text-gray-400">{p.precoFinal.toLocaleString('pt-BR', { style: 'currency', 'currency': 'BRL' })} | Em Estoque: {Number(p.emEstoque)}</p>
                                                     </div>
                                                     <button onClick={() => addToCart(p, 'produto')} className="px-3 py-1 bg-green-600 text-white rounded-full text-sm font-semibold hover:bg-green-700 flex-shrink-0">
                                                         Adicionar
@@ -618,16 +623,16 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                                 placeholder="Buscar serviço..." 
                                                 value={servicoSearchTerm}
                                                 onChange={e => setServicoSearchTerm(e.target.value)}
-                                                className="w-full p-2 pl-10 bg-gray-800 border border-gray-700 rounded-lg"
+                                                className="w-full p-2 pl-10 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg"
                                             />
                                         </div>
                                         <div className="space-y-2 overflow-y-auto max-h-[60vh] pr-2 pb-10">
                                             {servicoResults.map(s => (
-                                                <div key={s.id} className="flex items-center gap-4 p-3 bg-gray-800 rounded-lg hover:bg-gray-700/50">
+                                                <div key={s.id} className="flex items-center gap-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700/50">
                                                     <img src={s.imagem} alt={s.servico} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
                                                     <div className="flex-grow min-w-0">
-                                                        <p className="font-semibold truncate">{s.servico}</p>
-                                                        <p className="text-sm text-gray-400">{s.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                                                        <p className="font-semibold truncate text-gray-900 dark:text-white">{s.servico}</p>
+                                                        <p className="text-sm text-gray-500 dark:text-gray-400">{s.precoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                                                     </div>
                                                     <button onClick={() => addToCart(s, 'servico')} className="px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-semibold hover:bg-blue-700 flex-shrink-0">
                                                         Adicionar

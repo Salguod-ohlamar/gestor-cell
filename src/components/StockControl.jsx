@@ -274,10 +274,9 @@ const StockControl = ({ onLogout, currentUser }) => {
         <div className="flex flex-wrap justify-between items-center gap-4 mb-8">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Controle de Estoque</h1>
           <div>
-
-            <button onClick={() => navigate('/budget')} className="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors mr-4" title="Página de Vendas">
-              <Notebook size={20} />
-              <span className="hidden sm:inline">Orçamento</span>
+            <button onClick={() => navigate('/orcamento')} className="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors mr-4" title="Gerar Orçamento">
+                <ClipboardList size={20} />
+                <span className="hidden sm:inline">Orçamento</span>
             </button>
 
             <button onClick={() => navigate('/vendas')} className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors mr-4" title="Página de Vendas">
@@ -293,6 +292,9 @@ const StockControl = ({ onLogout, currentUser }) => {
                 <Settings size={20} />
                 <span className="hidden sm:inline">Administração</span>
               </button>
+            )}
+            <button onClick={toggleTheme} className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300 transition-colors" title={`Alterar para Tema ${theme === 'dark' ? 'Claro' : 'Escuro'}`}>
+                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
             )}
             <button onClick={onLogout} className="inline-flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors ml-2" title="Sair">
               <LogOut size={20} />
