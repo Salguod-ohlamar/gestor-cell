@@ -295,12 +295,12 @@ const StockControl = ({ onLogout, currentUser }) => {
             )}
             <button onClick={toggleTheme} className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300 transition-colors" title={`Alterar para Tema ${theme === 'dark' ? 'Claro' : 'Escuro'}`}>
                 {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-            )}
+            </button>
             <button onClick={onLogout} className="inline-flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors ml-2" title="Sair">
               <LogOut size={20} />
               <span className="hidden sm:inline">Sair</span>
             </button>
-          </div>
+          </div> {/* Fechamento do div dos botões */}
         </div>
 
         {/* Painéis de Ação */}
@@ -381,7 +381,7 @@ const StockControl = ({ onLogout, currentUser }) => {
             onPageChange={setCurrentPage}
             onColumnOrderChange={setColumns}
             noResultsMessage="Nenhum produto encontrado."
-          />
+          /> {/* Fim da DataTable de Produtos */}
         </div>
       </main>
 
@@ -420,8 +420,8 @@ const StockControl = ({ onLogout, currentUser }) => {
               onPageChange={setServicoCurrentPage}
               onColumnOrderChange={setServicosColumns}
               noResultsMessage="Nenhum serviço encontrado."
-            />
-        </div>
+            /> {/* Fim da DataTable de Serviços */}
+        </div> {/* Fim do card de Serviços */}
       </main>
 
       {/* =================================================================== */}
