@@ -1,5 +1,4 @@
 import React from 'react';
-import BrandText from './BrandText';
 import './OrcamentoPrintable.css';
 
 const OrcamentoPrintable = React.forwardRef(({ data }, ref) => {
@@ -30,7 +29,7 @@ const OrcamentoPrintable = React.forwardRef(({ data }, ref) => {
     return (
         <div ref={ref} className="print-container">
             <header className="print-header">
-                <h1 className="print-brand-text"><BrandText>Boycell</BrandText></h1>
+                <h1 className="print-brand-text">Boycell</h1>
                 <div className="print-quote-info">
                     <h2>Orçamento de Serviço</h2>
                     <p>Número: <strong>{quoteNumber}</strong></p>
