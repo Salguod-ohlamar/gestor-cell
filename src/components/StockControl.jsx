@@ -278,12 +278,6 @@ const StockControl = ({ onLogout, currentUser }) => {
               <ShoppingCart size={20} />
               <span className="hidden sm:inline">Página de Vendas</span>
             </button>
-            {currentUser.permissions?.createQuote && (
-              <button onClick={() => navigate('/orcamento')} className="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors mr-4" title="Página de Orçamentos">
-                <ClipboardList size={20} />
-                <span className="hidden sm:inline">Orçamentos</span>
-              </button>
-            )}
             <a href="/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors mr-4" title="Ver Site">
               <ArrowLeft size={20} />
               <span className="hidden sm:inline">Ver Site</span>
