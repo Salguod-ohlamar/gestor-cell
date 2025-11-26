@@ -12,8 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import toast from 'react-hot-toast';
-import OrcamentoPrintable from './OrcamentoPrintable.jsx';
-import './OrcamentoPrintable.css';
+import OrcamentoPrintable from '@/OrcamentoPrintable.jsx';
+import '@/OrcamentoPrintable.css';
 import { useNavigate } from 'react-router-dom';
 
 function Orcamento() {
