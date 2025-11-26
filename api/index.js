@@ -590,7 +590,7 @@ app.post('/api/users/register', protect, hasPermission('manageUsers'), async (re
 
     const { rows } = await db.query(
       'INSERT INTO users (name, email, password_hash, role, permissions, title) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, email, role, permissions, title',
-      [name, email.toLowerCase(), password_hash, finalRole, JSON.stringify(getDefaultPermissions(finalRole)), title]
+      [name, email.toLowerCase(), password_hash, finalRole, JSON.stringify(getDefaultPermissions(finalRole)), title || 'Vendedor']
     );
 
     res.status(201).json(rows[0]);
