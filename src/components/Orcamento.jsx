@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactToPrint from 'react-to-print';
-import { useDebounce } from '@/hooks/useDebounce';
+import { useDebounce } from '@/hooks/useDebounce.js';
 import { Trash, Search, Printer, Save, ArrowLeft } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Toaster, toast } from 'react-hot-toast';
+import { Button } from "@/components/ui/button.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { Label } from "@/components/ui/label.tsx";
+import { Textarea } from "@/components/ui/textarea.tsx";
+import { Checkbox } from "@/components/ui/checkbox.tsx";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card.tsx";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table.tsx";
+import toast from 'react-hot-toast';
 import OrcamentoPrintable from './OrcamentoPrintable';
 import './OrcamentoPrintable.css';
 import { useNavigate } from 'react-router-dom';
@@ -80,14 +80,23 @@ function Orcamento() {
             }
             setIsSearching(true);
             try {
+                const token = localStorage.getItem('boycell-token');
+                const headers = { 'Authorization': `Bearer ${token}` };
+
                 const [productsRes, servicesRes] = await Promise.all([
-                    api.get(`/api/products/search?q=${debouncedSearchTerm}`),
-                    api.get(`/api/services/search?q=${debouncedSearchTerm}`)
+                    fetch(`/api/products/search?q=${debouncedSearchTerm}`, { headers }),
+                    fetch(`/api/services/search?q=${debouncedSearchTerm}`, { headers })
                 ]);
 
-                const products = productsRes.data.map(p => ({ ...p, type: 'produto' }));
-                const services = servicesRes.data.map(s => ({ ...s, type: 'servico' }));
+                if (!productsRes.ok || !servicesRes.ok) {
+                    throw new Error('Falha ao buscar itens da API.');
+                }
 
+                const productsData = await productsRes.json();
+                const servicesData = await servicesRes.json();
+
+                const products = productsData.map(p => ({ ...p, type: 'produto' }));
+                const services = servicesData.map(s => ({ ...s, type: 'servico' }));
                 setSearchResults([...products, ...services]);
             } catch (error) {
                 console.error("Erro ao buscar itens:", error);
