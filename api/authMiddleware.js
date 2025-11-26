@@ -1,6 +1,6 @@
-const jwt = require('jsonwebtoken');
-const db = require('./db.js');
-require('dotenv').config();
+import jwt from 'jsonwebtoken';
+import db from './db.js';
+import 'dotenv/config';
 
 const protect = (req, res, next) => {
   let token;
@@ -69,4 +69,4 @@ const hasPermission = (permission) => async (req, res, next) => {
     }
 };
 
-module.exports = { protect, adminOnly, hasPermission };
+export { protect, adminOnly, hasPermission };

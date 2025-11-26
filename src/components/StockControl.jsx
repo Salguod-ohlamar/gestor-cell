@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, LogOut, PlusCircle, Search, Edit, FileDown, Printer, History, Trash2, ShoppingCart, Settings, Sun, Moon } from 'lucide-react';
+import { ArrowLeft, LogOut, PlusCircle, Search, Edit, FileDown, Printer, History, Trash2, ShoppingCart, Settings, Sun, Moon, ClipboardList } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Modal from './Modal.jsx';
@@ -296,8 +296,8 @@ const StockControl = ({ onLogout, currentUser }) => {
         </div>
 
         {/* Painéis de Ação */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-            {/* Painel de Produtos */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            {/* Painel de Produtos - Ajustado para o novo grid */}
             <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-green-500">
                 <h3 className="text-xl font-semibold text-green-600 dark:text-green-400 mb-4">Produtos</h3>
                 <div className="flex flex-col gap-3">
@@ -317,13 +317,25 @@ const StockControl = ({ onLogout, currentUser }) => {
                 </div>
             </div>
 
-            {/* Painel de Serviços */}
+            {/* Painel de Serviços - Ajustado para o novo grid */}
             <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-blue-500">
                 <h3 className="text-xl font-semibold text-blue-600 dark:text-blue-400 mb-4">Serviços</h3>
                 <div className="flex flex-col gap-3">
                     {currentUser.permissions?.addService && (
                         <button onClick={handleOpenAddServicoModal} className={actionButtonClasses}>
                             <PlusCircle size={18} /> Adicionar Serviço
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Novo Painel de Orçamentos */}
+            <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-orange-500">
+                <h3 className="text-xl font-semibold text-orange-600 dark:text-orange-400 mb-4">Orçamentos</h3>
+                <div className="flex flex-col gap-3">
+                    {currentUser.permissions?.createQuote && (
+                        <button onClick={() => navigate('/orcamento')} className={actionButtonClasses}>
+                            <ClipboardList size={18} /> Criar Orçamento
                         </button>
                     )}
                 </div>
