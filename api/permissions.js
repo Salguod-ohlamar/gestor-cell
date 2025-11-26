@@ -32,6 +32,7 @@ const PERMISSION_GROUPS = {
             viewActivityLog: { roles: ['root'] },
             manageClients: { roles: ['root', 'admin', 'user'] },
             manageUsers: { roles: ['root', 'admin'] },
+            createQuote: { roles: ['root', 'admin', 'user'] }, // Adiciona a permissão para criar orçamentos
         }
     },
     root: {
