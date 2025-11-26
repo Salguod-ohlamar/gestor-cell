@@ -28,6 +28,9 @@ const AdminUsers = ({ currentUser, onLogout }) => {
         });
 
         if (!response.ok) {
+          // Adiciona um log mais detalhado do erro
+          const errorData = await response.text(); // Tenta ler o corpo do erro como texto
+          console.error(`Erro na API: Status ${response.status}`, errorData);
           throw new Error('Falha ao buscar usuários.');
         }
 

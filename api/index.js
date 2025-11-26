@@ -639,8 +639,8 @@ app.get('/api/users', protect, hasPermission('manageUsers'), async (req, res) =>
 
         if (requestingUser.role === 'root') {
             queryText = 'SELECT id, name, email, role, permissions, title FROM users ORDER BY name ASC';
-        } else if (requestingUser.role === 'admin' || requestingUser.role === 'user') {
-            // Admins e Users podem ver todos, exceto o 'root'.
+        } else if (requestingUser.role === 'admin') {
+            // Admins podem ver todos, exceto o 'root'.
             queryText = 'SELECT id, name, email, role, permissions, title FROM users WHERE role <> $1 ORDER BY name ASC';
             queryParams.push('root');
         } else {
