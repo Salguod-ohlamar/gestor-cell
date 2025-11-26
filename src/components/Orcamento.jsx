@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactToPrint from 'react-to-print';
-import { useDebounce } from '../hooks/useDebounce';
-import api from '../services/api';
-import { Trash, Search, Printer, Save, ArrowLeft, ClipboardList } from 'lucide-react';
+import { useDebounce } from '@/hooks/useDebounce';
+import api from '@/services/api';
+import { Trash, Search, Printer, Save, ArrowLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
