@@ -11,8 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Toaster, toast } from 'react-hot-toast';
-import OrcamentoPrintable from '../OrcamentoPrintable';
-import '../OrcamentoPrintable.css';
+import OrcamentoPrintable from './OrcamentoPrintable';
+import './OrcamentoPrintable.css';
 import { useNavigate } from 'react-router-dom';
 
 function Orcamento() {
