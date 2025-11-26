@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactToPrint from 'react-to-print';
-import { useDebounce } from '@/hooks/useDebounce.js';
+import { useDebounce } from '../hooks/useDebounce'; // Caminho relativo mais seguro
 import { Trash, Search, Printer, Save, ArrowLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,13 +83,19 @@ function Orcamento() {
                 const token = localStorage.getItem('boycell-token');
                 const headers = { 'Authorization': `Bearer ${token}` };
 
+                // Usando fetch nativo, conforme o código atual
                 const [productsRes, servicesRes] = await Promise.all([
                     fetch(`/api/products/search?q=${debouncedSearchTerm}`, { headers }),
                     fetch(`/api/services/search?q=${debouncedSearchTerm}`, { headers })
                 ]);
 
                 if (!productsRes.ok || !servicesRes.ok) {
-                    throw new Error('Falha ao buscar itens da API.');
+                    // Tenta ler a resposta para fornecer uma mensagem de erro mais detalhada, se disponível
+                    let errorMessage = 'Falha ao buscar itens da API.';
+                    if (productsRes.status === 401 || servicesRes.status === 401) {
+                         errorMessage = 'Sessão expirada. Faça login novamente.';
+                    }
+                    throw new Error(errorMessage);
                 }
 
                 const productsData = await productsRes.json();
@@ -100,6 +106,10 @@ function Orcamento() {
                 setSearchResults([...products, ...services]);
             } catch (error) {
                 console.error("Erro ao buscar itens:", error);
+                // Exibe o erro de busca no toast
+                if (error.message.includes('Sessão expirada')) {
+                    toast.error(error.message);
+                }
                 setSearchResults([]);
             } finally {
                 setIsSearching(false);
