@@ -131,7 +131,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
         { id: 'topSellingServices', title: 'Top 10 Serviços Mais Realizados', visible: true, width: 'full' },
         { id: 'topStock', title: 'Top 5 - Mais Estoque', visible: true, width: 'half' },
         { id: 'lowStock', title: 'Top 5 - Menos Estoque', visible: true, width: 'half' },
-        { id: 'category', title: 'Distribuição por Categoria', visible: true, width: 'half' },
+        { id: 'category', title: 'Distribuição por Categoria', visible: true, width: 'full' },
         { id: 'supplier', title: 'Distribuição por Fornecedor', visible: true, width: 'half' },
         { id: 'payment', title: 'Formas de Pagamento (Vendas)', visible: true, width: 'half' },
     ];
