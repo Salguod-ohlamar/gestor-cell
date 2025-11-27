@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, X, Edit, LogOut, ShoppingCart, Mail, Printer, Send, Banknote, CreditCard, QrCode, DollarSign, ShoppingBag, Calendar, Eye, EyeOff, Sun, Moon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Toaster, toast } from 'react-hot-toast';
 import ReciboVenda from './ReciboVenda';
 import Modal from './Modal';
 import { useEstoqueContext } from './EstoqueContext.jsx';
@@ -136,7 +135,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
 
         if (!validateCPF(customerCpf)) {
             setIsCpfValid(false);
-            toast.error("CPF/CNPJ inválido.");
+            console.error("CPF/CNPJ inválido.");
             return;
         }
         setIsCpfValid(true);
@@ -149,7 +148,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
             });
 
             if (response.status === 404) {
-                toast.success('Cliente não encontrado. Preencha os dados para um novo cadastro.');
+                console.log('Cliente não encontrado. Preencha os dados para um novo cadastro.');
                 setCustomerName('');
                 setCustomerPhone('');
                 setCustomerEmail('');
@@ -159,12 +158,12 @@ const VendasPage = ({ onLogout, currentUser }) => {
                 setCustomerName(clientData.name);
                 setCustomerPhone(clientData.phone || '');
                 setCustomerEmail(clientData.email || '');
-                toast.success(`Cliente "${clientData.name}" encontrado!`);
+                console.log(`Cliente "${clientData.name}" encontrado!`);
             } else {
                 throw new Error('Erro ao buscar cliente.');
             }
         } catch (error) {
-            toast.error(error.message);
+            console.error(error.message);
         } finally {
             setIsSearchingClient(false);
         }
@@ -175,7 +174,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
         if (existingItem) {
             const estoqueDisponivel = Number(item.emEstoque);
             if (type === 'produto' && existingItem.quantity >= estoqueDisponivel) {
-                toast.error(`Estoque máximo para "${item.nome}" atingido.`);
+                console.error(`Estoque máximo para "${item.nome}" atingido.`);
                 return;
             }
             setCarrinho(carrinho.map(cartItem => 
@@ -185,7 +184,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
             ));
         } else {
             if (type === 'produto' && Number(item.emEstoque) <= 0) {
-                toast.error(`"${item.nome}" está sem estoque e não pode ser vendido.`);
+                console.error(`"${item.nome}" está sem estoque e não pode ser vendido.`);
                 return;
             }
             setCarrinho([...carrinho, { ...item, quantity: 1, type }]);
@@ -200,13 +199,13 @@ const VendasPage = ({ onLogout, currentUser }) => {
             const estoqueDisponivel = Number(itemInCart.emEstoque);
 
             if (estoqueDisponivel <= 0) {
-                toast.error(`"${itemInCart.nome}" não possui estoque.`);
+                console.error(`"${itemInCart.nome}" não possui estoque.`);
                 removeFromCart(itemId, type);
                 return;
             }
 
             if (newQuantity > estoqueDisponivel) {
-                toast.error(`Estoque insuficiente. Apenas ${estoqueDisponivel} unidades de "${itemInCart.nome}" disponíveis.`);
+                console.error(`Estoque insuficiente. Apenas ${estoqueDisponivel} unidades de "${itemInCart.nome}" disponíveis.`);
                 setCarrinho(carrinho.map(item => 
                     item.id === itemId && item.type === type ? { ...item, quantity: estoqueDisponivel } : item
                 ));
@@ -244,13 +243,13 @@ const VendasPage = ({ onLogout, currentUser }) => {
 
     const handleFinalizarVenda = async () => {
         if (carrinho.length === 0) {
-            toast.error("O carrinho está vazio.");
+            console.error("O carrinho está vazio.");
             return;
         }
         
         // Valida o CPF apenas se ele for preenchido
         if (customerCpf && !validateCPF(customerCpf)) {
-             toast.error("CPF/CNPJ inválido. Por favor, verifique.");
+             console.error("CPF/CNPJ inválido. Por favor, verifique.");
              setIsCpfValid(false);
              return;
         }
@@ -275,7 +274,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
 
         if (completeSaleDetails) {
             setLastSaleDetails(completeSaleDetails);
-            toast.success(`Venda de ${totalCarrinho.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} finalizada!`);
+            console.log(`Venda de ${totalCarrinho.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} finalizada!`);
             setCarrinho([]);
             setDiscount('');
             setPaymentMethod('Dinheiro'); // Reseta para o padrão
@@ -383,7 +382,6 @@ const VendasPage = ({ onLogout, currentUser }) => {
 
     return (
         <div className="min-h-screen font-sans bg-background text-foreground">
-            <Toaster position="top-right" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
             <div id="recibo-printable-area" className="hidden">
                 <ReciboVenda sale={lastSaleDetails} />
             </div>

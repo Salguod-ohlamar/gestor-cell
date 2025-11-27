@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ArrowLeft, LogOut, Search, Edit, Trash2, ChevronLeft, ChevronRight, History, RefreshCw, Mail, Send, Printer, Settings, Package, Sun, Moon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Toaster, toast } from 'react-hot-toast';
 import Modal from './Modal.jsx';
 import { useEstoqueContext } from './EstoqueContext.jsx';
 import ReciboVenda from './ReciboVenda.jsx';
@@ -145,7 +144,6 @@ const ClientesPage = ({ onLogout, currentUser }) => {
             <div id="recibo-printable-area" className="hidden">
                 <ReciboVenda saleDetails={reprintingSale} />
             </div>
-            <Toaster position="top-right" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
             <header className="bg-gray-900 shadow-lg sticky top-0 z-20">
                 <nav className="container mx-auto flex items-center justify-between p-4">
                     <h1 className="text-2xl font-bold text-white">Gerenciar Clientes</h1>

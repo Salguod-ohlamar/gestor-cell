@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, LogOut, PlusCircle, Search, Edit, FileDown, Printer, History, Trash2, ShoppingCart, Settings, Sun, Moon, ClipboardList, Notebook } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
 import Modal from './Modal.jsx';
 import { useTheme } from './ThemeContext.jsx';
 import { useEstoqueContext } from './EstoqueContext.jsx';
@@ -153,7 +152,7 @@ const StockControl = ({ onLogout, currentUser }) => {
   const handleAddNewServico = async (e) => {
     e.preventDefault();
     if (!newServico.servico || !newServico.fornecedor || !newServico.marca || !newServico.tipoReparo || !newServico.tecnico || !newServico.preco || !newServico.precoFinal) {
-      toast.error('Por favor, preencha todos os campos.');
+      console.error('Por favor, preencha todos os campos.');
       return;
     }
     await handleAddServico(e, currentUser.name);
@@ -244,7 +243,6 @@ const StockControl = ({ onLogout, currentUser }) => {
   // ===================================================================
   return (
     <div className="min-h-screen font-sans leading-relaxed bg-background text-foreground">
-      <Toaster position="top-right" toastOptions={{ className: 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white', style: { background: 'transparent', boxShadow: 'none' } }} />
       <div id="compra-imediata-printable" className="p-8 bg-white text-black hidden">
         <div className="flex justify-between items-start mb-8">
           <h1 className="text-3xl font-bold">COMPRA IMEDIATA</h1>

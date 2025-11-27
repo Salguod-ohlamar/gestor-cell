@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { PlusCircle, Edit, Trash2, Image as ImageIcon, Link as LinkIcon, Type, FileText, ChevronsUpDown, Check, X } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 import imageCompression from 'browser-image-compression';
 
 const BannerManager = ({ banners, onAdd, onUpdate, onDelete, currentUser }) => {
@@ -39,14 +38,14 @@ const BannerManager = ({ banners, onAdd, onUpdate, onDelete, currentUser }) => {
             reader.readAsDataURL(compressedFile);
         } catch (error) {
             console.error('Erro ao comprimir imagem:', error);
-            toast.error('Falha ao processar a imagem.');
+            console.error('Falha ao processar a imagem.');
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!editingBanner.image_url) {
-            toast.error('A imagem do banner é obrigatória.');
+            console.error('A imagem do banner é obrigatória.');
             return;
         }
 

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { toast } from 'react-hot-toast';
 
 const LoginPage = ({ onLogin, handlePasswordRecovery }) => {
     const [modalView, setModalView] = useState('login'); // 'login' ou 'recover'
@@ -25,14 +24,14 @@ const LoginPage = ({ onLogin, handlePasswordRecovery }) => {
             onLogin(data); // Pass the whole data object { user, token }
 
         } catch (error) {
-            toast.error(error.message || 'Credenciais inválidas.');
+            console.error(error.message || 'Credenciais inválidas.');
         }
     };
 
     const handleRecoverSubmit = async (e) => {
         e.preventDefault();
         if (!recoverEmail || !recoverName) {
-            toast.error('Por favor, preencha e-mail e nome.');
+            console.error('Por favor, preencha e-mail e nome.');
             return;
         }
         const success = await handlePasswordRecovery(recoverEmail, recoverName);
