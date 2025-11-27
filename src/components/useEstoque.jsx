@@ -979,6 +979,12 @@ export const useEstoque = (currentUser) => {
 
         const totalVendas = salesHistory.reduce((acc, sale) => acc + Number(sale.total || 0), 0);
 
+        // Cálculo para o faturamento do mês corrente
+        const hoje = new Date();
+        const inicioDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+        const vendasMesCorrente = salesHistory.filter(sale => new Date(sale.date) >= inicioDoMes);
+        const faturamentoMensal = vendasMesCorrente.reduce((acc, sale) => acc + Number(sale.total || 0), 0);
+
         const paymentMethodDistribution = salesHistory.reduce((acc, sale) => {
             const method = sale.paymentMethod || 'Não definido';
             if (!acc[method]) {
@@ -1015,6 +1021,7 @@ export const useEstoque = (currentUser) => {
             valorTotal, totalItems, maisEstoque, menosEstoque, 
             totalProdutos: estoque.length, fornecedorDistribution: Object.values(fornecedorDistribution), 
             categoriaDistribution: Object.values(categoriaDistribution), totalVendas, 
+            faturamentoMensal, // Novo campo adicionado
             numeroVendas: salesHistory.length, paymentMethodDistribution: Object.values(paymentMethodDistribution),
             topSellingProducts,
             topSellingServices
