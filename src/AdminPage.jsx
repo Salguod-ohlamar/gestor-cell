@@ -32,7 +32,9 @@ const AdminPage = ({ onLogout, currentUser }) => {
         handleAddBanner,
         handleUpdateBanner,
         handleDeleteBanner,
+        hasStockPermission, // Adicionando a variável que faltava
     } = useEstoqueContext();
+
 
     // State and handlers that were in StockControl.jsx
     const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState(false);
