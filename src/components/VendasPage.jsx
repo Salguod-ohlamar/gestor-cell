@@ -3,8 +3,9 @@ import { Search, X, Edit, LogOut, ShoppingCart, Mail, Printer, Send, Banknote, C
 import { useNavigate } from 'react-router-dom';
 import ReciboVenda from './ReciboVenda';
 import Modal from './Modal';
-import { useEstoqueContext } from './EstoqueContext.jsx';
-import { useTheme } from '../ThemeContext.jsx';
+import { useEstoqueContext } from './EstoqueContext';
+import { useTheme } from '../ThemeContext';
+
 
 const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue, onToggle }) => {
     const Icon = icon;
