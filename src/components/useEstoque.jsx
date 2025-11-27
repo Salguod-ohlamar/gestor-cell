@@ -1350,9 +1350,10 @@ export const useEstoque = (currentUser) => {
         }
 
         // Validações no frontend para feedback rápido
-        if (userToReset.role === 'root') {
-            console.error('Não é possível resetar a senha do usuário root.');
-            return;
+        // Permite que o root resete a própria senha, mas impede que outros o façam.
+        if (userToReset.role === 'root' && currentUser.role !== 'root') {
+            console.error('Apenas o próprio usuário root pode iniciar o reset de sua senha.');
+            return; // Impede a ação
         }
         if (userToReset.role === 'admin' && currentUser.role !== 'root') {
             console.error('Apenas o usuário root pode resetar a senha de um administrador.');
