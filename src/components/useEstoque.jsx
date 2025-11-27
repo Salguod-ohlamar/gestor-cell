@@ -970,10 +970,9 @@ export const useEstoque = (currentUser) => {
 
         const categoriaDistribution = estoque.reduce((acc, item) => {
             const categoria = item.categoria || 'Não especificado';
-            if (!acc[categoria]) {
-                acc[categoria] = { name: categoria, value: 0 };
-            }
-            acc[categoria].value += 1;
+            const stock = Number(item.emEstoque) || 0;
+            if (!acc[categoria]) acc[categoria] = { name: categoria, value: 0 };
+            acc[categoria].value += stock;
             return acc;
         }, {});
 
