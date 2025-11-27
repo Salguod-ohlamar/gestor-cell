@@ -7,7 +7,7 @@ import Modal from './components/Modal.jsx';
 import { validateCPF, validatePhone } from './components/formatters.js';
 import { useEstoqueContext } from './components/EstoqueContext.jsx';
 import { PERMISSION_GROUPS } from './components/useEstoque.jsx';
-import { useTheme } from './ThemeContext.jsx';
+import { useTheme } from './components/ThemeContext.jsx';
 
 const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue, onToggle }) => {
     const Icon = icon;
