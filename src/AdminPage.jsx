@@ -45,6 +45,8 @@ const AdminPage = ({ onLogout, currentUser }) => {
     const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
     const [isFaqModalOpen, setIsFaqModalOpen] = useState(false);
     const [newUserData, setNewUserData] = useState({ name: '', email: '', password: '', title: 'Vendedor' });
+    const [logActionFilter, setLogActionFilter] = useState('');
+    const [logAdminFilter, setLogAdminFilter] = useState('');
     const [editingUser, setEditingUser] = useState(null);
     const [reprintingSale, setReprintingSale] = useState(null);
     const [monthlySalesReport, setMonthlySalesReport] = useState(null);
@@ -354,6 +356,25 @@ const AdminPage = ({ onLogout, currentUser }) => {
         const sanitizedPhone = customerPhone ? customerPhone.replace(/\D/g, '') : '';
         window.open(`https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(whatsAppText)}`, '_blank');
     };
+
+    const logActions = useMemo(() => {
+        if (!activityLog) return [];
+        return [...new Set(activityLog.map(log => log.action))].sort();
+    }, [activityLog]);
+
+    const logAdmins = useMemo(() => {
+        if (!activityLog) return [];
+        return [...new Set(activityLog.map(log => log.admin))].sort();
+    }, [activityLog]);
+
+    const filteredActivityLog = useMemo(() => {
+        if (!activityLog) return [];
+        return activityLog.filter(log => {
+            const actionMatch = logActionFilter ? log.action === logActionFilter : true;
+            const adminMatch = logAdminFilter ? log.admin === logAdminFilter : true;
+            return actionMatch && adminMatch;
+        });
+    }, [activityLog, logActionFilter, logAdminFilter]);
 
     const filteredSalesHistory = useMemo(() => {
         if (!Array.isArray(salesHistory)) return [];
