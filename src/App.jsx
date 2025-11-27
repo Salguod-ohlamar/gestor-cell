@@ -16,6 +16,7 @@ const VendasPage = lazy(pages['./components/VendasPage.jsx']);
 const ClientesPage = lazy(pages['./components/ClientesPage.jsx']);
 const BudgetPage = lazy(pages['./components/BudgetPage.jsx']);
 import { PERMISSION_GROUPS } from './components/useEstoque.jsx';
+const ChartsPage = lazy(pages['./components/ChartsPage.jsx']);
 const AdminPage = lazy(pages['./AdminPage.jsx']);
 
 const AppContent = () => {
@@ -77,6 +78,7 @@ const AppContent = () => {
                                 <Route path="/estoque" element={<StockControl onLogout={handleLogout} currentUser={currentUser} />} />
                                 <Route path="/clientes" element={<ClientesPage onLogout={handleLogout} currentUser={currentUser} />} />
                                 <Route path="/admin" element={<AdminPage onLogout={handleLogout} currentUser={currentUser} />} />
+                                <Route path="/analise-grafica" element={<ChartsPage />} />
                             </Route>
                         </Route>
 
