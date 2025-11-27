@@ -4,7 +4,7 @@ import { usePersistedState } from '../components/usePersistedState.js';
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-    const [theme, setTheme] = usePersistedState('boycell-theme', 'dark');
+    const [theme, setTheme] = usePersistedState('boycell-theme', 'dark'); // Garante que 'dark' é o padrão
 
     const toggleTheme = () => {
         const newTheme = theme === 'light' ? 'dark' : 'light';

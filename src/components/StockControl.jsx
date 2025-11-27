@@ -171,14 +171,14 @@ const StockControl = ({ onLogout, currentUser }) => {
     setViewingHistory(null);
   };
 
-  const actionButtonClasses = "w-full inline-flex items-center justify-start gap-3 px-4 py-3 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium rounded-lg transition-colors duration-300 text-sm";
+  const actionButtonClasses = "w-full inline-flex items-center justify-start gap-3 px-4 py-3 bg-muted hover:bg-accent text-accent-foreground font-medium rounded-lg transition-colors duration-300 text-sm";
 
   const renderProductRow = (item, currentColumns) => {
     const isLowStock = item.emEstoque <= item.qtdaMinima;
     return (
       <tr 
         key={item.id}
-        className={`border-b border-gray-200 dark:border-gray-800 transition-colors ${isLowStock ? 'bg-red-100 dark:bg-red-950/40 hover:bg-red-200 dark:hover:bg-red-950/60' : 'hover:bg-gray-100 dark:hover:bg-gray-800/50'}`}
+        className={`border-b border-border transition-colors ${isLowStock ? 'bg-destructive/10 hover:bg-destructive/20' : 'hover:bg-muted/50'}`}
       >
         {currentColumns.map(col => {
           switch (col.id) {
@@ -211,11 +211,11 @@ const StockControl = ({ onLogout, currentUser }) => {
   };
 
   const renderServiceRow = (item, currentColumns) => (
-    <tr key={item.id} className="border-b border-gray-200 dark:border-gray-800 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800/50">
+    <tr key={item.id} className="border-b border-border transition-colors hover:bg-muted/50">
         {currentColumns.map(col => {
             switch (col.id) {
                 case 'imagem':
-                    return <td key={col.id} className={`p-2 text-${col.align}`}><img src={item.imagem || 'https://via.placeholder.com/40'} alt={item.servico} className="w-12 h-12 object-cover rounded-md bg-gray-200 dark:bg-gray-700" /></td>;
+                    return <td key={col.id} className={`p-2 text-${col.align}`}><img src={item.imagem || 'https://via.placeholder.com/40'} alt={item.servico} className="w-12 h-12 object-cover rounded-md bg-muted" /></td>;
                 case 'preco':
                     return <td key={col.id} className={`p-4 text-${col.align}`}>{item.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>;
                 case 'precoFinal':
@@ -272,7 +272,7 @@ const StockControl = ({ onLogout, currentUser }) => {
       <main id="estoque-non-printable-area" className="container mx-auto px-4 py-8 md:py-16">
         {/* Cabeçalho da página com título e botões de navegação */}
         <div className="flex flex-wrap justify-between items-center gap-4 mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Controle de Estoque</h1>
+          <h1 className="text-4xl font-bold text-foreground">Controle de Estoque</h1>
           <div>
             <button onClick={() => navigate('/orcamento')} className="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors mr-4" title="Gerar Orçamento">
                 <ClipboardList size={20} />
@@ -306,7 +306,7 @@ const StockControl = ({ onLogout, currentUser }) => {
         {/* Painéis de Ação */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
             {/* Painel de Produtos */}
-            <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-green-500">
+            <div className="bg-card text-card-foreground p-6 rounded-2xl shadow-lg border-t-4 border-green-500">
                 <h3 className="text-xl font-semibold text-green-600 dark:text-green-400 mb-4">Produtos</h3>
                 <div className="flex flex-col gap-3">
                     {currentUser.permissions?.addProduct && (
@@ -326,7 +326,7 @@ const StockControl = ({ onLogout, currentUser }) => {
             </div>
 
             {/* Painel de Serviços */}
-            <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border-t-4 border-blue-500">
+            <div className="bg-card text-card-foreground p-6 rounded-2xl shadow-lg border-t-4 border-blue-500">
                 <h3 className="text-xl font-semibold text-blue-600 dark:text-blue-400 mb-4">Serviços</h3>
                 <div className="flex flex-col gap-3">
                     {currentUser.permissions?.addService && (
@@ -339,7 +339,7 @@ const StockControl = ({ onLogout, currentUser }) => {
         </div>
 
         {/* Card principal que contém a tabela */}
-        <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-xl">
+        <div className="bg-card text-card-foreground p-8 rounded-2xl shadow-xl">
           <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
             <h2 className="text-2xl font-semibold text-green-600 dark:text-green-400">Produtos Cadastrados</h2>
           </div>
@@ -353,7 +353,7 @@ const StockControl = ({ onLogout, currentUser }) => {
               <input
                 type="text"
                 placeholder="Buscar produto..."
-                className="w-full p-3 pl-10 bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full p-3 pl-10 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -363,9 +363,9 @@ const StockControl = ({ onLogout, currentUser }) => {
                 type="checkbox"
                 checked={showLowStockOnly}
                 onChange={(e) => setShowLowStockOnly(e.target.checked)}
-                className="form-checkbox h-5 w-5 text-green-500 bg-gray-200 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded focus:ring-green-500"
+                className="form-checkbox h-5 w-5 text-primary bg-background border-border rounded focus:ring-ring"
               />
-              <span className="text-gray-700 dark:text-gray-300">Mostrar apenas estoque baixo</span>
+              <span className="text-muted-foreground">Mostrar apenas estoque baixo</span>
             </label>
           </div>
 
@@ -387,7 +387,7 @@ const StockControl = ({ onLogout, currentUser }) => {
 
       {/* Seção de Serviços */}
       <main className="container mx-auto px-4 py-8 md:py-16 pt-0">
-        <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-xl">
+        <div className="bg-card text-card-foreground p-8 rounded-2xl shadow-xl">
             <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
                 <h2 className="text-2xl font-semibold text-blue-600 dark:text-blue-400">Serviços Cadastrados</h2>
             </div>
@@ -401,7 +401,7 @@ const StockControl = ({ onLogout, currentUser }) => {
                     <input
                         type="text"
                         placeholder="Buscar serviço..."
-                        className="w-full p-3 pl-10 bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full p-3 pl-10 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
                         value={servicoSearchTerm}
                         onChange={(e) => setServicoSearchTerm(e.target.value)}
                     />
