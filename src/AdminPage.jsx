@@ -630,6 +630,12 @@ const AdminPage = ({ onLogout, currentUser }) => {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <span className={`px-2 py-1 text-xs font-bold rounded-full ${userRoleClass}`}>{user.title || user.role}</span>
+                                        {currentUser.role === 'root' && user.role === 'root' && (
+                                            <button onClick={() => handleResetUserPassword(user.id, currentUser.name, currentUser)} className="text-yellow-400 hover:text-yellow-300 transition-colors" title="Resetar Senha do Root"><KeyRound size={18} /></button>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${userRoleClass}`}>{user.title || user.role}</span>
                                         {showManagementButtons && (<>
                                             {currentUser.permissions?.resetUserPassword && user.role === 'vendedor' && (
                                             <button onClick={() => handleResetUserPassword(user.id, currentUser.name, currentUser)} className="text-yellow-400 hover:text-yellow-300 transition-colors" title="Resetar Senha">
