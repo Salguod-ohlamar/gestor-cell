@@ -20,6 +20,7 @@ const AdminPage = ({ onLogout, currentUser }) => {
     const {
         dashboardData,
         salesHistory,
+        users,
         handleAddUser,
         handleDeleteUser,
         handleUpdateUser,
@@ -32,7 +33,6 @@ const AdminPage = ({ onLogout, currentUser }) => {
         handleUpdateBanner,
         handleDeleteBanner,
     } = useEstoqueContext();
-    const hasStockPermission = useMemo(() => currentUser?.permissions?.editProduct || currentUser?.permissions?.addProduct || currentUser?.permissions?.deleteProduct || ['admin', 'root', 'vendedor'].includes(currentUser.role), [currentUser]);
 
     // State and handlers that were in StockControl.jsx
     const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState(false);
