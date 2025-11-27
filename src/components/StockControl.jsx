@@ -426,11 +426,14 @@ const StockControl = ({ onLogout, currentUser }) => {
       {/* MODALS */}
       {/* =================================================================== */}
       {/* Modal para Histórico do Produto */}
-      <Modal isOpen={isHistoryModalOpen} onClose={handleCloseHistoryModal}>
+      <Modal 
+        isOpen={isHistoryModalOpen} 
+        onClose={handleCloseHistoryModal}
+        title="Histórico de Alterações"
+        description={viewingHistory?.nome}
+      >
         {viewingHistory && (
           <>
-            <h2 className="text-2xl font-bold text-center text-purple-600 dark:text-purple-400 mb-2">Histórico de Alterações</h2>
-            <p className="text-center text-lg font-semibold text-gray-900 dark:text-white mb-6">{viewingHistory.nome}</p>
             <div className="max-h-96 overflow-y-auto pr-2 space-y-4">
               {viewingHistory.historico && viewingHistory.historico.length > 0 ? (
                 [...viewingHistory.historico].reverse().map((entry, index) => (
@@ -453,8 +456,11 @@ const StockControl = ({ onLogout, currentUser }) => {
       </Modal>
 
       {/* Modal para Adicionar Novo Produto */}
-      <Modal isOpen={isAddModalOpen} onClose={handleCloseAddModal}>
-        <h2 className="text-2xl font-bold text-center text-green-600 dark:text-green-400 mb-6">Adicionar Novo Produto</h2>
+      <Modal 
+        isOpen={isAddModalOpen} 
+        onClose={handleCloseAddModal}
+        title="Adicionar Novo Produto"
+      >
         <form className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4" onSubmit={(e) => handleAddProduct(e, currentUser.name)}>
             <div className="md:col-span-2">
                 <label htmlFor="add-nome" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome do Produto</label>
@@ -515,8 +521,11 @@ const StockControl = ({ onLogout, currentUser }) => {
       </Modal>
 
       {/* Modal para Editar Produto */}
-      <Modal isOpen={isEditModalOpen} onClose={handleCloseEditModal}>
-        <h2 className="text-2xl font-bold text-center text-green-600 dark:text-green-400 mb-6">Editar Produto</h2>
+      <Modal 
+        isOpen={isEditModalOpen} 
+        onClose={handleCloseEditModal}
+        title="Editar Produto"
+      >
         {editingProduct && (
             <form className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4" onSubmit={(e) => handleUpdateProduct(e, currentUser.name)}>
                 <div className="md:col-span-2">
@@ -579,8 +588,11 @@ const StockControl = ({ onLogout, currentUser }) => {
       </Modal>
 
       {/* Modal para Adicionar Novo Serviço */}
-      <Modal isOpen={isAddServicoModalOpen} onClose={handleCloseAddServicoModal}>
-        <h2 className="text-2xl font-bold text-center text-blue-600 dark:text-blue-400 mb-6">Adicionar Novo Serviço</h2>
+      <Modal 
+        isOpen={isAddServicoModalOpen} 
+        onClose={handleCloseAddServicoModal}
+        title="Adicionar Novo Serviço"
+      >
         <form className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4" onSubmit={handleAddNewServico}>
           <div className="md:col-span-2">
             <label htmlFor="servico-add-servico" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome do Serviço</label>
@@ -637,8 +649,11 @@ const StockControl = ({ onLogout, currentUser }) => {
       </Modal>
 
       {/* Modal para Editar Serviço */}
-      <Modal isOpen={isEditServicoModalOpen} onClose={handleCloseEditServicoModal}>
-        <h2 className="text-2xl font-bold text-center text-blue-600 dark:text-blue-400 mb-6">Editar Serviço</h2>
+      <Modal 
+        isOpen={isEditServicoModalOpen} 
+        onClose={handleCloseEditServicoModal}
+        title="Editar Serviço"
+      >
         {editingServico && ( // Ensure editingServico is not null
           <form className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4" onSubmit={(e) => handleUpdateServico(e, currentUser.name)}>
             <div className="md:col-span-2">

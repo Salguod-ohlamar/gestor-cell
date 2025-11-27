@@ -237,8 +237,11 @@ const ClientesPage = ({ onLogout, currentUser }) => {
                 </div>
             </main>
 
-            <Modal isOpen={isEditModalOpen} onClose={handleCloseEditModal}>
-                <h2 className="text-2xl font-bold text-center text-blue-400 mb-6">Editar Cliente</h2>
+            <Modal 
+                isOpen={isEditModalOpen} 
+                onClose={handleCloseEditModal}
+                title="Editar Cliente"
+            >
                 {editingCliente && (
                     <form className="space-y-4" onSubmit={handleUpdateSubmit}>
                         <div>
@@ -295,12 +298,15 @@ const ClientesPage = ({ onLogout, currentUser }) => {
                 )}
             </Modal>
 
-            <Modal isOpen={isHistoryModalOpen} onClose={handleCloseHistoryModal} size="xl">
+            <Modal 
+                isOpen={isHistoryModalOpen} 
+                onClose={handleCloseHistoryModal} 
+                size="xl"
+                title="Histórico de Compras"
+                description={selectedCliente?.name}
+            >
                 {selectedCliente && (
                     <>
-                        <h2 className="text-2xl font-bold text-center text-purple-400 mb-2">Histórico de Compras</h2>
-                        <p className="text-center text-lg font-semibold text-white mb-6">{selectedCliente.name}</p>
-
                         <div className="relative mb-6">
                             <span className="absolute inset-y-0 left-0 flex items-center pl-3">
                                 <Search size={20} className="text-gray-500" />
@@ -346,10 +352,14 @@ const ClientesPage = ({ onLogout, currentUser }) => {
                 )}
             </Modal>
 
-            <Modal isOpen={reprintingSale !== null} onClose={handleCloseReprintModal}>
+            <Modal 
+                isOpen={reprintingSale !== null} 
+                onClose={handleCloseReprintModal}
+                title="Reimpressão de Recibo"
+                description={`Recibo Cód: ${reprintingSale?.receiptCode}`}
+            >
                 {reprintingSale && (
                     <>
-                        <h2 className="text-2xl font-bold text-center text-blue-400 mb-4">Reimpressão de Recibo</h2>
                         <div className="bg-white rounded-lg overflow-y-auto max-h-[60vh]">
                             <ReciboVenda saleDetails={reprintingSale} />
                         </div>

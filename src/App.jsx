@@ -8,14 +8,15 @@ import LoginPage from './components/LoginPage.jsx';
 import Modal from './components/Modal.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
 
-// Lazy load pages for better initial performance
-const HomePage = lazy(() => import('./HomePage.jsx'));
-const StockControl = lazy(() => import('./components/StockControl.jsx'));
-const VendasPage = lazy(() => import('./components/VendasPage.jsx'));
-const ClientesPage = lazy(() => import('./components/ClientesPage.jsx'));
-const BudgetPage = lazy(() => import('./components/BudgetPage.jsx'));
+// Lazy load pages using import.meta.glob for stable path resolution
+const pages = import.meta.glob('./**/*.jsx');
+const HomePage = lazy(pages['./HomePage.jsx']);
+const StockControl = lazy(pages['./components/StockControl.jsx']);
+const VendasPage = lazy(pages['./components/VendasPage.jsx']);
+const ClientesPage = lazy(pages['./components/ClientesPage.jsx']);
+const BudgetPage = lazy(pages['./components/BudgetPage.jsx']);
 import { PERMISSION_GROUPS } from './components/useEstoque.jsx';
-const AdminPage = lazy(() => import('./AdminPage.jsx'));
+const AdminPage = lazy(pages['./AdminPage.jsx']);
 
 const AppContent = () => {
     const [currentUser, setCurrentUser] = usePersistedState('boycell-currentUser', null);

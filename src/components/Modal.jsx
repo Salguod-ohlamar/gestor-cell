@@ -1,8 +1,8 @@
 import React from 'react';
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 // Componente de Modal reutilizável
-const Modal = ({ isOpen, onClose, children, size = 'md' }) => {
+const Modal = ({ isOpen, onClose, children, title, description, size = 'md' }) => {
   if (!isOpen) return null;
 
   // O controle de tamanho agora é feito diretamente no DialogContent
@@ -15,9 +15,11 @@ const Modal = ({ isOpen, onClose, children, size = 'md' }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={`bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 rounded-lg shadow-xl w-full ${sizeClasses[size]} flex flex-col max-h-[90vh]`}>
-        {/* O conteúdo do modal agora é passado diretamente aqui */}
-        {/* O botão de fechar já vem embutido no DialogContent */}
+      <DialogContent className={`bg-card text-card-foreground p-6 rounded-lg shadow-xl w-full ${sizeClasses[size]} flex flex-col max-h-[90vh]`}>
+        <DialogHeader>
+          {title && <DialogTitle className="text-2xl font-bold text-center mb-2">{title}</DialogTitle>}
+          {description && <DialogDescription className="text-center text-muted-foreground mb-4">{description}</DialogDescription>}
+        </DialogHeader>
         <div className="overflow-y-auto pr-4 -mr-4">{children}</div>
       </DialogContent>
     </Dialog>

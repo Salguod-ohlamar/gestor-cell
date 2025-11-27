@@ -646,10 +646,14 @@ const VendasPage = ({ onLogout, currentUser }) => {
                 </div>
             </div>
 
-            <Modal isOpen={isReciboModalOpen} onClose={handleCloseReciboModal}>
+            <Modal 
+                isOpen={isReciboModalOpen} 
+                onClose={handleCloseReciboModal}
+                title="Venda Concluída"
+                description={`Recibo Cód: ${lastSaleDetails?.receiptCode}`}
+            >
                 {lastSaleDetails && (
                     <>
-                        <h2 className="text-2xl font-bold text-center text-blue-500 dark:text-blue-400 mb-4">Venda Concluída</h2>
                         <div className="bg-white rounded-lg overflow-y-auto max-h-[60vh]">
                             <ReciboVenda sale={lastSaleDetails} />
                         </div>
