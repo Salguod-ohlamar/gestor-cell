@@ -137,6 +137,11 @@ const ChartsPage = () => {
         return Object.values(groupedData).sort((a, b) => new Date(a.period) - new Date(b.period));
     }, [salesHistory, salesChartPeriod]);
 
+    // Adiciona uma verificação para garantir que os dados do dashboard existam antes de renderizar.
+    if (!dashboardData) {
+        return <div className="flex justify-center items-center h-screen bg-gray-100 dark:bg-gray-950 text-xl">Carregando dados do dashboard...</div>;
+    }
+
     return (
         <div className="bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen font-sans">
             <header className="bg-white dark:bg-gray-900 shadow-lg sticky top-0 z-20">
