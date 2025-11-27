@@ -243,7 +243,7 @@ const StockControl = ({ onLogout, currentUser }) => {
   // RENDER
   // ===================================================================
   return (
-    <div className="bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen font-sans leading-relaxed">
+    <div className="min-h-screen font-sans leading-relaxed bg-background text-foreground">
       <Toaster position="top-right" toastOptions={{ className: 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white', style: { background: 'transparent', boxShadow: 'none' } }} />
       <div id="compra-imediata-printable" className="p-8 bg-white text-black hidden">
         <div className="flex justify-between items-start mb-8">

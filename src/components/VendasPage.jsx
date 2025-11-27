@@ -382,7 +382,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
     }, [servicos, servicoSearchTerm]);
 
     return (
-        <div className="bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen font-sans">
+        <div className="min-h-screen font-sans bg-background text-foreground">
             <Toaster position="top-right" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
             <div id="recibo-printable-area" className="hidden">
                 <ReciboVenda sale={lastSaleDetails} />

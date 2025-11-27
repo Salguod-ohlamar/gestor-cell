@@ -141,7 +141,7 @@ const ClientesPage = ({ onLogout, currentUser }) => {
     };
 
     return (
-        <div className="bg-gray-950 text-gray-100 min-h-screen font-sans">
+        <div className="min-h-screen font-sans bg-background text-foreground">
             <div id="recibo-printable-area" className="hidden">
                 <ReciboVenda saleDetails={reprintingSale} />
             </div>
