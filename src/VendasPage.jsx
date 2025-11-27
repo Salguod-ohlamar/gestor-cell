@@ -5,7 +5,7 @@ import { Toaster, toast } from 'react-hot-toast';
 import ReciboVenda from './components/ReciboVenda.jsx';
 import Modal from './components/Modal.jsx';
 import { validateCPF, validatePhone } from './components/formatters.js';
-import { useEstoqueContext } from './EstoqueContext.jsx';
+import { useEstoqueContext } from './components/EstoqueContext.jsx';
 import { PERMISSION_GROUPS } from './components/useEstoque.jsx';
 import { useTheme } from './ThemeContext.jsx';
 
