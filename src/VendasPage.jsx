@@ -3,7 +3,7 @@ import { Search, X, Edit, LogOut, ShoppingCart, Mail, Printer, Send, Banknote, C
 import { useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import ReciboVenda from './components/ReciboVenda.jsx';
-import Modal from './Modal.jsx';
+import Modal from './components/Modal.jsx';
 import { validateCPF, validatePhone } from './formatters.js';
 import { useEstoqueContext } from './EstoqueContext.jsx';
 import { PERMISSION_GROUPS } from './components/useEstoque.jsx';
