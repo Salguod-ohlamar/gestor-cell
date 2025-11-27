@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import ReciboVenda from './ReciboVenda';
 import Modal from './Modal';
 import { useEstoqueContext } from './EstoqueContext.jsx';
-import { useTheme } from './ThemeContext.jsx';
+import { useTheme } from '../ThemeContext.jsx';
 
 const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue, onToggle }) => {
     const Icon = icon;
