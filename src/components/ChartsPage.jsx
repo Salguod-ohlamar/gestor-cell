@@ -69,6 +69,7 @@ const ChartsPage = () => {
     const { dashboardData, salesHistory, stockValueHistory } = useEstoqueContext();
 
     const [showTotalValue, setShowTotalValue] = useState(false);
+    const [showTotalFaturado, setShowTotalFaturado] = useState(false);
     const [salesChartPeriod, setSalesChartPeriod] = useState('day');
     const chartDragItem = useRef(null);
     const chartDragOverItem = useRef(null);
@@ -165,7 +166,7 @@ const ChartsPage = () => {
                     <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Resumo Geral</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
                         <DashboardCard icon={DollarSign} title="Valor Total do Estoque" value={showTotalValue ? dashboardData.valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ ####,##'} colorClass="border-green-500" isToggleable={true} showValue={showTotalValue} onToggle={() => setShowTotalValue(!showTotalValue)} />
-                        <DashboardCard icon={TrendingUp} title="Total Faturado" value={Number(dashboardData.totalVendas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} colorClass="border-yellow-500" />
+                        <DashboardCard icon={TrendingUp} title="Total Faturado" value={showTotalFaturado ? Number(dashboardData.totalVendas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ ####,##'} colorClass="border-yellow-500" isToggleable={true} showValue={showTotalFaturado} onToggle={() => setShowTotalFaturado(!showTotalFaturado)} />
                         <DashboardCard icon={ShoppingBag} title="Número de Vendas" value={dashboardData.numeroVendas} colorClass="border-pink-500" />
                         <DashboardCard icon={Package} title="Total de Itens no Estoque" value={dashboardData.totalItems} colorClass="border-blue-500" />
                         <DashboardCard icon={Layers} title="Produtos Diferentes" value={dashboardData.totalProdutos} colorClass="border-purple-500" />
