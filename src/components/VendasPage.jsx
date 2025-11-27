@@ -490,7 +490,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                     />
                                 </div>
                                 <div className="mb-4">
-                                    <label htmlFor="customerCpf" className="block text-sm font-medium text-gray-300 mb-1">CPF/CNPJ do Cliente (Opcional)</label>
+                                    <label htmlFor="customerCpf" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">CPF/CNPJ do Cliente (Opcional)</label>
                                     <input
                                         type="text"
                                         id="customerCpf"
@@ -515,7 +515,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                     {!isPhoneValid && <p className="text-red-500 text-xs mt-1">Telefone inválido.</p>}
                                 </div>
                                 <div className="mb-4">
-                                    <label htmlFor="customerEmail" className="block text-sm font-medium text-gray-300 mb-1">Email (Opcional)</label>
+                                    <label htmlFor="customerEmail" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email (Opcional)</label>
                                     <input
                                         type="email"
                                         id="customerEmail"
@@ -526,7 +526,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
                                     />
                                 </div>
                                 <div className="mb-4">
-                                    <label htmlFor="discount" className="block text-sm font-medium text-gray-300 mb-1">Desconto (%)</label>
+                                    <label htmlFor="discount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Desconto (%)</label>
                                     <input
                                         type="number"
                                         id="discount"
@@ -651,7 +651,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
             <Modal isOpen={isReciboModalOpen} onClose={handleCloseReciboModal}>
                 {lastSaleDetails && (
                     <>
-                        <h2 className="text-2xl font-bold text-center text-blue-400 mb-4">Venda Concluída</h2>
+                        <h2 className="text-2xl font-bold text-center text-blue-500 dark:text-blue-400 mb-4">Venda Concluída</h2>
                         <div className="bg-white rounded-lg overflow-y-auto max-h-[60vh]">
                             <ReciboVenda sale={lastSaleDetails} />
                         </div>
