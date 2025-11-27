@@ -1360,23 +1360,38 @@ export const useEstoque = (currentUser) => {
             return;
         }
 
-        if (window.confirm(`Tem certeza que deseja resetar a senha de "${userToReset.name}"? Uma nova senha será gerada.`)) {
-            try {
-                const token = localStorage.getItem('boycell-token');
-                const response = await fetch(`${API_URL}/api/users/${userId}/reset-password`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+        const newPassword = window.prompt(`Digite a nova senha para "${userToReset.name}":`);
+        if (!newPassword) {
+            console.log('Reset de senha cancelado.');
+            return;
+        }
 
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.message || 'Erro ao resetar senha.');
+        const confirmPassword = window.prompt('Confirme a nova senha:');
+        if (newPassword !== confirmPassword) {
+            console.error('As senhas não coincidem. O reset foi cancelado.');
+            return;
+        }
 
-                const { newPassword } = data;
-                logAdminActivity(adminName, 'Reset de Senha', `A senha do usuário "${userToReset.name}" foi resetada.`);
-                console.log(`Senha de ${userToReset.name} resetada para: "${newPassword}"`);
-            } catch (error) {
-                console.error(error.message);
-            }
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`${API_URL}/api/users/${userId}/reset-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ password: newPassword })
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao resetar senha.');
+
+            logAdminActivity(adminName, 'Reset de Senha', `A senha do usuário "${userToReset.name}" foi resetada.`);
+            console.log(`Senha de ${userToReset.name} foi alterada com sucesso.`);
+            console.log('Senha alterada com sucesso!');
+
+        } catch (error) {
+            console.error(error.message);
         }
     };
 
