@@ -5,7 +5,7 @@ import ReciboVenda from './ReciboVenda';
 import Modal from './Modal';
 import { useEstoqueContext } from './EstoqueContext';
 import { useTheme } from '../ThemeContext';
-
+import { validateCPF, validatePhone } from './formatters.js';
 
 const DashboardCard = ({ icon, title, value, colorClass, isToggleable, showValue, onToggle }) => {
     const Icon = icon;
