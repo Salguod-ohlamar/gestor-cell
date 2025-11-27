@@ -954,9 +954,14 @@ export const useEstoque = (currentUser) => {
             return acc + (custo * (item.emEstoque || 0));
         }, 0); 
 
-        const sortedByStock = [...estoque].sort((a, b) => (a.emEstoque || 0) - (b.emEstoque || 0));
+        // Filtra produtos com estoque maior que zero
+        const estoquePositivo = estoque.filter(item => (item.emEstoque || 0) > 0);
+
+        // Ordena o estoque positivo para encontrar os 5 com menos e mais estoque
+        const sortedByStock = [...estoquePositivo].sort((a, b) => (a.emEstoque || 0) - (b.emEstoque || 0));
         const maisEstoque = [...sortedByStock].reverse().slice(0, 5);
         const menosEstoque = sortedByStock.slice(0, 5);
+
         const totalItems = estoque.reduce((acc, item) => acc + (item.emEstoque || 0), 0);
 
         const fornecedorDistribution = estoque.reduce((acc, item) => {
