@@ -458,6 +458,9 @@ const ProductSearchModal = ({ isOpen, onClose, onProductSelect }: { isOpen: bool
  * Exibe uma tabela com os orçamentos existentes.
  */
 const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStatusChange, onConvertToSale, onPrint }: { quotes: Quote[], isLoading: boolean, onShowForm: () => void, onEdit: (id: number) => void, onDelete: (id: number) => void, onStatusChange: (id: number, status: string) => void, onConvertToSale: (id: number) => void, onPrint: (id: number) => void }) => {
+    
+    const [currentPage, setCurrentPage] = useState(1);
+    const quotesPerPage = 10; // You can adjust this value
     if (isLoading) {
         return <div>Carregando orçamentos...</div>;
     }
@@ -465,6 +468,13 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
     return (
         <>
             <div className="flex justify-between items-center mb-8">
+            <div>
+                <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Gerenciar Orçamentos</h1>
+                <p className="text-md text-gray-500 dark:text-gray-400">
+                    Visualize, crie e edite os orçamentos.
+                </p>
+            </div>
+
                 <div>
                     <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Gerenciar Orçamentos</h1>
                     <p className="text-md text-gray-500 dark:text-gray-400">Visualize, crie e edite os orçamentos.</p>
@@ -475,6 +485,7 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
             </div>
 
             {/* TODO: Adicionar campos de busca e filtro aqui */}
+
 
             <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -532,6 +543,33 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                     </tbody>
                 </table>
             </div>
+               {/* Pagination controls */}
+               <div className="flex justify-center mt-4">
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 mx-1 bg-gray-200 dark:bg-gray-700 rounded-md disabled:opacity-50"
+                    >
+                        Anterior
+                    </button>
+                    <span>
+                        Página {currentPage} de {Math.ceil(quotes.length / quotesPerPage)}
+                    </span>
+                    <button
+                        onClick={() => setCurrentPage(prev =>
+                            Math.min(prev + 1, Math.ceil(quotes.length / quotesPerPage))
+                        )}
+                        disabled={currentPage === Math.ceil(quotes.length / quotesPerPage)}
+                        className="px-4 py-2 mx-1 bg-gray-200 dark:bg-gray-700 rounded-md disabled:opacity-50"
+                    >
+                        Próximo
+                    </button>
+                </div>
+                      
+                
+            {/* Pagination controls */}
+            
+
         </>
     );
 }
@@ -633,13 +671,7 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
     };
 
     const triggerPrint = () => {
-        const handleAfterPrint = () => {
-            document.body.classList.remove('print-mode-orcamento');
-            window.removeEventListener('afterprint', handleAfterPrint);
-        };
-        window.addEventListener('afterprint', handleAfterPrint);
-
-        document.body.classList.add('print-mode-orcamento');
+        document.body.classList.add('print-mode-recibo');
         window.print();
     };
 
@@ -680,6 +712,7 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
                 <p className="text-md text-gray-500 dark:text-gray-400">BOY CELL - Assistência Técnica</p>
             </header>
 
+
             {view === 'list' ? (
                 <OrcamentoList
                     quotes={quotes}
@@ -703,8 +736,7 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
                 {printingQuote && (
                     <>
                         <h2 className="text-2xl font-bold text-center text-cyan-500 dark:text-cyan-400 mb-4">Pré-visualização do Orçamento</h2>
-                        {/* Container que simula uma folha de papel para uma pré-visualização mais fiel */}
-                        <div className="bg-gray-200 dark:bg-gray-900 p-4 sm:p-6 overflow-y-auto max-h-[70vh] rounded-lg">
+                        <div className="bg-white rounded-lg overflow-y-auto max-h-[60vh]">
                             <ReciboOrcamento quoteDetails={printingQuote} />
                         </div>
                         <div className="mt-6 flex justify-end gap-4">

@@ -117,7 +117,10 @@
   body.print-mode-user-sales-report #user-sales-report-printable-area * {
     visibility: visible;
   }
-  /* Esconde tudo que não é da área de impressão do orçamento */
+
+  /* Esconde tudo que não é da área de impressão do orçamento, mas permite que o conteúdo dentro da área seja visível */
+  body.print-mode-orcamento *:not(#recibo-orcamento-printable-area),
+  body.print-mode-orcamento > body > *:not(#recibo-orcamento-printable-area) {
   body.print-mode-orcamento > *:not(#recibo-orcamento-printable-area) {
     display: none !important;
   }
