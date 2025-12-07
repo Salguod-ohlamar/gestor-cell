@@ -674,12 +674,12 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
 
     const triggerPrint = () => {
         const handleAfterPrint = () => {
-            document.body.classList.remove('print-mode-orcamento');
+            document.body.classList.remove('print-mode-recibo');
             window.removeEventListener('afterprint', handleAfterPrint);
         };
         window.addEventListener('afterprint', handleAfterPrint);
 
-        document.body.classList.add('print-mode-orcamento');
+        document.body.classList.add('print-mode-recibo');
         window.print();
     };
 
