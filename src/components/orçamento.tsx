@@ -1,6 +1,4 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
-import Sidebar from './Sidebar.jsx'; // Importando a barra lateral
-import Header from './Header.jsx'; // Importando o cabeçalho
 
 // Tipagem para os itens do orçamento (peças e serviços)
 interface QuoteItem {
@@ -21,7 +19,7 @@ interface Quote {
 
 interface OrcamentoProps {
     currentUser: { name: string; role: string; };
-    onLogout: () => void;
+    onLogout?: () => void; // Tornando opcional, pois não é usado aqui
 }
 
 /**
@@ -227,7 +225,7 @@ const OrcamentoForm = ({ onBackToList, currentUser }: { onBackToList: () => void
  * Componente da Lista de Orçamentos
  * Exibe uma tabela com os orçamentos existentes.
  */
-const OrcamentoList = ({ onShowForm, currentUser }: { onShowForm: () => void, currentUser: OrcamentoProps['currentUser'] }) => {
+const OrcamentoList = ({ onShowForm }: { onShowForm: () => void }) => {
     const [quotes, setQuotes] = useState<Quote[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -315,24 +313,21 @@ const OrcamentoList = ({ onShowForm, currentUser }: { onShowForm: () => void, cu
  * Componente Principal da Página de Orçamento
  * Controla a visualização entre a lista e o formulário.
  */
-export function Orcamento({ currentUser, onLogout }: OrcamentoProps) {
+export function Orcamento({ currentUser }: OrcamentoProps) {
     const [view, setView] = useState<'list' | 'form'>('list');
 
     return (
-        <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-            <Sidebar currentUser={currentUser} />
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <Header currentUser={currentUser} onLogout={onLogout} />
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
-                    <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
-                        {view === 'list' ? (
-                            <OrcamentoList onShowForm={() => setView('form')} currentUser={currentUser} />
-                        ) : (
-                            <OrcamentoForm onBackToList={() => setView('list')} currentUser={currentUser} />
-                        )}
-                    </div>
-                </main>
-            </div>
+        <div className="max-w-7xl mx-auto my-8 p-6 md:p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+            <header className="text-center pb-4 mb-8 border-b-2 border-gray-100 dark:border-gray-700">
+                <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Módulo de Orçamentos</h1>
+                <p className="text-md text-gray-500 dark:text-gray-400">BOY CELL - Assistência Técnica</p>
+            </header>
+
+            {view === 'list' ? (
+                <OrcamentoList onShowForm={() => setView('form')} />
+            ) : (
+                <OrcamentoForm onBackToList={() => setView('list')} currentUser={currentUser} />
+            )}
         </div>
     );
 }
