@@ -116,6 +116,22 @@ const OrcamentoForm = ({ onBackToList, currentUser, quoteId }: { onBackToList: (
         setItems(prevItems => [...prevItems, { descricao: product.name, valor: Number(product.price) }]);
     };
 
+    // Função para remover um item da lista
+    const handleRemoveItem = (indexToRemove: number) => {
+        setItems(prevItems => prevItems.filter((_, index) => index !== indexToRemove));
+    };
+
+    // Função para editar um item da lista
+    const handleItemChange = (indexToUpdate: number, field: keyof QuoteItem, value: string) => {
+        const newItems = items.map((item, index) => {
+            if (index === indexToUpdate) {
+                return { ...item, [field]: field === 'valor' ? parseFloat(value) || 0 : value };
+            }
+            return item;
+        });
+        setItems(newItems);
+    };
+
     // Abre o modal de busca de produtos
     const openSearchModal = () => {
         setIsSearchModalOpen(true);
@@ -231,14 +247,34 @@ const OrcamentoForm = ({ onBackToList, currentUser, quoteId }: { onBackToList: (
                             <thead className="bg-gray-50 dark:bg-gray-700">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Item</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-40">Valor (R$)</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-40">Valor (R$)</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-28">Ações</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                 {items.map((item, index) => (
                                     <tr key={index}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{item.descricao}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 text-right font-mono">{item.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                                        <td className="px-2 py-1">
+                                            <input
+                                                type="text"
+                                                value={item.descricao}
+                                                onChange={(e) => handleItemChange(index, 'descricao', e.target.value)}
+                                                className="w-full p-2 bg-transparent border-none focus:ring-1 focus:ring-blue-500 rounded-md dark:text-gray-200"
+                                            />
+                                        </td>
+                                        <td className="px-2 py-1">
+                                            <input
+                                                type="number"
+                                                value={item.valor}
+                                                onChange={(e) => handleItemChange(index, 'valor', e.target.value)}
+                                                className="w-full p-2 bg-transparent border-none focus:ring-1 focus:ring-blue-500 rounded-md text-right font-mono dark:text-gray-200"
+                                            />
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button type="button" onClick={() => handleRemoveItem(index)} className="text-red-600 hover:text-red-800" title="Remover Item">
+                                                Remover
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
