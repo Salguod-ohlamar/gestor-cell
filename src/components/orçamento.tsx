@@ -502,12 +502,12 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                 </p>
             </div>
 
-            <div className="relative mb-4 flex items-center gap-4"> {/* Added flex and gap for alignment */}
+            <div className="relative mb-4 flex items-center gap-4">
                 <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" /> {/* Search icon */}
                 <input
                     type="text"
                     placeholder="Buscar por cliente ou nº do orçamento..."
-                    className="w-full p-2 pl-10 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg dark:text-white"
+                    className="flex-grow p-2 pl-10 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg dark:text-white"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -515,9 +515,7 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                     Novo Orçamento
                 </button>
             </div>
-
-            {/* TODO: Adicionar campos de busca e filtro aqui */}
-
+            </div>
 
              <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -597,7 +595,6 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                     </button>
                 </div>
             )}
-
         </>
     );
 }
