@@ -1180,29 +1180,41 @@ app.get('/api/quotes/:id', protect, async (req, res) => {
 // Rota para atualizar um orçamento
 app.put('/api/quotes/:id', protect, async (req, res) => {
     const { id } = req.params;
-    const {
-        status, customer_name, customer_cpf, customer_phone, customer_email,
-        device_brand_model, device_serial_number, reported_defect,
-        observations, items, total, expected_quote_date,
-        expected_delivery_date, warranty_period
-    } = req.body;
+    const fieldsToUpdate = req.body;
+
+    // Previne a alteração de campos críticos
+    delete fieldsToUpdate.id;
+    delete fieldsToUpdate.quote_number;
+    delete fieldsToUpdate.user_id;
+    delete fieldsToUpdate.created_at;
+    delete fieldsToUpdate.updated_at;
+
+    const fieldEntries = Object.entries(fieldsToUpdate);
+
+    if (fieldEntries.length === 0) {
+        return res.status(400).json({ message: 'Nenhum dado para atualizar foi fornecido.' });
+    }
+
+    // Trata o campo JSONB especificamente
+    if (fieldsToUpdate.items) {
+        fieldsToUpdate.items = JSON.stringify(fieldsToUpdate.items);
+    }
+
+    const setClause = fieldEntries
+        .map(([key], index) => `"${key}" = $${index + 1}`)
+        .join(', ');
+        
+    const values = fieldEntries.map(([, value]) => value);
+    values.push(id);
 
     try {
         const query = `
             UPDATE quotes SET
-                status = $1, customer_name = $2, customer_cpf = $3, customer_phone = $4, customer_email = $5,
-                device_brand_model = $6, device_serial_number = $7, reported_defect = $8, observations = $9,
-                items = $10, total = $11, expected_quote_date = $12, expected_delivery_date = $13, warranty_period = $14,
+                ${setClause},
                 updated_at = NOW()
-            WHERE id = $15
+            WHERE id = $${values.length}
             RETURNING *;
         `;
-        const values = [
-            status || 'Pendente', customer_name, customer_cpf, customer_phone, customer_email,
-            device_brand_model, device_serial_number, reported_defect, observations,
-            JSON.stringify(items || []), total, expected_quote_date || null, expected_delivery_date || null,
-            warranty_period, id
-        ];
 
         const { rows } = await db.query(query, values);
         if (rows.length === 0) {

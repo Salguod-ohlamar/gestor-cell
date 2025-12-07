@@ -435,7 +435,7 @@ const ProductSearchModal = ({ isOpen, onClose, onProductSelect }: { isOpen: bool
  * Componente da Lista de Orçamentos
  * Exibe uma tabela com os orçamentos existentes.
  */
-const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete }: { quotes: Quote[], isLoading: boolean, onShowForm: () => void, onEdit: (id: number) => void, onDelete: (id: number) => void }) => {
+const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStatusChange }: { quotes: Quote[], isLoading: boolean, onShowForm: () => void, onEdit: (id: number) => void, onDelete: (id: number) => void, onStatusChange: (id: number, status: string) => void }) => {
     
     if (isLoading) {
         return <div>Carregando orçamentos...</div>;
@@ -472,7 +472,18 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete }: { qu
                             <tr key={quote.id}>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{quote.quote_number}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300">{quote.customer_name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300">{quote.status}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300">
+                                    <select
+                                        value={quote.status}
+                                        onChange={(e) => onStatusChange(quote.id, e.target.value)}
+                                        className="p-1 rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+                                    >
+                                        <option>Pendente</option>
+                                        <option>Aprovado</option>
+                                        <option>Rejeitado</option>
+                                        <option>Concluído</option>
+                                    </select>
+                                </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300">{new Date(quote.created_at).toLocaleDateString('pt-BR')}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300 text-right font-mono">{Number(quote.total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-4">
@@ -548,6 +559,30 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
         }
     };
 
+    const handleStatusChange = async (quoteId: number, newStatus: string) => {
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`/api/quotes/${quoteId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+            if (!response.ok) throw new Error('Falha ao atualizar status');
+
+            // Atualiza o estado local para refletir a mudança imediatamente
+            setQuotes(prevQuotes =>
+                prevQuotes.map(q =>
+                    q.id === quoteId ? { ...q, status: newStatus as Quote['status'] } : q
+                )
+            );
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
     // Função para lidar com o clique no botão de editar
     const handleEditClick = (quoteId: number) => {
         setEditingQuoteId(quoteId);
@@ -573,6 +608,7 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
                     onShowForm={() => setView('form')}
                     onEdit={handleEditClick}
                     onDelete={handleDeleteQuote}
+                    onStatusChange={handleStatusChange}
                 />
             ) : (
                 <OrcamentoForm onBackToList={handleBackToList} currentUser={currentUser} quoteId={editingQuoteId} />
