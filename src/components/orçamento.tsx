@@ -104,19 +104,19 @@ const OrcamentoForm = ({ onBackToList, currentUser }: { onBackToList: () => void
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label htmlFor="customer_name" className="block text-sm font-medium text-gray-600 mb-1">Nome:</label>
-                            <input type="text" id="customer_name" name="customer_name" value={formData.customer_name} onChange={handleInputChange} placeholder="Nome completo do cliente" className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+                            <input type="text" id="customer_name" name="customer_name" value={formData.customer_name} onChange={handleInputChange} placeholder="Nome completo do cliente" className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" />
                         </div>
                         <div>
                             <label htmlFor="customer_cpf" className="block text-sm font-medium text-gray-600 mb-1">CPF:</label>
-                            <input type="text" id="customer_cpf" name="customer_cpf" value={formData.customer_cpf} onChange={handleInputChange} placeholder="000.000.000-00" className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+                            <input type="text" id="customer_cpf" name="customer_cpf" value={formData.customer_cpf} onChange={handleInputChange} placeholder="000.000.000-00" className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" />
                         </div>
                         <div>
                             <label htmlFor="customer_phone" className="block text-sm font-medium text-gray-600 mb-1">Telefone:</label>
-                            <input type="tel" id="customer_phone" name="customer_phone" value={formData.customer_phone} onChange={handleInputChange} placeholder="(XX) XXXXX-XXXX" className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+                            <input type="tel" id="customer_phone" name="customer_phone" value={formData.customer_phone} onChange={handleInputChange} placeholder="(XX) XXXXX-XXXX" className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" />
                         </div>
                         <div>
                             <label htmlFor="customer_email" className="block text-sm font-medium text-gray-600 mb-1">Email:</label>
-                            <input type="email" id="customer_email" name="customer_email" value={formData.customer_email} onChange={handleInputChange} placeholder="email@exemplo.com" className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+                            <input type="email" id="customer_email" name="customer_email" value={formData.customer_email} onChange={handleInputChange} placeholder="email@exemplo.com" className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" />
                         </div>
                     </div>
                 </section>
@@ -127,15 +127,15 @@ const OrcamentoForm = ({ onBackToList, currentUser }: { onBackToList: () => void
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
                             <label htmlFor="deviceBrand" className="block text-sm font-medium text-gray-600 mb-1">Marca:</label>
-                            <input type="text" id="deviceBrand" name="deviceBrand" value={formData.deviceBrand} onChange={handleInputChange} placeholder="Ex: Samsung" className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+                            <input type="text" id="deviceBrand" name="deviceBrand" value={formData.deviceBrand} onChange={handleInputChange} placeholder="Ex: Samsung" className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" />
                         </div>
                         <div>
                             <label htmlFor="deviceModel" className="block text-sm font-medium text-gray-600 mb-1">Modelo:</label>
-                            <input type="text" id="deviceModel" name="deviceModel" value={formData.deviceModel} onChange={handleInputChange} placeholder="Ex: Galaxy S22" className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+                            <input type="text" id="deviceModel" name="deviceModel" value={formData.deviceModel} onChange={handleInputChange} placeholder="Ex: Galaxy S22" className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" />
                         </div>
                         <div>
                             <label htmlFor="device_serial_number" className="block text-sm font-medium text-gray-600 mb-1">IMEI/Nº de Série:</label>
-                            <input type="text" id="device_serial_number" name="device_serial_number" value={formData.device_serial_number} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+                            <input type="text" id="device_serial_number" name="device_serial_number" value={formData.device_serial_number} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" />
                         </div>
                     </div>
                 </section>
@@ -146,11 +146,11 @@ const OrcamentoForm = ({ onBackToList, currentUser }: { onBackToList: () => void
                     <div className="space-y-4">
                         <div>
                             <label htmlFor="reported_defect" className="block text-sm font-medium text-gray-600 mb-1">Defeito Relatado:</label>
-                            <textarea id="reported_defect" name="reported_defect" value={formData.reported_defect} onChange={handleInputChange} rows={3} placeholder="Descrição do problema informado pelo cliente..." className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                            <textarea id="reported_defect" name="reported_defect" value={formData.reported_defect} onChange={handleInputChange} rows={3} placeholder="Descrição do problema informado pelo cliente..." className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"></textarea>
                         </div>
                         <div>
                             <label htmlFor="observations" className="block text-sm font-medium text-gray-600 mb-1">Observações Técnicas:</label>
-                            <textarea id="observations" name="observations" value={formData.observations} onChange={handleInputChange} rows={3} placeholder="Detalhes técnicos, avarias encontradas, etc..." className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                            <textarea id="observations" name="observations" value={formData.observations} onChange={handleInputChange} rows={3} placeholder="Detalhes técnicos, avarias encontradas, etc..." className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"></textarea>
                         </div>
                     </div>
                 </section>
@@ -158,15 +158,15 @@ const OrcamentoForm = ({ onBackToList, currentUser }: { onBackToList: () => void
                 {/* Seção de Itens e Custos */}
                 <section>
                     <h2 className="text-xl font-semibold text-gray-700 border-b pb-2 mb-4">Serviços e Peças</h2>
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                    <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead className="bg-gray-50 dark:bg-gray-700">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-40">Valor (R$)</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Item</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-40">Valor (R$)</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                 {items.map((item, index) => (
                                     <tr key={index}>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{item.descricao}</td>
@@ -174,10 +174,10 @@ const OrcamentoForm = ({ onBackToList, currentUser }: { onBackToList: () => void
                                     </tr>
                                 ))}
                             </tbody>
-                            <tfoot className="bg-gray-50">
+                            <tfoot className="bg-gray-50 dark:bg-gray-700">
                                 <tr>
-                                    <td className="px-6 py-3 text-right text-sm font-bold text-gray-800 uppercase">Total</td>
-                                    <td className="px-6 py-3 text-right text-lg font-bold text-gray-900 font-mono">{total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                                    <td className="px-6 py-3 text-right text-sm font-bold text-gray-800 dark:text-gray-200 uppercase">Total</td>
+                                    <td className="px-6 py-3 text-right text-lg font-bold text-gray-900 dark:text-white font-mono">{total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -195,15 +195,15 @@ const OrcamentoForm = ({ onBackToList, currentUser }: { onBackToList: () => void
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
                             <label htmlFor="expected_quote_date" className="block text-sm font-medium text-gray-600 mb-1">Data do Orçamento:</label>
-                            <input type="date" id="expected_quote_date" name="expected_quote_date" value={formData.expected_quote_date} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+                            <input type="date" id="expected_quote_date" name="expected_quote_date" value={formData.expected_quote_date} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                         </div>
                         <div>
                             <label htmlFor="expected_delivery_date" className="block text-sm font-medium text-gray-600 mb-1">Previsão de Entrega:</label>
-                            <input type="date" id="expected_delivery_date" name="expected_delivery_date" value={formData.expected_delivery_date} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+                            <input type="date" id="expected_delivery_date" name="expected_delivery_date" value={formData.expected_delivery_date} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                         </div>
                         <div>
                             <label htmlFor="warranty_period" className="block text-sm font-medium text-gray-600 mb-1">Garantia:</label>
-                            <input type="text" id="warranty_period" name="warranty_period" value={formData.warranty_period} onChange={handleInputChange} placeholder="Ex: 90 dias" className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+                            <input type="text" id="warranty_period" name="warranty_period" value={formData.warranty_period} onChange={handleInputChange} placeholder="Ex: 90 dias" className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" />
                         </div>
                     </div>
                 </section>
@@ -273,33 +273,33 @@ const OrcamentoList = ({ onShowForm }: { onShowForm: () => void }) => {
 
             {/* TODO: Adicionar campos de busca e filtro aqui */}
 
-            <div className="overflow-x-auto bg-white rounded-lg shadow">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+            <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-700">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nº</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nº</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cliente</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Data</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Total</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                         {quotes.length > 0 ? quotes.map(quote => (
                             <tr key={quote.id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{quote.quote_number}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{quote.customer_name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{quote.status}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{new Date(quote.created_at).toLocaleDateString('pt-BR')}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 text-right font-mono">{Number(quote.total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{quote.quote_number}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300">{quote.customer_name}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300">{quote.status}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300">{new Date(quote.created_at).toLocaleDateString('pt-BR')}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300 text-right font-mono">{Number(quote.total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <a href="#" className="text-indigo-600 hover:text-indigo-900">Ver / Editar</a>
                                 </td>
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">Nenhum orçamento encontrado.</td>
+                                <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Nenhum orçamento encontrado.</td>
                             </tr>
                         )}
                     </tbody>
@@ -318,13 +318,13 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
 
     return (
         <div className="max-w-7xl mx-auto my-8 p-6 md:p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-            <header className="text-center pb-4 mb-8 border-b-2 border-gray-100 dark:border-gray-700">
+            <header className="text-center pb-4 mb-8 border-b-2 border-gray-200 dark:border-gray-700">
                 <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Módulo de Orçamentos</h1>
                 <p className="text-md text-gray-500 dark:text-gray-400">BOY CELL - Assistência Técnica</p>
             </header>
 
             {view === 'list' ? (
-                <OrcamentoList onShowForm={() => setView('form')} />
+                <OrcamentoList onShowForm={() => setView('form')} /> 
             ) : (
                 <OrcamentoForm onBackToList={() => setView('list')} currentUser={currentUser} />
             )}
