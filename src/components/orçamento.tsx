@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import React, { useState, useEffect, ChangeEvent, FormEvent, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '@/components/Modal.jsx';
 import { Search } from 'lucide-react'; // Importar o ícone de busca
@@ -34,7 +34,7 @@ interface Product {
 }
 
 interface OrcamentoProps {
-    currentUser: { name: string; role: string; };
+    currentUser: { id: number; name: string; role: string; };
     onLogout?: () => void; // Tornando opcional, pois não é usado aqui
 }
 
@@ -160,7 +160,7 @@ const OrcamentoForm = ({ onBackToList, currentUser, quoteId }: { onBackToList: (
             device_brand_model: `${formData.deviceBrand} ${formData.deviceModel}`.trim(), // Combina marca e modelo
             items: items, // A lista de serviços/peças (JSONB)
             total: total,
-            user_id: (currentUser as any).id, // Pegar o ID do usuário logado
+            user_id: currentUser.id, // Pegar o ID do usuário logado
         };
         // Remove os campos separados de marca e modelo que não existem na tabela
         delete (orcamentoCompleto as any).deviceBrand;
