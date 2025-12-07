@@ -465,6 +465,11 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
         return <div>Carregando orçamentos...</div>;
     }
 
+    // Lógica de Paginação
+    const indexOfLastQuote = currentPage * quotesPerPage;
+    const indexOfFirstQuote = indexOfLastQuote - quotesPerPage;
+    const currentQuotes = quotes.slice(indexOfFirstQuote, indexOfLastQuote);
+
     return (
         <>
             <div className="flex justify-between items-center mb-8">
@@ -500,7 +505,7 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                         </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        {quotes.length > 0 ? quotes.map(quote => (
+                        {currentQuotes.length > 0 ? currentQuotes.map(quote => (
                             <tr key={quote.id}>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{quote.quote_number}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300">{quote.customer_name}</td>
@@ -671,7 +676,13 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
     };
 
     const triggerPrint = () => {
-        document.body.classList.add('print-mode-recibo');
+        const handleAfterPrint = () => {
+            document.body.classList.remove('print-mode-orcamento');
+            window.removeEventListener('afterprint', handleAfterPrint);
+        };
+        window.addEventListener('afterprint', handleAfterPrint);
+
+        document.body.classList.add('print-mode-orcamento');
         window.print();
     };
 

@@ -118,14 +118,26 @@
     visibility: visible;
   }
 
-  /* Esconde tudo que não é da área de impressão do orçamento, mas permite que o conteúdo dentro da área seja visível */
-  body.print-mode-orcamento *:not(#recibo-orcamento-printable-area),
-  body.print-mode-orcamento > *:not(#recibo-orcamento-printable-area) {
-    display: none !important;
+  /* --- REGRAS DE IMPRESSÃO PARA ORÇAMENTO --- */
+
+  /* 1. Esconde tudo na página quando o modo de impressão de orçamento está ativo */
+  body.print-mode-orcamento * {
+    visibility: hidden;
   }
 
-    /* Estilos para a area de impressão do orçamento */
-    body.print-mode-orcamento #recibo-orcamento-printable-area { display: block; }
+  /* 2. Torna a área de impressão do orçamento e todos os seus filhos visíveis */
+  body.print-mode-orcamento #recibo-orcamento-printable-area,
+  body.print-mode-orcamento #recibo-orcamento-printable-area * {
+    visibility: visible;
+  }
+
+  /* 3. Posiciona a área de impressão para ocupar a página inteira */
+  body.print-mode-orcamento #recibo-orcamento-printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
 }
 
 @keyframes fadeIn {
