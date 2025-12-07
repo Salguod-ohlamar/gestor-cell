@@ -50,22 +50,29 @@
     display: none !important;
   }
 
-  /* Regras genéricas para impressão de recibos (vendas e orçamentos) */
+  /* --- REGRAS GENÉRICAS PARA IMPRESSÃO DE RECIBOS (VENDAS E ORÇAMENTOS) --- */
+
+  /* 1. Esconde tudo por padrão quando a classe de impressão está ativa */
   body.print-mode-recibo * {
     visibility: hidden;
   }
 
+  /* 2. Torna a área de impressão (seja de venda ou orçamento) e seus filhos visíveis */
+  body.print-mode-recibo #recibo-printable-area,
+  body.print-mode-recibo #recibo-printable-area *,
+  body.print-mode-recibo #recibo-orcamento-printable-area,
+  body.print-mode-recibo #recibo-orcamento-printable-area * {
+    visibility: visible;
+  }
+
+  /* 3. Garante que a área de impressão seja um bloco e ocupe a página, sobrepondo o 'display: none' da classe 'hidden' */
   body.print-mode-recibo #recibo-printable-area,
   body.print-mode-recibo #recibo-orcamento-printable-area {
-    visibility: visible;
+    display: block !important;
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
-  }
-  body.print-mode-recibo #recibo-printable-area *,
-  body.print-mode-recibo #recibo-orcamento-printable-area * {
-    visibility: visible;
   }
 
   body.print-mode-monthly-report #admin-non-printable-area {
