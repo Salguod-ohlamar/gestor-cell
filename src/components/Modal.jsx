@@ -15,7 +15,7 @@ const Modal = ({ isOpen, onClose, children, title, description, size = 'md' }) =
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={`bg-card text-card-foreground p-6 rounded-lg shadow-xl w-full ${sizeClasses[size]} flex flex-col max-h-[90vh]`}>
+      <DialogContent className={`bg-white dark:bg-gray-800 text-card-foreground p-6 rounded-lg shadow-xl w-full ${sizeClasses[size]} flex flex-col max-h-[90vh]`}>
         <DialogHeader>
           {title && <DialogTitle className="text-2xl font-bold text-center mb-2">{title}</DialogTitle>}
           {description && <DialogDescription className="text-center text-muted-foreground mb-4">{description}</DialogDescription>}
