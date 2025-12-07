@@ -118,20 +118,22 @@
     visibility: visible;
   }
 
-  /* Regras para impressão do Orçamento */
-  body.print-mode-recibo #recibo-orcamento-printable-area {
+  /* Regras para impressão do Orçamento (usando a nova classe) */
+  body.print-mode-orcamento #recibo-orcamento-printable-area,
+  body.print-mode-orcamento #recibo-orcamento-printable-area * {
     visibility: visible;
+  }
+  body.print-mode-orcamento #recibo-orcamento-printable-area {
     display: block;
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
   }
-  body.print-mode-recibo #recibo-orcamento-printable-area * {
-    visibility: visible;
-  }
-  /* Garante que o modal de pré-visualização não apareça na impressão */
-  [role="dialog"] { display: none !important; }
+
+  /* Garante que o modal de pré-visualização não apareça na impressão em nenhum modo */
+  body.print-mode-recibo [role="dialog"],
+  body.print-mode-orcamento [role="dialog"] { display: none !important; }
 }
 
 @keyframes fadeIn {
