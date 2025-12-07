@@ -19,6 +19,6 @@ export const EstoqueProvider = ({ children, currentUser }) => {
         ...estoqueData,
         quoteToConvert,
         setQuoteToConvert,
-    }), [estoqueData, quoteToConvert]);
+    }), [estoqueData, quoteToConvert, setQuoteToConvert]); // Adicionado setQuoteToConvert às dependências
     return <EstoqueContext.Provider value={contextValue}>{children}</EstoqueContext.Provider>;
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '@/components/Modal.jsx';
+import { Search } from 'lucide-react'; // Importar o ícone de busca
 import ReciboOrcamento from '@/components/ReciboOrcamento.jsx';
 import { useEstoqueContext } from '@/components/EstoqueContext.jsx';
 
@@ -467,20 +468,29 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
         return <div>Carregando orçamentos...</div>;
     }
 
-    // Lógica de Paginação
-    const indexOfLastQuote = currentPage * quotesPerPage;
-    const indexOfFirstQuote = indexOfLastQuote - quotesPerPage;
-    const currentQuotes = quotes.slice(indexOfFirstQuote, indexOfLastQuote);
-
-    const filteredQuotes = useMemo(() => {
-        if (!searchTerm) return currentQuotes;
+    // 1. Filtrar a lista completa de orçamentos com base no termo de busca
+    const allFilteredQuotes = useMemo(() => {
+        if (!searchTerm) return quotes;
 
         const lowerSearchTerm = searchTerm.toLowerCase();
-        return currentQuotes.filter(quote => (
+        return quotes.filter(quote => (
             quote.customer_name.toLowerCase().includes(lowerSearchTerm) ||
             quote.quote_number.toLowerCase().includes(lowerSearchTerm)
         ));
-    }, [searchTerm, quotes, currentQuotes]);
+    }, [searchTerm, quotes]);
+
+    // 2. Aplicar paginação à lista filtrada
+    const totalPages = Math.ceil(allFilteredQuotes.length / quotesPerPage);
+    const indexOfLastQuote = currentPage * quotesPerPage;
+    const indexOfFirstQuote = indexOfLastQuote - quotesPerPage;
+    const currentQuotes = allFilteredQuotes.slice(indexOfFirstQuote, indexOfLastQuote);
+
+    // Resetar a página atual se o termo de busca mudar e a página atual for inválida
+    useEffect(() => {
+        if (currentPage > totalPages && totalPages > 0) {
+            setCurrentPage(1);
+        }
+    }, [searchTerm, totalPages, currentPage]);
 
     return (
         <>
@@ -492,16 +502,16 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                 </p>
             </div>
 
-            <div className="relative mb-4">
+            <div className="relative mb-4 flex items-center gap-4"> {/* Added flex and gap for alignment */}
+                <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" /> {/* Search icon */}
                 <input
                     type="text"
                     placeholder="Buscar por cliente ou nº do orçamento..."
-                    className="w-full p-2 pl-10 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg"
+                    className="w-full p-2 pl-10 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg dark:text-white"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
-            </div>
-            <button onClick={onShowForm} className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                <button onClick={onShowForm} className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
                     Novo Orçamento
                 </button>
             </div>
@@ -522,7 +532,7 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                         </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                         {filteredQuotes.length > 0 ? filteredQuotes.map(quote => (
+                         {currentQuotes.length > 0 ? currentQuotes.map(quote => (
                             <tr key={quote.id}>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{quote.quote_number}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300">{quote.customer_name}</td>
@@ -565,32 +575,28 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                     </tbody>
                 </table>
             </div>
-               {/* Pagination controls */}
-               <div className="flex justify-center mt-4">
+            {/* Controles de Paginação */}
+            {totalPages > 1 && ( // Renderiza paginação apenas se houver mais de uma página
+                <div className="flex justify-center items-center mt-6 space-x-4">
                     <button
                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                         disabled={currentPage === 1}
-                        className="px-4 py-2 mx-1 bg-gray-200 dark:bg-gray-700 rounded-md disabled:opacity-50"
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
                     >
                         Anterior
                     </button>
-                    <span>
-                        Página {currentPage} de {Math.ceil(quotes.length / quotesPerPage)}
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Página {currentPage} de {totalPages}
                     </span>
                     <button
-                        onClick={() => setCurrentPage(prev =>
-                            Math.min(prev + 1, Math.ceil(quotes.length / quotesPerPage))
-                        )}
-                        disabled={currentPage === Math.ceil(quotes.length / quotesPerPage)}
-                        className="px-4 py-2 mx-1 bg-gray-200 dark:bg-gray-700 rounded-md disabled:opacity-50"
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
                     >
                         Próximo
                     </button>
                 </div>
-                      
-                
-            {/* Pagination controls */}
-            
+            )}
 
         </>
     );
