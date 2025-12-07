@@ -1,15 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
-import path from 'node:path'
+import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      // Garante que o alias '@' aponte para a pasta 'src'
-      // Esta é a forma recomendada para projetos Vite com ES Modules
-      '@': path.resolve(new URL('.', import.meta.url).pathname, './src'),
+      // Forma mais robusta de definir o alias, compatível com diferentes ambientes.
+      '@': path.resolve(__dirname, './src'),
     },
   },
   server: {

@@ -98,6 +98,29 @@ CREATE TABLE activity_log (
     "timestamp" TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Tabela de Orçamentos
+CREATE TABLE quotes (
+    id SERIAL PRIMARY KEY,
+    quote_number VARCHAR(50) UNIQUE NOT NULL,
+    client_id INT REFERENCES clients(id) ON DELETE SET NULL, -- Ligação opcional com um cliente existente
+    status VARCHAR(50) DEFAULT 'Pendente', -- Pendente, Aprovado, Rejeitado, Concluído
+    customer_name VARCHAR(255),
+    customer_cpf VARCHAR(20),
+    customer_phone VARCHAR(20),
+    customer_email VARCHAR(255),
+    device_brand_model VARCHAR(255),
+    device_serial_number VARCHAR(255),
+    reported_defect TEXT,
+    observations TEXT,
+    items JSONB, -- Itens do orçamento (peças e serviços)
+    total NUMERIC(10, 2),
+    expected_delivery_date DATE,
+    warranty_period VARCHAR(100),
+    user_id INT REFERENCES users(id),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Função e Triggers para atualizar o campo 'updated_at' automaticamente
 CREATE OR REPLACE FUNCTION trigger_set_timestamp()
 RETURNS TRIGGER AS $$
@@ -110,3 +133,4 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER set_timestamp BEFORE UPDATE ON products FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
 CREATE TRIGGER set_timestamp BEFORE UPDATE ON services FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
 CREATE TRIGGER set_timestamp BEFORE UPDATE ON clients FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
+CREATE TRIGGER set_timestamp BEFORE UPDATE ON quotes FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
