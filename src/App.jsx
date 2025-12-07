@@ -69,7 +69,12 @@ const AppContent = () => {
                                 />
                             } />
 
-                            <Route path="/orcamento" element={<Orcamento />} />
+                            <Route path="/orcamento" element={
+                                <Orcamento
+                                    onLogout={handleLogout}
+                                    currentUser={currentUser}
+                                />
+                            } />
                             {/* Rotas para Estoque, Clientes, Admin: Acessíveis por admin e root. */}
                             <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root']} redirectPath="/vendas" />}>
                                 <Route path="/estoque" element={<StockControl onLogout={handleLogout} currentUser={currentUser} />} />
