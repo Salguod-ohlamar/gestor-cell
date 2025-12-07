@@ -98,7 +98,7 @@ const AppContent = () => {
 const LoginModalWrapper = ({ isOpen, onClose, onLogin }) => {
     const { handlePasswordRecovery } = useEstoqueContext();
     return (
-        <Modal isOpen={isOpen} onClose={onClose}>
+        <Modal isOpen={isOpen} onClose={onClose} title="Acessar o Sistema" description="Entre com seu usuário e senha para continuar.">
             <LoginPage onLogin={onLogin} handlePasswordRecovery={handlePasswordRecovery} />
         </Modal>
     );
