@@ -468,6 +468,7 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
     // Lógica de Paginação
     const indexOfLastQuote = currentPage * quotesPerPage;
     const indexOfFirstQuote = indexOfLastQuote - quotesPerPage;
+
     const currentQuotes = quotes.slice(indexOfFirstQuote, indexOfLastQuote);
     const totalPages = Math.ceil(quotes.length / quotesPerPage);
 

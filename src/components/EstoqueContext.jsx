@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useMemo } from 'react';
 import { useEstoque } from './useEstoque.jsx';
 
 const EstoqueContext = createContext(null);
@@ -15,10 +15,10 @@ export const EstoqueProvider = ({ children, currentUser }) => {
     const estoqueData = useEstoque(currentUser);
     const [quoteToConvert, setQuoteToConvert] = useState(null);
 
-    const contextValue = {
+    const contextValue = useMemo(() => ({
         ...estoqueData,
         quoteToConvert,
         setQuoteToConvert,
-    };
+    }), [estoqueData, quoteToConvert]);
     return <EstoqueContext.Provider value={contextValue}>{children}</EstoqueContext.Provider>;
 };
