@@ -1108,6 +1108,129 @@ app.get('/api/reports/sales-by-user', protect, hasPermission('viewUserSalesRepor
 });
 
 // ==================
+// QUOTES ROUTES
+// ==================
+
+// Rota para criar um novo orçamento
+app.post('/api/quotes', protect, async (req, res) => {
+    const {
+        customer_name, customer_cpf, customer_phone, customer_email,
+        device_brand_model, device_serial_number, reported_defect,
+        observations, items, total, expected_quote_date,
+        expected_delivery_date, warranty_period
+    } = req.body;
+    const user_id = req.user.id;
+
+    // Gerar um número de orçamento único
+    const date = new Date();
+    const quote_number = `ORC-${date.getFullYear()}${(date.getMonth() + 1).toString().padStart(2, '0')}${date.getDate().toString().padStart(2, '0')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+    try {
+        const query = `
+            INSERT INTO quotes (
+                quote_number, status, customer_name, customer_cpf, customer_phone, customer_email,
+                device_brand_model, device_serial_number, reported_defect, observations,
+                items, total, expected_quote_date, expected_delivery_date, warranty_period, user_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+            RETURNING *;
+        `;
+        const values = [
+            quote_number, 'Pendente', customer_name, customer_cpf, customer_phone, customer_email,
+            device_brand_model, device_serial_number, reported_defect, observations,
+            JSON.stringify(items || []), total, expected_quote_date || null, expected_delivery_date || null,
+            warranty_period, user_id
+        ];
+
+        const { rows } = await db.query(query, values);
+        res.status(201).json(rows[0]);
+    } catch (err) {
+        console.error('Erro ao criar orçamento:', err);
+        res.status(500).send('Erro no servidor ao criar orçamento.');
+    }
+});
+
+// Rota para buscar todos os orçamentos
+app.get('/api/quotes', protect, async (req, res) => {
+  try {
+    const result = await db.query(
+      'SELECT id, quote_number, status, customer_name, total, created_at FROM quotes ORDER BY created_at DESC'
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Erro ao buscar orçamentos:', err.message);
+    res.status(500).json({ error: 'Erro interno do servidor ao buscar orçamentos.' });
+  }
+});
+
+// Rota para buscar um orçamento específico
+app.get('/api/quotes/:id', protect, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const { rows } = await db.query('SELECT * FROM quotes WHERE id = $1', [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Orçamento não encontrado.' });
+        }
+        res.json(rows[0]);
+    } catch (err) {
+        console.error(`Erro ao buscar orçamento ${id}:`, err);
+        res.status(500).send('Erro no servidor ao buscar orçamento.');
+    }
+});
+
+// Rota para atualizar um orçamento
+app.put('/api/quotes/:id', protect, async (req, res) => {
+    const { id } = req.params;
+    const {
+        status, customer_name, customer_cpf, customer_phone, customer_email,
+        device_brand_model, device_serial_number, reported_defect,
+        observations, items, total, expected_quote_date,
+        expected_delivery_date, warranty_period
+    } = req.body;
+
+    try {
+        const query = `
+            UPDATE quotes SET
+                status = $1, customer_name = $2, customer_cpf = $3, customer_phone = $4, customer_email = $5,
+                device_brand_model = $6, device_serial_number = $7, reported_defect = $8, observations = $9,
+                items = $10, total = $11, expected_quote_date = $12, expected_delivery_date = $13, warranty_period = $14,
+                updated_at = NOW()
+            WHERE id = $15
+            RETURNING *;
+        `;
+        const values = [
+            status || 'Pendente', customer_name, customer_cpf, customer_phone, customer_email,
+            device_brand_model, device_serial_number, reported_defect, observations,
+            JSON.stringify(items || []), total, expected_quote_date || null, expected_delivery_date || null,
+            warranty_period, id
+        ];
+
+        const { rows } = await db.query(query, values);
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Orçamento não encontrado.' });
+        }
+        res.json(rows[0]);
+    } catch (err) {
+        console.error(`Erro ao atualizar orçamento ${id}:`, err);
+        res.status(500).send('Erro no servidor ao atualizar orçamento.');
+    }
+});
+
+// Rota para deletar um orçamento
+app.delete('/api/quotes/:id', protect, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await db.query('DELETE FROM quotes WHERE id = $1', [id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Orçamento não encontrado.' });
+        }
+        res.status(200).json({ message: 'Orçamento deletado com sucesso.' });
+    } catch (err) {
+        console.error(`Erro ao deletar orçamento ${id}:`, err);
+        res.status(500).send('Erro no servidor ao deletar orçamento.');
+    }
+});
+
+// ==================
 // REPORTS ROUTES
 // ==================
 
