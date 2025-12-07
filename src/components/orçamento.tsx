@@ -100,7 +100,7 @@ const OrcamentoForm = ({ onBackToList, currentUser }: { onBackToList: () => void
             <form className="space-y-8" onSubmit={handleSubmit}>
                 {/* Seção de Informações do Cliente */}
                 <section>
-                    <h2 className="text-xl font-semibold text-gray-700 border-b pb-2 mb-4">Dados do Cliente</h2>
+                    <h2 className="text-xl font-semibold text-white-700 border-b pb-2 mb-4">Dados do Cliente</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label htmlFor="customer_name" className="block text-sm font-medium text-gray-600 mb-1">Nome:</label>
