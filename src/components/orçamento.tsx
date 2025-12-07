@@ -301,10 +301,12 @@ const ProductSearchModal = ({ isOpen, onClose, onProductSelect }: { isOpen: bool
     const [products, setProducts] = useState<Product[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (isOpen) {
             setIsLoading(true);
+            setError(null); // Limpa erros anteriores ao abrir
             const fetchProducts = async () => {
                 try {
                     const token = localStorage.getItem('boycell-token');
@@ -312,11 +314,19 @@ const ProductSearchModal = ({ isOpen, onClose, onProductSelect }: { isOpen: bool
                     const response = await fetch('/api/products', {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
-                    if (!response.ok) throw new Error('Falha ao buscar produtos e serviços');
+                    if (!response.ok) {
+                        throw new Error(`Falha ao buscar itens (Status: ${response.status})`);
+                    }
                     const data = await response.json();
-                    setProducts(data);
-                } catch (error) {
-                    console.error(error);
+                    if (Array.isArray(data)) {
+                        setProducts(data);
+                    } else {
+                        console.error("A API não retornou um array:", data);
+                        throw new Error("Formato de dados inesperado recebido do servidor.");
+                    }
+                } catch (err: any) {
+                    console.error(err);
+                    setError(err.message || 'Ocorreu um erro desconhecido.');
                 } finally {
                     setIsLoading(false);
                 }
@@ -347,6 +357,8 @@ const ProductSearchModal = ({ isOpen, onClose, onProductSelect }: { isOpen: bool
                 />
                 {isLoading ? (
                     <div className="text-center p-4 dark:text-gray-300">Carregando...</div>
+                ) : error ? (
+                    <div className="text-center p-4 text-red-500 bg-red-100 dark:bg-red-900/20 rounded-md">{error}</div>
                 ) : (
                     <ul className="max-h-96 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-700">
                         {filteredProducts.length > 0 ? filteredProducts.map(product => (
