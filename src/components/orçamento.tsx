@@ -461,31 +461,31 @@ const ProductSearchModal = ({ isOpen, onClose, onProductSelect }: { isOpen: bool
 const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStatusChange, onConvertToSale, onPrint }: { quotes: Quote[], isLoading: boolean, onShowForm: () => void, onEdit: (id: number) => void, onDelete: (id: number) => void, onStatusChange: (id: number, status: string) => void, onConvertToSale: (id: number) => void, onPrint: (id: number) => void }) => {
     
     const [searchTerm, setSearchTerm] = useState('');
-
     const [currentPage, setCurrentPage] = useState(1);
     const quotesPerPage = 10; // You can adjust this value
+
     if (isLoading) {
         return <div>Carregando orçamentos...</div>;
     }
 
-    // 1. Filtrar a lista completa de orçamentos com base no termo de busca
+    // 1. Filtra a lista completa de orçamentos com base no termo de busca
     const allFilteredQuotes = useMemo(() => {
         if (!searchTerm) return quotes;
 
         const lowerSearchTerm = searchTerm.toLowerCase();
         return quotes.filter(quote => (
-            quote.customer_name.toLowerCase().includes(lowerSearchTerm) ||
-            quote.quote_number.toLowerCase().includes(lowerSearchTerm)
+            (quote.customer_name || '').toLowerCase().includes(lowerSearchTerm) ||
+            (quote.quote_number || '').toLowerCase().includes(lowerSearchTerm)
         ));
     }, [searchTerm, quotes]);
 
-    // 2. Aplicar paginação à lista filtrada
+    // 2. Aplica paginação à lista já filtrada
     const totalPages = Math.ceil(allFilteredQuotes.length / quotesPerPage);
     const indexOfLastQuote = currentPage * quotesPerPage;
     const indexOfFirstQuote = indexOfLastQuote - quotesPerPage;
     const currentQuotes = allFilteredQuotes.slice(indexOfFirstQuote, indexOfLastQuote);
 
-    // Resetar a página atual se o termo de busca mudar e a página atual for inválida
+    // Reseta a página para 1 se a busca resultar em menos páginas que a atual
     useEffect(() => {
         if (currentPage > totalPages && totalPages > 0) {
             setCurrentPage(1);
@@ -494,30 +494,31 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
 
     return (
         <>
-            <div className="flex justify-between items-center mb-8">
-            <div>
-                <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Gerenciar Orçamentos</h1>
-                <p className="text-md text-gray-500 dark:text-gray-400">
-                    Visualize, crie e edite os orçamentos.
-                </p>
-            </div>
-
-            <div className="relative mb-4 flex items-center gap-4">
-                <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" /> {/* Search icon */}
-                <input
-                    type="text"
-                    placeholder="Buscar por cliente ou nº do orçamento..."
-                    className="flex-grow p-2 pl-10 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg dark:text-white"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <button onClick={onShowForm} className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+            {/* Cabeçalho e Botão de Novo Orçamento */}
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Gerenciar Orçamentos</h1>
+                    <p className="text-md text-gray-500 dark:text-gray-400">Visualize, crie e edite os orçamentos.</p>
+                </div>
+                <button onClick={onShowForm} className="px-6 py-2 w-full sm:w-auto border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
                     Novo Orçamento
                 </button>
             </div>
+
+            {/* Barra de Busca */}
+            <div className="relative mb-4">
+                <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input
+                    type="text"
+                    placeholder="Buscar por cliente ou nº do orçamento..."
+                    className="w-full p-2 pl-10 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg dark:text-white"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
             </div>
 
-             <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
+            {/* Tabela de Orçamentos */}
+            <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="bg-gray-50 dark:bg-gray-700">
                         <tr>
@@ -526,11 +527,11 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Data</th>
                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Total</th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-56">Ações</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                         {currentQuotes.length > 0 ? currentQuotes.map(quote => (
+                        {currentQuotes.length > 0 ? currentQuotes.map(quote => (
                             <tr key={quote.id}>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{quote.quote_number}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300">{quote.customer_name}</td>
@@ -538,7 +539,7 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                                     <select
                                         value={quote.status}
                                         onChange={(e) => onStatusChange(quote.id, e.target.value)}
-                                        className="p-1 rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+                                        className="p-1 rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm"
                                     >
                                         <option>Pendente</option>
                                         <option>Aprovado</option>
@@ -548,7 +549,7 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300">{new Date(quote.created_at).toLocaleDateString('pt-BR')}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300 text-right font-mono">{Number(quote.total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-4">
+                                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-2">
                                     <button onClick={() => onPrint(quote.id)} className="text-cyan-500 hover:text-cyan-700" title="Imprimir Orçamento">
                                         Imprimir
                                     </button>
@@ -567,14 +568,13 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Nenhum orçamento encontrado.</td>
+                                <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Nenhum orçamento encontrado.</td>
                             </tr>
                         )}
                     </tbody>
                 </table>
             </div>
-            {/* Controles de Paginação */}
-            {totalPages > 1 && ( // Renderiza paginação apenas se houver mais de uma página
+            {totalPages > 1 && (
                 <div className="flex justify-center items-center mt-6 space-x-4">
                     <button
                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
