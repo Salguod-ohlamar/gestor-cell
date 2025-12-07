@@ -464,10 +464,6 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
     const [currentPage, setCurrentPage] = useState(1);
     const quotesPerPage = 10; // You can adjust this value
 
-    if (isLoading) {
-        return <div>Carregando orçamentos...</div>;
-    }
-
     // 1. Filtra a lista completa de orçamentos com base no termo de busca
     const allFilteredQuotes = useMemo(() => {
         if (!searchTerm) return quotes;
@@ -491,6 +487,10 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
             setCurrentPage(1);
         }
     }, [searchTerm, totalPages, currentPage]);
+
+    if (isLoading) {
+        return <div className="text-center p-4 dark:text-gray-300">Carregando orçamentos...</div>;
+    }
 
     return (
         <>
