@@ -1,6 +1,7 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '@/components/Modal.jsx';
+import ReciboOrcamento from '@/components/ReciboOrcamento.jsx';
 import { useEstoqueContext } from '@/components/EstoqueContext.jsx';
 
 // Tipagem para os itens do orçamento (peças e serviços)
@@ -456,8 +457,7 @@ const ProductSearchModal = ({ isOpen, onClose, onProductSelect }: { isOpen: bool
  * Componente da Lista de Orçamentos
  * Exibe uma tabela com os orçamentos existentes.
  */
-const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStatusChange, onConvertToSale }: { quotes: Quote[], isLoading: boolean, onShowForm: () => void, onEdit: (id: number) => void, onDelete: (id: number) => void, onStatusChange: (id: number, status: string) => void, onConvertToSale: (id: number) => void }) => {
-    
+const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStatusChange, onConvertToSale
     if (isLoading) {
         return <div>Carregando orçamentos...</div>;
     }
@@ -508,6 +508,9 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300">{new Date(quote.created_at).toLocaleDateString('pt-BR')}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300 text-right font-mono">{Number(quote.total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-4">
+                                    <button onClick={() => onPrint(quote.id)} className="text-cyan-500 hover:text-cyan-700" title="Imprimir Orçamento">
+                                        Imprimir
+                                    </button>
                                     {quote.status === 'Aprovado' && (
                                         <button onClick={() => onConvertToSale(quote.id)} className="text-green-600 hover:text-green-900" title="Converter em Venda">
                                             Vender
@@ -542,6 +545,8 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
     const [editingQuoteId, setEditingQuoteId] = useState<number | null>(null);
     const [quotes, setQuotes] = useState<Quote[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [printingQuote, setPrintingQuote] = useState<any | null>(null);
+    const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
     const navigate = useNavigate();
     const { setQuoteToConvert } = useEstoqueContext();
 
@@ -611,6 +616,27 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
         }
     };
 
+    const handlePrintQuote = async (quoteId: number) => {
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`/api/quotes/${quoteId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Falha ao buscar dados do orçamento para impressão.');
+            const quoteData = await response.json();
+            setPrintingQuote(quoteData);
+            setIsPrintModalOpen(true);
+        } catch (error) {
+            console.error(error);
+            // TODO: Adicionar notificação de erro
+        }
+    };
+
+    const triggerPrint = () => {
+        document.body.classList.add('print-mode-recibo');
+        window.print();
+    };
+
     const handleConvertToSale = async (quoteId: number) => {
         try {
             const token = localStorage.getItem('boycell-token');
@@ -656,11 +682,32 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
                     onEdit={handleEditClick}
                     onDelete={handleDeleteQuote}
                     onStatusChange={handleStatusChange}
+                    onPrint={handlePrintQuote}
                     onConvertToSale={handleConvertToSale}
                 />
             ) : (
                 <OrcamentoForm onBackToList={handleBackToList} currentUser={currentUser} quoteId={editingQuoteId} />
             )}
+
+            <div id="recibo-orcamento-printable-area" className="hidden">
+                <ReciboOrcamento quoteDetails={printingQuote} />
+            </div>
+
+            <Modal isOpen={isPrintModalOpen} onClose={() => setIsPrintModalOpen(false)} size="lg">
+                {printingQuote && (
+                    <>
+                        <h2 className="text-2xl font-bold text-center text-cyan-500 dark:text-cyan-400 mb-4">Pré-visualização do Orçamento</h2>
+                        <div className="bg-white rounded-lg overflow-y-auto max-h-[60vh]">
+                            <ReciboOrcamento quoteDetails={printingQuote} />
+                        </div>
+                        <div className="mt-6 flex justify-end gap-4">
+                            <button onClick={triggerPrint} className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-colors">
+                                Imprimir / Salvar PDF
+                            </button>
+                        </div>
+                    </>
+                )}
+            </Modal>
         </div>
     );
 }
