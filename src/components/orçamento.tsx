@@ -457,7 +457,7 @@ const ProductSearchModal = ({ isOpen, onClose, onProductSelect }: { isOpen: bool
  * Componente da Lista de Orçamentos
  * Exibe uma tabela com os orçamentos existentes.
  */
-const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStatusChange, onConvertToSale
+const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStatusChange, onConvertToSale, onPrint }: { quotes: Quote[], isLoading: boolean, onShowForm: () => void, onEdit: (id: number) => void, onDelete: (id: number) => void, onStatusChange: (id: number, status: string) => void, onConvertToSale: (id: number) => void, onPrint: (id: number) => void }) => {
     if (isLoading) {
         return <div>Carregando orçamentos...</div>;
     }
