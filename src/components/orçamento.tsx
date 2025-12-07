@@ -307,23 +307,44 @@ const ProductSearchModal = ({ isOpen, onClose, onProductSelect }: { isOpen: bool
         if (isOpen) {
             setIsLoading(true);
             setError(null); // Limpa erros anteriores ao abrir
-            const fetchProducts = async () => {
+            const fetchItems = async () => {
                 try {
                     const token = localStorage.getItem('boycell-token');
-                    // Busca produtos e serviços do endpoint da API
-                    const response = await fetch('/api/products', {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    if (!response.ok) {
-                        throw new Error(`Falha ao buscar itens (Status: ${response.status})`);
+
+                    // Busca produtos e serviços em paralelo
+                    const [productsResponse, servicesResponse] = await Promise.all([
+                        fetch('/api/products', { headers: { 'Authorization': `Bearer ${token}` } }),
+                        fetch('/api/services', { headers: { 'Authorization': `Bearer ${token}` } })
+                    ]);
+
+                    if (!productsResponse.ok) {
+                        throw new Error(`Falha ao buscar produtos (Status: ${productsResponse.status})`);
                     }
-                    const data = await response.json();
-                    if (Array.isArray(data)) {
-                        setProducts(data);
-                    } else {
-                        console.error("A API não retornou um array:", data);
-                        throw new Error("Formato de dados inesperado recebido do servidor.");
+                    if (!servicesResponse.ok) {
+                        throw new Error(`Falha ao buscar serviços (Status: ${servicesResponse.status})`);
                     }
+
+                    const productsData = await productsResponse.json();
+                    const servicesData = await servicesResponse.json();
+
+                    // Mapeia os produtos para o formato comum, usando 'nome' e 'precoFinal'
+                    const mappedProducts = Array.isArray(productsData) ? productsData.map((p: any) => ({
+                        id: p.id,
+                        name: p.nome, // de 'nome' para 'name'
+                        price: p.precoFinal, // de 'precoFinal' para 'price'
+                        type: 'produto' as const
+                    })) : [];
+
+                    // Mapeia os serviços para o formato comum, usando 'servico' e 'precoFinal'
+                    const mappedServices = Array.isArray(servicesData) ? servicesData.map((s: any) => ({
+                        id: s.id,
+                        name: s.servico, // de 'servico' para 'name'
+                        price: s.precoFinal, // de 'precoFinal' para 'price'
+                        type: 'serviço' as const
+                    })) : [];
+
+                    setProducts([...mappedProducts, ...mappedServices]);
+
                 } catch (err: any) {
                     console.error(err);
                     setError(err.message || 'Ocorreu um erro desconhecido.');
@@ -331,7 +352,7 @@ const ProductSearchModal = ({ isOpen, onClose, onProductSelect }: { isOpen: bool
                     setIsLoading(false);
                 }
             };
-            fetchProducts();
+            fetchItems();
         }
     }, [isOpen]);
 
