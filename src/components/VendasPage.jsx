@@ -36,7 +36,9 @@ const VendasPage = ({ onLogout, currentUser }) => {
         validatePhone,
         salesHistory,
         estoque,
-        servicos
+        servicos,
+        quoteToConvert,
+        setQuoteToConvert
     } = useEstoqueContext();
 
     const [carrinho, setCarrinho] = useState(() => {
@@ -83,6 +85,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
     const [showVendidoHoje, setShowVendidoHoje] = useState(false);
     const [showVendasHoje, setShowVendasHoje] = useState(false);
     const [showVendidoMes, setShowVendidoMes] = useState(false);
+    const [originatingQuoteId, setOriginatingQuoteId] = useState(null);
 
     const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -107,6 +110,46 @@ const VendasPage = ({ onLogout, currentUser }) => {
 
         return { totalVendidoHoje, vendasHoje: vendasHoje.length, totalVendidoMes };
     }, [salesHistory, currentUser]);
+
+    useEffect(() => {
+        if (quoteToConvert) {
+            // Preenche os dados do cliente
+            setCustomerName(quoteToConvert.customer_name || '');
+            setCustomerCpf(quoteToConvert.customer_cpf || '');
+            setCustomerPhone(quoteToConvert.customer_phone || '');
+            setCustomerEmail(quoteToConvert.customer_email || '');
+      
+            // Converte os itens do orçamento para o formato do carrinho, enriquecendo com dados do estoque/serviços
+            const cartItems = quoteToConvert.items.map(quoteItem => {
+                const sourceList = quoteItem.type === 'produto' ? estoque : servicos;
+                const originalItem = sourceList.find(i => i.id === quoteItem.id);
+
+                if (!originalItem) {
+                    console.warn(`Item do orçamento (ID: ${quoteItem.id}, Tipo: ${quoteItem.type}) não encontrado no estoque/serviços.`);
+                    return null; // ou um item de fallback
+                }
+
+                return {
+                    ...originalItem, // Pega todas as propriedades originais (imagem, emEstoque, etc)
+                    id: quoteItem.id,
+                    type: quoteItem.type,
+                    // Mantém a descrição e valor do orçamento, pois podem ter sido editados
+                    nome: quoteItem.type === 'produto' ? quoteItem.descricao : originalItem.nome,
+                    servico: quoteItem.type === 'serviço' ? quoteItem.descricao : originalItem.servico,
+                    precoFinal: quoteItem.valor,
+                    quantity: quoteItem.quantity,
+                };
+            }).filter(Boolean); // Remove itens nulos caso não sejam encontrados
+
+            setCarrinho(cartItems);
+      
+            // Guarda o ID do orçamento para ser enviado na venda
+            setOriginatingQuoteId(quoteToConvert.id);
+      
+            // Limpa o estado do contexto para não preencher novamente
+            setQuoteToConvert(null);
+        }
+    }, [quoteToConvert, setQuoteToConvert, estoque, servicos]);
 
     const handleCpfChange = (e) => {
         const value = e.target.value;
@@ -269,6 +312,7 @@ const VendasPage = ({ onLogout, currentUser }) => {
             customerEmail: customerEmail,
             paymentMethod: paymentMethod,
             vendedor: currentUser.name,
+            quoteId: originatingQuoteId,
         };
 
         const completeSaleDetails = handleSale ? await handleSale(saleDetails) : null;
