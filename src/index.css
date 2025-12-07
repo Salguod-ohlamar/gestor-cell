@@ -117,6 +117,21 @@
   body.print-mode-user-sales-report #user-sales-report-printable-area * {
     visibility: visible;
   }
+
+  /* Regras para impressão do Orçamento */
+  body.print-mode-recibo #recibo-orcamento-printable-area {
+    visibility: visible;
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  body.print-mode-recibo #recibo-orcamento-printable-area * {
+    visibility: visible;
+  }
+  /* Garante que o modal de pré-visualização não apareça na impressão */
+  [role="dialog"] { display: none !important; }
 }
 
 @keyframes fadeIn {

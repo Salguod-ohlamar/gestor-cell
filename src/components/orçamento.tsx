@@ -633,6 +633,12 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
     };
 
     const triggerPrint = () => {
+        const handleAfterPrint = () => {
+            document.body.classList.remove('print-mode-recibo');
+            window.removeEventListener('afterprint', handleAfterPrint);
+        };
+        window.addEventListener('afterprint', handleAfterPrint);
+
         document.body.classList.add('print-mode-recibo');
         window.print();
     };
@@ -697,7 +703,8 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
                 {printingQuote && (
                     <>
                         <h2 className="text-2xl font-bold text-center text-cyan-500 dark:text-cyan-400 mb-4">Pré-visualização do Orçamento</h2>
-                        <div className="bg-white rounded-lg overflow-y-auto max-h-[60vh]">
+                        {/* Container que simula uma folha de papel para uma pré-visualização mais fiel */}
+                        <div className="bg-gray-200 dark:bg-gray-900 p-4 sm:p-6 overflow-y-auto max-h-[70vh] rounded-lg">
                             <ReciboOrcamento quoteDetails={printingQuote} />
                         </div>
                         <div className="mt-6 flex justify-end gap-4">
