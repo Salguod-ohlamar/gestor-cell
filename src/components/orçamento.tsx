@@ -750,19 +750,19 @@ export function Orcamento({ currentUser, onLogout }: OrcamentoProps) {
             <nav className="flex flex-wrap justify-end items-center gap-4 mb-6">
                 <button
                     onClick={() => navigate('/estoque')}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 neon-button"
                 >
                     Gerenciar Estoque
                 </button>
                 <button
                     onClick={() => navigate('/vendas')}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 neon-button"
                 >
                     Vendas
                 </button>
                 <button
                     onClick={handleLogout}
-                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 neon-button"
                 >
                     Sair
                 </button>
