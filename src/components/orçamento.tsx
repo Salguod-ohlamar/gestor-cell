@@ -1,6 +1,6 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
-import Sidebar from './Sidebar'; // Importando a barra lateral
-import Header from './Header'; // Importando o cabeçalho
+import Sidebar from './Sidebar.jsx'; // Importando a barra lateral
+import Header from './Header.jsx'; // Importando o cabeçalho
 
 // Tipagem para os itens do orçamento (peças e serviços)
 interface QuoteItem {
