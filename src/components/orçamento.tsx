@@ -469,6 +469,7 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
     const indexOfLastQuote = currentPage * quotesPerPage;
     const indexOfFirstQuote = indexOfLastQuote - quotesPerPage;
     const currentQuotes = quotes.slice(indexOfFirstQuote, indexOfLastQuote);
+    const totalPages = Math.ceil(quotes.length / quotesPerPage);
 
     return (
         <>
@@ -480,7 +481,6 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                 </p>
             </div>
 
-               
                 <button onClick={onShowForm} className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
                     Novo Orçamento
                 </button>
@@ -545,32 +545,28 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                     </tbody>
                 </table>
             </div>
-               {/* Pagination controls */}
-               <div className="flex justify-center mt-4">
+            {/* Controles de Paginação */}
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center mt-6 space-x-4">
                     <button
                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                         disabled={currentPage === 1}
-                        className="px-4 py-2 mx-1 bg-gray-200 dark:bg-gray-700 rounded-md disabled:opacity-50"
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
                     >
                         Anterior
                     </button>
-                    <span>
-                        Página {currentPage} de {Math.ceil(quotes.length / quotesPerPage)}
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Página {currentPage} de {totalPages}
                     </span>
                     <button
-                        onClick={() => setCurrentPage(prev =>
-                            Math.min(prev + 1, Math.ceil(quotes.length / quotesPerPage))
-                        )}
-                        disabled={currentPage === Math.ceil(quotes.length / quotesPerPage)}
-                        className="px-4 py-2 mx-1 bg-gray-200 dark:bg-gray-700 rounded-md disabled:opacity-50"
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
                     >
                         Próximo
                     </button>
                 </div>
-                      
-                
-            {/* Pagination controls */}
-            
+            )}
 
         </>
     );
