@@ -326,7 +326,7 @@ const ProductSearchModal = ({ isOpen, onClose, onProductSelect }: { isOpen: bool
     }, [isOpen]);
 
     const filteredProducts = products.filter(p =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase())
+        (p.name || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const handleSelect = (product: Product) => {
