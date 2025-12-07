@@ -7,6 +7,8 @@ import { EstoqueProvider, useEstoqueContext } from './components/EstoqueContext.
 import LoginPage from './components/LoginPage.jsx';
 import Modal from './components/Modal.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
+import { Orcamento } from './components/orçamento';
+
 
 // Lazy load pages using import.meta.glob for stable path resolution
 const pages = import.meta.glob('./**/*.jsx');
@@ -67,12 +69,7 @@ const AppContent = () => {
                                 />
                             } />
 
-                            <Route path="/orcamento" element={
-                                <BudgetPage
-                                    onLogout={handleLogout}
-                                    currentUser={currentUser}
-                                />
-                            } />
+                            <Route path="/orcamento" element={<Orcamento />} />
                             {/* Rotas para Estoque, Clientes, Admin: Acessíveis por admin e root. */}
                             <Route element={<ProtectedRoute user={currentUser} allowedRoles={['admin', 'root']} redirectPath="/vendas" />}>
                                 <Route path="/estoque" element={<StockControl onLogout={handleLogout} currentUser={currentUser} />} />
