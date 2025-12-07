@@ -35,7 +35,7 @@ interface Product {
 
 interface OrcamentoProps {
     currentUser: { id: number; name: string; role: string; };
-    onLogout?: () => void; // Tornando opcional, pois não é usado aqui
+    onLogout?: () => void;
 }
 
 /**
@@ -603,7 +603,7 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
  * Componente Principal da Página de Orçamento
  * Controla a visualização entre a lista e o formulário.
  */
-export function Orcamento({ currentUser }: OrcamentoProps) {
+export function Orcamento({ currentUser, onLogout }: OrcamentoProps) {
     const [view, setView] = useState<'list' | 'form'>('list');
     const [editingQuoteId, setEditingQuoteId] = useState<number | null>(null);
     const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -612,6 +612,15 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
     const navigate = useNavigate();
     const { setQuoteToConvert } = useEstoqueContext();
+
+    const handleLogout = () => {
+        if (onLogout) {
+            onLogout();
+        } else {
+            localStorage.removeItem('boycell-token');
+            navigate('/login');
+        }
+    };
 
     const fetchQuotes = async () => {
         setIsLoading(true);
@@ -738,12 +747,30 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
 
     return (
         <div className="max-w-7xl mx-auto my-8 p-6 md:p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+            <nav className="flex flex-wrap justify-end items-center gap-4 mb-6">
+                <button
+                    onClick={() => navigate('/estoque')}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                >
+                    Gerenciar Estoque
+                </button>
+                <button
+                    onClick={() => navigate('/vendas')}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                >
+                    Vendas
+                </button>
+                <button
+                    onClick={handleLogout}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+                >
+                    Sair
+                </button>
+            </nav>
             <header className="text-center pb-4 mb-8 border-b-2 border-gray-200 dark:border-gray-700">
                 <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Módulo de Orçamentos</h1>
                 <p className="text-md text-gray-500 dark:text-gray-400">BOY CELL - Assistência Técnica</p>
             </header>
-
-
             {view === 'list' ? (
                 <OrcamentoList
                     quotes={quotes}
