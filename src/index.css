@@ -51,13 +51,19 @@
   }
 
   /* --- REGRAS DE IMPRESSÃO PARA RECIBOS (VENDAS E ORÇAMENTOS) --- */
-  
-  /* 1. Esconde todos os elementos diretos do body, exceto as áreas de impressão */
-  body.print-mode-recibo > *:not(#recibo-printable-area):not(#recibo-orcamento-printable-area) {
-    display: none !important;
+  body.print-mode-recibo * {
+    visibility: hidden; /* 1. Esconde tudo por padrão */
   }
-  
-  /* 2. Garante que a área de impressão correta seja exibida e posicionada */
+
+  /* 2. Torna a área de impressão (seja de venda ou orçamento) e seus filhos visíveis */
+  body.print-mode-recibo #recibo-printable-area,
+  body.print-mode-recibo #recibo-printable-area *,
+  body.print-mode-recibo #recibo-orcamento-printable-area,
+  body.print-mode-recibo #recibo-orcamento-printable-area * {
+    visibility: visible;
+  }
+
+  /* 3. Posiciona a área de impressão para ocupar a página inteira */
   body.print-mode-recibo #recibo-printable-area,
   body.print-mode-recibo #recibo-orcamento-printable-area {
     position: absolute;
