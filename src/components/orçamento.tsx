@@ -26,7 +26,7 @@ interface OrcamentoProps {
  * Componente do Formulário de Orçamento
  * Responsável por criar ou editar um orçamento.
  */
-const OrcamentoForm = ({ onBackToList, currentUser }: { onBackToList: () => void, currentUser: OrcamentoProps['currentUser'] }) => {
+const OrcamentoForm = ({ onBackToList, currentUser, quoteId }: { onBackToList: () => void, currentUser: OrcamentoProps['currentUser'], quoteId: number | null }) => {
     // Estado para os dados do formulário
     const [formData, setFormData] = useState({
         // Inicializa a data do orçamento com o dia de hoje
@@ -53,6 +53,45 @@ const OrcamentoForm = ({ onBackToList, currentUser }: { onBackToList: () => void
     // Estado para o valor total
     const [total, setTotal] = useState(0);
 
+    // Efeito para buscar os dados do orçamento quando estiver em modo de edição
+    useEffect(() => {
+        if (quoteId) {
+            const fetchQuoteDetails = async () => {
+                try {
+                    const token = localStorage.getItem('boycell-token');
+                    const response = await fetch(`/api/quotes/${quoteId}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (!response.ok) throw new Error('Falha ao buscar detalhes do orçamento');
+                    const data = await response.json();
+
+                    // Separa marca e modelo
+                    const [brand, ...modelParts] = (data.device_brand_model || '').split(' ');
+
+                    // Popula o formulário com os dados recebidos
+                    setFormData({
+                        customer_name: data.customer_name || '',
+                        customer_cpf: data.customer_cpf || '',
+                        customer_phone: data.customer_phone || '',
+                        customer_email: data.customer_email || '',
+                        deviceBrand: brand || '',
+                        deviceModel: modelParts.join(' ') || '',
+                        device_serial_number: data.device_serial_number || '',
+                        reported_defect: data.reported_defect || '',
+                        observations: data.observations || '',
+                        expected_quote_date: data.expected_quote_date ? new Date(data.expected_quote_date).toISOString().split('T')[0] : '',
+                        expected_delivery_date: data.expected_delivery_date ? new Date(data.expected_delivery_date).toISOString().split('T')[0] : '',
+                        warranty_period: data.warranty_period || '',
+                    });
+                    setItems(data.items || []);
+                } catch (error) {
+                    console.error(error);
+                }
+            };
+            fetchQuoteDetails();
+        }
+    }, [quoteId]);
+
     // Recalcula o total sempre que a lista de itens mudar
     useEffect(() => {
         const novoTotal = items.reduce((acc, item) => acc + item.valor, 0);
@@ -71,7 +110,7 @@ const OrcamentoForm = ({ onBackToList, currentUser }: { onBackToList: () => void
     };
 
     // Função para submeter o formulário
-    const handleSubmit = (e: FormEvent) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         // Monta o objeto final para ser enviado à API
         const orcamentoCompleto = {
@@ -85,16 +124,33 @@ const OrcamentoForm = ({ onBackToList, currentUser }: { onBackToList: () => void
         delete (orcamentoCompleto as any).deviceBrand;
         delete (orcamentoCompleto as any).deviceModel;
 
-        console.log('Dados do Orçamento:', orcamentoCompleto);
-        // TODO: Chamar a API para salvar o orçamento
-        // Ex: await api.post('/quotes', orcamentoCompleto);
-        // Após salvar, voltar para a lista
-        onBackToList();
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const url = quoteId ? `/api/quotes/${quoteId}` : '/api/quotes';
+            const method = quoteId ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(orcamentoCompleto)
+            });
+
+            if (!response.ok) {
+                throw new Error(quoteId ? 'Falha ao atualizar orçamento' : 'Falha ao criar orçamento');
+            }
+
+            onBackToList(); // Volta para a lista após sucesso
+        } catch (error) {
+            console.error(error);
+        }
     };
 
     return (
         <>
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Novo Orçamento</h1>
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">{quoteId ? 'Editar Orçamento' : 'Novo Orçamento'}</h1>
             <p className="text-md text-gray-500 dark:text-gray-400 mb-8">Preencha os dados para gerar um novo orçamento.</p>
 
             <form className="space-y-8" onSubmit={handleSubmit}>
@@ -213,7 +269,7 @@ const OrcamentoForm = ({ onBackToList, currentUser }: { onBackToList: () => void
                         Cancelar
                     </button>
                     <button type="submit" className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                        Gerar Orçamento
+                        {quoteId ? 'Salvar Alterações' : 'Gerar Orçamento'}
                     </button>
                 </div>
             </form>
@@ -225,7 +281,7 @@ const OrcamentoForm = ({ onBackToList, currentUser }: { onBackToList: () => void
  * Componente da Lista de Orçamentos
  * Exibe uma tabela com os orçamentos existentes.
  */
-const OrcamentoList = ({ onShowForm }: { onShowForm: () => void }) => {
+const OrcamentoList = ({ onShowForm, onEdit }: { onShowForm: () => void, onEdit: (id: number) => void }) => {
     const [quotes, setQuotes] = useState<Quote[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -294,7 +350,9 @@ const OrcamentoList = ({ onShowForm }: { onShowForm: () => void }) => {
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300">{new Date(quote.created_at).toLocaleDateString('pt-BR')}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300 text-right font-mono">{Number(quote.total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <a href="#" className="text-indigo-600 hover:text-indigo-900">Ver / Editar</a>
+                                    <button onClick={() => onEdit(quote.id)} className="text-indigo-600 hover:text-indigo-900">
+                                        Ver / Editar
+                                    </button>
                                 </td>
                             </tr>
                         )) : (
@@ -315,6 +373,18 @@ const OrcamentoList = ({ onShowForm }: { onShowForm: () => void }) => {
  */
 export function Orcamento({ currentUser }: OrcamentoProps) {
     const [view, setView] = useState<'list' | 'form'>('list');
+    const [editingQuoteId, setEditingQuoteId] = useState<number | null>(null);
+
+    // Função para lidar com o clique no botão de editar
+    const handleEditClick = (quoteId: number) => {
+        setEditingQuoteId(quoteId);
+        setView('form');
+    };
+
+    const handleBackToList = () => {
+        setEditingQuoteId(null); // Limpa o ID de edição
+        setView('list');
+    };
 
     return (
         <div className="max-w-7xl mx-auto my-8 p-6 md:p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
@@ -324,9 +394,9 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
             </header>
 
             {view === 'list' ? (
-                <OrcamentoList onShowForm={() => setView('form')} /> 
+                <OrcamentoList onShowForm={() => setView('form')} onEdit={handleEditClick} />
             ) : (
-                <OrcamentoForm onBackToList={() => setView('list')} currentUser={currentUser} />
+                <OrcamentoForm onBackToList={handleBackToList} currentUser={currentUser} quoteId={editingQuoteId} />
             )}
         </div>
     );
