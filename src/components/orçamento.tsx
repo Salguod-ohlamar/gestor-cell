@@ -1,10 +1,15 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Modal from '@/components/Modal.jsx';
+import { useEstoqueContext } from '@/components/EstoqueContext.jsx';
 
 // Tipagem para os itens do orçamento (peças e serviços)
 interface QuoteItem {
+    id: number;
+    type: 'produto' | 'serviço';
     descricao: string;
     valor: number;
+    quantity: number;
 }
 
 // Tipagem para o objeto de orçamento, espelhando a tabela do DB
@@ -113,7 +118,13 @@ const OrcamentoForm = ({ onBackToList, currentUser, quoteId }: { onBackToList: (
 
     // Adiciona o produto/serviço selecionado no modal à lista de itens do orçamento
     const handleProductSelect = (product: Product) => {
-        setItems(prevItems => [...prevItems, { descricao: product.name, valor: Number(product.price) }]);
+        setItems(prevItems => [...prevItems, {
+            id: product.id,
+            type: product.type,
+            descricao: product.name,
+            valor: Number(product.price),
+            quantity: 1
+        }]);
     };
 
     // Função para remover um item da lista
@@ -125,7 +136,8 @@ const OrcamentoForm = ({ onBackToList, currentUser, quoteId }: { onBackToList: (
     const handleItemChange = (indexToUpdate: number, field: keyof QuoteItem, value: string) => {
         const newItems = items.map((item, index) => {
             if (index === indexToUpdate) {
-                return { ...item, [field]: field === 'valor' ? parseFloat(value) || 0 : value };
+                const processedValue = (field === 'valor' || field === 'quantity') ? parseFloat(value) || 0 : value;
+                return { ...item, [field]: processedValue };
             }
             return item;
         });
@@ -247,7 +259,8 @@ const OrcamentoForm = ({ onBackToList, currentUser, quoteId }: { onBackToList: (
                             <thead className="bg-gray-50 dark:bg-gray-700">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Item</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-40">Valor (R$)</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-40">Valor Unit. (R$)</th>
+                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-24">Qtd.</th>
                                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-28">Ações</th>
                                 </tr>
                             </thead>
@@ -270,6 +283,14 @@ const OrcamentoForm = ({ onBackToList, currentUser, quoteId }: { onBackToList: (
                                                 className="w-full p-2 bg-transparent border-none focus:ring-1 focus:ring-blue-500 rounded-md text-right font-mono dark:text-gray-200"
                                             />
                                         </td>
+                                        <td className="px-2 py-1">
+                                            <input
+                                                type="number"
+                                                value={item.quantity}
+                                                onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                                                className="w-full p-2 bg-transparent border-none focus:ring-1 focus:ring-blue-500 rounded-md text-center font-mono dark:text-gray-200"
+                                            />
+                                        </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <button type="button" onClick={() => handleRemoveItem(index)} className="text-red-600 hover:text-red-800" title="Remover Item">
                                                 Remover
@@ -280,7 +301,7 @@ const OrcamentoForm = ({ onBackToList, currentUser, quoteId }: { onBackToList: (
                             </tbody>
                             <tfoot className="bg-gray-50 dark:bg-gray-700">
                                 <tr>
-                                    <td className="px-6 py-3 text-right text-sm font-bold text-gray-800 dark:text-gray-200 uppercase">Total</td>
+                                    <td colSpan="3" className="px-6 py-3 text-right text-sm font-bold text-gray-800 dark:text-gray-200 uppercase">Total</td>
                                     <td className="px-6 py-3 text-right text-lg font-bold text-gray-900 dark:text-white font-mono">{total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                                 </tr>
                             </tfoot>
@@ -435,7 +456,7 @@ const ProductSearchModal = ({ isOpen, onClose, onProductSelect }: { isOpen: bool
  * Componente da Lista de Orçamentos
  * Exibe uma tabela com os orçamentos existentes.
  */
-const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStatusChange }: { quotes: Quote[], isLoading: boolean, onShowForm: () => void, onEdit: (id: number) => void, onDelete: (id: number) => void, onStatusChange: (id: number, status: string) => void }) => {
+const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStatusChange, onConvertToSale }: { quotes: Quote[], isLoading: boolean, onShowForm: () => void, onEdit: (id: number) => void, onDelete: (id: number) => void, onStatusChange: (id: number, status: string) => void, onConvertToSale: (id: number) => void }) => {
     
     if (isLoading) {
         return <div>Carregando orçamentos...</div>;
@@ -487,6 +508,11 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300">{new Date(quote.created_at).toLocaleDateString('pt-BR')}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300 text-right font-mono">{Number(quote.total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-4">
+                                    {quote.status === 'Aprovado' && (
+                                        <button onClick={() => onConvertToSale(quote.id)} className="text-green-600 hover:text-green-900" title="Converter em Venda">
+                                            Vender
+                                        </button>
+                                    )}
                                     <button onClick={() => onEdit(quote.id)} className="text-indigo-600 hover:text-indigo-900" title="Editar">
                                         Ver / Editar
                                     </button>
@@ -516,6 +542,8 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
     const [editingQuoteId, setEditingQuoteId] = useState<number | null>(null);
     const [quotes, setQuotes] = useState<Quote[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const navigate = useNavigate();
+    const { setQuoteToConvert } = useEstoqueContext();
 
     const fetchQuotes = async () => {
         setIsLoading(true);
@@ -583,6 +611,25 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
         }
     };
 
+    const handleConvertToSale = async (quoteId: number) => {
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch(`/api/quotes/${quoteId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Falha ao buscar detalhes do orçamento para conversão.');
+            const quoteData = await response.json();
+
+            // Armazena os dados do orçamento no contexto para a página de vendas usar
+            setQuoteToConvert(quoteData);
+
+            // Navega para a página de vendas
+            navigate('/vendas');
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
     // Função para lidar com o clique no botão de editar
     const handleEditClick = (quoteId: number) => {
         setEditingQuoteId(quoteId);
@@ -609,6 +656,7 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
                     onEdit={handleEditClick}
                     onDelete={handleDeleteQuote}
                     onStatusChange={handleStatusChange}
+                    onConvertToSale={handleConvertToSale}
                 />
             ) : (
                 <OrcamentoForm onBackToList={handleBackToList} currentUser={currentUser} quoteId={editingQuoteId} />

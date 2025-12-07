@@ -956,7 +956,7 @@ app.post('/api/sales', protect, async (req, res) => {
     const {
         items, subtotal, discountPercentage, discountValue, total,
         customer, customerCpf, customerPhone, customerEmail,
-        paymentMethod, vendedor
+        paymentMethod, vendedor, quoteId
     } = req.body;
     const userId = req.user.id;
 
@@ -989,11 +989,11 @@ app.post('/api/sales', protect, async (req, res) => {
 
         const receiptCode = `BC-${new Date().getFullYear()}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${new Date().getDate().toString().padStart(2, '0')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
         const saleQuery = `
-            INSERT INTO sales (receipt_code, client_id, user_id, vendedor_name, subtotal, discount_percentage, discount_value, total, payment_method)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            INSERT INTO sales (receipt_code, client_id, user_id, vendedor_name, subtotal, discount_percentage, discount_value, total, payment_method, quote_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING id, sale_date;
         `;
-        const saleValues = [receiptCode, clientId, userId, vendedor, subtotal, discountPercentage, discountValue, total, paymentMethod];
+        const saleValues = [receiptCode, clientId, userId, vendedor, subtotal, discountPercentage, discountValue, total, paymentMethod, quoteId || null];
         const { rows: newSale } = await client.query(saleQuery, saleValues);
         const saleId = newSale[0].id;
         const saleDate = newSale[0].sale_date;
@@ -1029,6 +1029,14 @@ app.post('/api/sales', protect, async (req, res) => {
                 };
                 await client.query(updateStockQuery, [item.quantity, JSON.stringify(historyEntry), item.id]);
             }
+        }
+
+        // Se a venda foi originada de um orçamento, atualiza o status do orçamento
+        if (quoteId) {
+            await client.query(
+                "UPDATE quotes SET status = 'Concluído' WHERE id = $1",
+                [quoteId]
+            );
         }
 
         await client.query('COMMIT');
