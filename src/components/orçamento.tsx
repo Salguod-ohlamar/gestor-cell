@@ -459,6 +459,8 @@ const ProductSearchModal = ({ isOpen, onClose, onProductSelect }: { isOpen: bool
  */
 const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStatusChange, onConvertToSale, onPrint }: { quotes: Quote[], isLoading: boolean, onShowForm: () => void, onEdit: (id: number) => void, onDelete: (id: number) => void, onStatusChange: (id: number, status: string) => void, onConvertToSale: (id: number) => void, onPrint: (id: number) => void }) => {
     
+    const [searchTerm, setSearchTerm] = useState('');
+
     const [currentPage, setCurrentPage] = useState(1);
     const quotesPerPage = 10; // You can adjust this value
     if (isLoading) {
@@ -468,9 +470,17 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
     // Lógica de Paginação
     const indexOfLastQuote = currentPage * quotesPerPage;
     const indexOfFirstQuote = indexOfLastQuote - quotesPerPage;
-
     const currentQuotes = quotes.slice(indexOfFirstQuote, indexOfLastQuote);
-    const totalPages = Math.ceil(quotes.length / quotesPerPage);
+
+    const filteredQuotes = useMemo(() => {
+        if (!searchTerm) return currentQuotes;
+
+        const lowerSearchTerm = searchTerm.toLowerCase();
+        return currentQuotes.filter(quote => (
+            quote.customer_name.toLowerCase().includes(lowerSearchTerm) ||
+            quote.quote_number.toLowerCase().includes(lowerSearchTerm)
+        ));
+    }, [searchTerm, quotes, currentQuotes]);
 
     return (
         <>
@@ -482,7 +492,16 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                 </p>
             </div>
 
-                <button onClick={onShowForm} className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+            <div className="relative mb-4">
+                <input
+                    type="text"
+                    placeholder="Buscar por cliente ou nº do orçamento..."
+                    className="w-full p-2 pl-10 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+            <button onClick={onShowForm} className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
                     Novo Orçamento
                 </button>
             </div>
@@ -490,7 +509,7 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
             {/* TODO: Adicionar campos de busca e filtro aqui */}
 
 
-            <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
+             <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="bg-gray-50 dark:bg-gray-700">
                         <tr>
@@ -503,7 +522,7 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                         </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        {currentQuotes.length > 0 ? currentQuotes.map(quote => (
+                         {filteredQuotes.length > 0 ? filteredQuotes.map(quote => (
                             <tr key={quote.id}>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{quote.quote_number}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300">{quote.customer_name}</td>
@@ -546,28 +565,32 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                     </tbody>
                 </table>
             </div>
-            {/* Controles de Paginação */}
-            {totalPages > 1 && (
-                <div className="flex justify-center items-center mt-6 space-x-4">
+               {/* Pagination controls */}
+               <div className="flex justify-center mt-4">
                     <button
                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                         disabled={currentPage === 1}
-                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                        className="px-4 py-2 mx-1 bg-gray-200 dark:bg-gray-700 rounded-md disabled:opacity-50"
                     >
                         Anterior
                     </button>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Página {currentPage} de {totalPages}
+                    <span>
+                        Página {currentPage} de {Math.ceil(quotes.length / quotesPerPage)}
                     </span>
                     <button
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        disabled={currentPage === totalPages}
-                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                        onClick={() => setCurrentPage(prev =>
+                            Math.min(prev + 1, Math.ceil(quotes.length / quotesPerPage))
+                        )}
+                        disabled={currentPage === Math.ceil(quotes.length / quotesPerPage)}
+                        className="px-4 py-2 mx-1 bg-gray-200 dark:bg-gray-700 rounded-md disabled:opacity-50"
                     >
                         Próximo
                     </button>
                 </div>
-            )}
+                      
+                
+            {/* Pagination controls */}
+            
 
         </>
     );
