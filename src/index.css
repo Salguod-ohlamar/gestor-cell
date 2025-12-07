@@ -63,9 +63,10 @@
     visibility: visible;
   }
 
-  /* 3. Posiciona a área de impressão para ocupar a página inteira */
+  /* 3. Força a área de impressão a ser exibida e a posiciona para ocupar a página inteira */
   body.print-mode-recibo #recibo-printable-area,
   body.print-mode-recibo #recibo-orcamento-printable-area {
+    display: block !important; /* Essencial para sobrepor a classe 'hidden' (display: none) */
     position: absolute;
     left: 0;
     top: 0;
