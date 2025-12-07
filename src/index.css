@@ -120,7 +120,6 @@
 
   /* Esconde tudo que não é da área de impressão do orçamento, mas permite que o conteúdo dentro da área seja visível */
   body.print-mode-orcamento *:not(#recibo-orcamento-printable-area),
-  body.print-mode-orcamento > body > *:not(#recibo-orcamento-printable-area) {
   body.print-mode-orcamento > *:not(#recibo-orcamento-printable-area) {
     display: none !important;
   }
