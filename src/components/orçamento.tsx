@@ -480,10 +480,7 @@ const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete, onStat
                 </p>
             </div>
 
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Gerenciar Orçamentos</h1>
-                    <p className="text-md text-gray-500 dark:text-gray-400">Visualize, crie e edite os orçamentos.</p>
-                </div>
+               
                 <button onClick={onShowForm} className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
                     Novo Orçamento
                 </button>
