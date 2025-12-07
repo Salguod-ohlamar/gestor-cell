@@ -1,4 +1,5 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import Modal from '@/components/Modal.jsx';
 
 // Tipagem para os itens do orçamento (peças e serviços)
 interface QuoteItem {
@@ -15,6 +16,14 @@ interface Quote {
     total: number;
     created_at: string;
     // Adicione outros campos se precisar exibi-los na tabela
+}
+
+// Tipagem para o objeto de produto/serviço vindo da API
+interface Product {
+    id: number;
+    name: string;
+    price: number;
+    type: 'produto' | 'serviço';
 }
 
 interface OrcamentoProps {
@@ -45,13 +54,11 @@ const OrcamentoForm = ({ onBackToList, currentUser, quoteId }: { onBackToList: (
     });
 
     // Estado para a lista de itens (serviços e peças)
-    const [items, setItems] = useState<QuoteItem[]>([
-        { descricao: 'Análise Técnica', valor: 50.00 },
-        { descricao: 'Mão de Obra', valor: 100.00 },
-    ]);
+    const [items, setItems] = useState<QuoteItem[]>([]);
 
     // Estado para o valor total
     const [total, setTotal] = useState(0);
+    const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
     // Efeito para buscar os dados do orçamento quando estiver em modo de edição
     useEffect(() => {
@@ -104,9 +111,14 @@ const OrcamentoForm = ({ onBackToList, currentUser, quoteId }: { onBackToList: (
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // Função para adicionar um novo item à lista
-    const handleAddItem = () => {
-        setItems([...items, { descricao: '', valor: 0 }]);
+    // Adiciona o produto/serviço selecionado no modal à lista de itens do orçamento
+    const handleProductSelect = (product: Product) => {
+        setItems(prevItems => [...prevItems, { descricao: product.name, valor: Number(product.price) }]);
+    };
+
+    // Abre o modal de busca de produtos
+    const openSearchModal = () => {
+        setIsSearchModalOpen(true);
     };
 
     // Função para submeter o formulário
@@ -239,7 +251,7 @@ const OrcamentoForm = ({ onBackToList, currentUser, quoteId }: { onBackToList: (
                         </table>
                     </div>
                     <div className="mt-4 flex justify-start">
-                        <button type="button" onClick={handleAddItem} className="px-4 py-2 border border-dashed border-gray-400 dark:border-gray-500 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <button type="button" onClick={openSearchModal} className="px-4 py-2 border border-dashed border-gray-400 dark:border-gray-500 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             + Adicionar Item
                         </button>
                     </div>
@@ -273,44 +285,89 @@ const OrcamentoForm = ({ onBackToList, currentUser, quoteId }: { onBackToList: (
                     </button>
                 </div>
             </form>
+            <ProductSearchModal
+                isOpen={isSearchModalOpen}
+                onClose={() => setIsSearchModalOpen(false)}
+                onProductSelect={handleProductSelect}
+            />
         </>
     );
 }
 
 /**
+ * Modal para buscar e selecionar produtos/serviços.
+ */
+const ProductSearchModal = ({ isOpen, onClose, onProductSelect }: { isOpen: boolean, onClose: () => void, onProductSelect: (product: Product) => void }) => {
+    const [products, setProducts] = useState<Product[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            setIsLoading(true);
+            const fetchProducts = async () => {
+                try {
+                    const token = localStorage.getItem('boycell-token');
+                    // Busca produtos e serviços do endpoint da API
+                    const response = await fetch('/api/products', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (!response.ok) throw new Error('Falha ao buscar produtos e serviços');
+                    const data = await response.json();
+                    setProducts(data);
+                } catch (error) {
+                    console.error(error);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            fetchProducts();
+        }
+    }, [isOpen]);
+
+    const filteredProducts = products.filter(p =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const handleSelect = (product: Product) => {
+        onProductSelect(product);
+        onClose(); // Fecha o modal após a seleção
+    };
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title="Buscar Produto ou Serviço" size="lg">
+            <div className="flex flex-col space-y-4">
+                <input
+                    type="text"
+                    placeholder="Digite para buscar..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                    autoFocus
+                />
+                {isLoading ? (
+                    <div className="text-center p-4 dark:text-gray-300">Carregando...</div>
+                ) : (
+                    <ul className="max-h-96 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-700">
+                        {filteredProducts.length > 0 ? filteredProducts.map(product => (
+                            <li key={product.id} onClick={() => handleSelect(product)} className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer flex justify-between items-center">
+                                <span className="dark:text-gray-200">{product.name}</span>
+                                <span className="font-mono text-sm text-gray-700 dark:text-gray-300">{Number(product.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                            </li>
+                        )) : (<li className="p-3 text-center text-gray-500 dark:text-gray-400">Nenhum item encontrado.</li>)}
+                    </ul>
+                )}
+            </div>
+        </Modal>
+    );
+};
+
+/**
  * Componente da Lista de Orçamentos
  * Exibe uma tabela com os orçamentos existentes.
  */
-const OrcamentoList = ({ onShowForm, onEdit }: { onShowForm: () => void, onEdit: (id: number) => void }) => {
-    const [quotes, setQuotes] = useState<Quote[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchQuotes = async () => {
-            try {
-                // A requisição será direcionada para http://localhost:3001/api/quotes pelo proxy do Vite
-                const token = localStorage.getItem('boycell-token');
-                const response = await fetch('/api/quotes', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                if (!response.ok) {
-                    throw new Error('Falha ao buscar orçamentos');
-                }
-                const data = await response.json();
-                setQuotes(data);
-            } catch (error) {
-                console.error(error);
-                // TODO: Mostrar notificação de erro para o usuário
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchQuotes();
-    }, []);
-
+const OrcamentoList = ({ quotes, isLoading, onShowForm, onEdit, onDelete }: { quotes: Quote[], isLoading: boolean, onShowForm: () => void, onEdit: (id: number) => void, onDelete: (id: number) => void }) => {
+    
     if (isLoading) {
         return <div>Carregando orçamentos...</div>;
     }
@@ -338,7 +395,7 @@ const OrcamentoList = ({ onShowForm, onEdit }: { onShowForm: () => void, onEdit:
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Data</th>
                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Total</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -349,9 +406,12 @@ const OrcamentoList = ({ onShowForm, onEdit }: { onShowForm: () => void, onEdit:
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300">{quote.status}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300">{new Date(quote.created_at).toLocaleDateString('pt-BR')}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-300 text-right font-mono">{Number(quote.total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button onClick={() => onEdit(quote.id)} className="text-indigo-600 hover:text-indigo-900">
+                                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-4">
+                                    <button onClick={() => onEdit(quote.id)} className="text-indigo-600 hover:text-indigo-900" title="Editar">
                                         Ver / Editar
+                                    </button>
+                                    <button onClick={() => onDelete(quote.id)} className="text-red-600 hover:text-red-900" title="Deletar">
+                                        Deletar
                                     </button>
                                 </td>
                             </tr>
@@ -374,6 +434,50 @@ const OrcamentoList = ({ onShowForm, onEdit }: { onShowForm: () => void, onEdit:
 export function Orcamento({ currentUser }: OrcamentoProps) {
     const [view, setView] = useState<'list' | 'form'>('list');
     const [editingQuoteId, setEditingQuoteId] = useState<number | null>(null);
+    const [quotes, setQuotes] = useState<Quote[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const fetchQuotes = async () => {
+        setIsLoading(true);
+        try {
+            const token = localStorage.getItem('boycell-token');
+            const response = await fetch('/api/quotes', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Falha ao buscar orçamentos');
+            const data = await response.json();
+            setQuotes(data);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Busca os orçamentos quando a view de lista é exibida
+    useEffect(() => {
+        if (view === 'list') {
+            fetchQuotes();
+        }
+    }, [view]);
+
+    const handleDeleteQuote = async (quoteId: number) => {
+        if (window.confirm('Tem certeza que deseja deletar este orçamento? Esta ação não pode ser desfeita.')) {
+            try {
+                const token = localStorage.getItem('boycell-token');
+                const response = await fetch(`/api/quotes/${quoteId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) throw new Error('Falha ao deletar orçamento');
+                // Remove o orçamento da lista localmente para atualizar a UI instantaneamente
+                setQuotes(prevQuotes => prevQuotes.filter(quote => quote.id !== quoteId));
+            } catch (error) {
+                console.error(error);
+                // TODO: Adicionar notificação de erro para o usuário
+            }
+        }
+    };
 
     // Função para lidar com o clique no botão de editar
     const handleEditClick = (quoteId: number) => {
@@ -394,7 +498,13 @@ export function Orcamento({ currentUser }: OrcamentoProps) {
             </header>
 
             {view === 'list' ? (
-                <OrcamentoList onShowForm={() => setView('form')} onEdit={handleEditClick} />
+                <OrcamentoList
+                    quotes={quotes}
+                    isLoading={isLoading}
+                    onShowForm={() => setView('form')}
+                    onEdit={handleEditClick}
+                    onDelete={handleDeleteQuote}
+                />
             ) : (
                 <OrcamentoForm onBackToList={handleBackToList} currentUser={currentUser} quoteId={editingQuoteId} />
             )}
